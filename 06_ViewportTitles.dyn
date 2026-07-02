@@ -1,0 +1,331 @@
+{
+  "Uuid": "8f4c1a2e-0a11-4b6e-9c01-aa0000000007",
+  "IsCustomNode": false,
+  "Description": "Muestra el titulo (nombre de la vista) bajo cada viewport: crea el tipo de viewport con titulo si no existe, lo aplica a los viewports de los sheets destino y alinea el titulo justo debajo de cada vista.",
+  "Name": "06_ViewportTitles",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [
+    {
+      "Id": "b6010000000000000000000000000001",
+      "Name": "Sheets destino (numeros con coma, o prefijo)",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "test hoja 2",
+      "Description": "Creates a string."
+    },
+    {
+      "Id": "b6020000000000000000000000000001",
+      "Name": "Tipo de viewport con titulo (se crea si no existe)",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "C_ConTitulo",
+      "Description": "Creates a string."
+    },
+    {
+      "Id": "b6030000000000000000000000000001",
+      "Name": "Separacion vista-titulo (mm)",
+      "Type": "number",
+      "Type2": "number",
+      "Value": "5",
+      "MaximumValue": 15.0,
+      "MinimumValue": 2.0,
+      "StepValue": 1.0,
+      "NumberType": "Integer",
+      "Description": "Produces integer values"
+    }
+  ],
+  "Outputs": [
+    {
+      "Id": "c6010000000000000000000000000001",
+      "Name": "Log",
+      "Type": "unknown",
+      "InitialValue": "",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
+      "Id": "b6010000000000000000000000000001",
+      "NodeType": "StringInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b6010000000000000000000000000002",
+          "Name": "",
+          "Description": "String",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Creates a string.",
+      "InputValue": "test hoja 2"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
+      "Id": "b6020000000000000000000000000001",
+      "NodeType": "StringInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b6020000000000000000000000000002",
+          "Name": "",
+          "Description": "String",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Creates a string.",
+      "InputValue": "C_ConTitulo"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+      "NumberType": "Integer",
+      "MaximumValue": 15,
+      "MinimumValue": 2,
+      "StepValue": 1,
+      "Id": "b6030000000000000000000000000001",
+      "NodeType": "NumberInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b6030000000000000000000000000002",
+          "Name": "",
+          "Description": "Int64",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Produces integer values",
+      "InputValue": 5
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "# 06_ViewportTitles - Muestra el titulo (nombre de la vista) bajo cada viewport\n# 1) Si el tipo de viewport indicado no existe, LO CREA duplicando un tipo existente.\n# 2) Activa Show Title = Yes en ese tipo.\n# 3) Lo aplica a todos los viewports de los sheets destino.\n# 4) Alinea el titulo justo debajo de cada vista, con la linea al ancho de la vista.\n# Revit 2027 / Dynamo 4 / CPython3\n# IN[0] = sheets destino: numeros separados por coma, o un prefijo comun\n# IN[1] = nombre del tipo de viewport con titulo (se crea si no existe)\n# IN[2] = separacion vista-titulo en mm de papel\n\nimport clr\nclr.AddReference('RevitAPI')\nclr.AddReference('RevitServices')\nfrom Autodesk.Revit.DB import (FilteredElementCollector, ViewSheet, Viewport,\n                               ElementType, Element, BuiltInParameter, XYZ,\n                               BuiltInCategory, FamilySymbol)\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\n\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nsheets_text = (IN[0] or '').strip()\ntype_text = (IN[1] or '').strip()\nif not type_text:\n    type_text = 'C_ConTitulo'\ngap = float(IN[2]) / 304.8\n\nlog = []\n\ndef elem_name(e):\n    try:\n        return e.Name\n    except Exception:\n        return Element.Name.__get__(e)\n\nvp_types = [t for t in FilteredElementCollector(doc).OfClass(ElementType)\n            if t.FamilyName == 'Viewport']\n\nvp_type = None\nlow = type_text.lower()\nfor t in vp_types:\n    if elem_name(t).lower() == low:\n        vp_type = t\n        break\n\n# --- sheets destino ---\nall_sheets = {}\nfor s in FilteredElementCollector(doc).OfClass(ViewSheet):\n    all_sheets[s.SheetNumber] = s\n\ntarget_sheets = []\nseen = set()\nfor tok in [t.strip() for t in sheets_text.split(',') if t.strip()]:\n    if tok in all_sheets:\n        matches = [all_sheets[tok]]\n    else:\n        matches = [s for n, s in all_sheets.items() if n.startswith(tok)]\n    for s in matches:\n        if s.SheetNumber not in seen:\n            seen.add(s.SheetNumber)\n            target_sheets.append(s)\ntarget_sheets.sort(key=lambda s: s.SheetNumber)\n\nif not target_sheets:\n    log.append('ERROR: ningun sheet coincide con {}.'.format(sheets_text))\n    log.append('Sheets del proyecto: ' + ', '.join(sorted(all_sheets.keys())[:30]))\n    OUT = log\nelif not vp_types:\n    log.append('ERROR: el proyecto no tiene tipos de viewport.')\n    OUT = log\nelse:\n    cambiados = 0\n    alineados = 0\n    TransactionManager.Instance.EnsureInTransaction(doc)\n    try:\n        # 1) crear el tipo si no existe\n        if vp_type is None:\n            base = vp_types[0]\n            vp_type = base.Duplicate(type_text)\n            log.append('Tipo {} creado (duplicado de {}).'.format(type_text, elem_name(base)))\n        # 2) Show Title = Yes\n        p = vp_type.get_Parameter(BuiltInParameter.VIEWPORT_ATTR_SHOW_LABEL)\n        if p is not None and not p.IsReadOnly and p.AsInteger() != 1:\n            p.Set(1)\n            log.append('Show Title activado en el tipo {}.'.format(elem_name(vp_type)))\n        # 2b) asignar la familia de titulo de vista (el texto) si el tipo no tiene\n        pt = vp_type.get_Parameter(BuiltInParameter.VIEWPORT_ATTR_LABEL_TAG)\n        if pt is not None and (pt.AsElementId() is None or pt.AsElementId().Value < 0):\n            labels = list(FilteredElementCollector(doc).OfClass(FamilySymbol)\n                          .OfCategory(BuiltInCategory.OST_ViewportLabel))\n            if labels:\n                pt.Set(labels[0].Id)\n                log.append('Familia de titulo asignada al tipo: {} : {}.'.format(\n                    labels[0].FamilyName, elem_name(labels[0])))\n            else:\n                log.append('AVISO: no hay ninguna familia View Title cargada en el proyecto.')\n                log.append('Carga una (Insertar > Cargar familia > Anotaciones > titulo de vista) y re-corre; sin ella la linea aparece pero no el texto.')\n        # 3) aplicar el tipo\n        vps = []\n        for sh in target_sheets:\n            for vpid in sh.GetAllViewports():\n                vp = doc.GetElement(vpid)\n                vps.append((sh, vp))\n                try:\n                    if vp.GetTypeId() != vp_type.Id:\n                        vp.ChangeTypeId(vp_type.Id)\n                        cambiados += 1\n                except Exception as e:\n                    log.append('ERROR cambiando tipo en sheet {}: {}'.format(sh.SheetNumber, e))\n        doc.Regenerate()\n        # 4) alinear el titulo bajo cada vista\n        for sh, vp in vps:\n            try:\n                o = vp.GetBoxOutline()\n                ancho = o.MaximumPoint.X - o.MinimumPoint.X\n                vp.LabelOffset = XYZ(0.0, -gap, 0.0)\n                vp.LabelLineLength = ancho\n                alineados += 1\n            except Exception as e:\n                log.append('ERROR alineando titulo en sheet {}: {}'.format(sh.SheetNumber, e))\n    finally:\n        TransactionManager.Instance.TransactionTaskDone()\n    log.insert(0, 'Tipo: {} | tipo cambiado en {} viewports | titulos alineados: {} | sheets: {}'.format(\n        elem_name(vp_type), cambiados, alineados, len(target_sheets)))\n    OUT = log",
+      "Engine": "PythonNet3",
+      "VariableInputPorts": true,
+      "Id": "a6010000000000000000000000000001",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "a6010000000000000000000000000002",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a6010000000000000000000000000003",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a6010000000000000000000000000005",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "a6010000000000000000000000000004",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 620.0,
+      "WatchHeight": 400.0,
+      "Id": "c6010000000000000000000000000001",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "c6010000000000000000000000000002",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c6010000000000000000000000000003",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "b6010000000000000000000000000002",
+      "End": "a6010000000000000000000000000002",
+      "Id": "d6010000000000000000000000000001",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b6020000000000000000000000000002",
+      "End": "a6010000000000000000000000000003",
+      "Id": "d6010000000000000000000000000002",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b6030000000000000000000000000002",
+      "End": "a6010000000000000000000000000005",
+      "Id": "d6010000000000000000000000000004",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "a6010000000000000000000000000004",
+      "End": "c6010000000000000000000000000002",
+      "Id": "d6010000000000000000000000000003",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "EnableLegacyPolyCurveBehavior": false,
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "4.0",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "10.3",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "4.0.2.3852",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Id": "b6010000000000000000000000000001",
+        "Name": "Sheets destino (numeros con coma, o prefijo)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 0.0
+      },
+      {
+        "Id": "b6020000000000000000000000000001",
+        "Name": "Tipo de viewport con titulo (se crea si no existe)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 130.0
+      },
+      {
+        "Id": "b6030000000000000000000000000001",
+        "Name": "Separacion vista-titulo (mm)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 260.0
+      },
+      {
+        "Id": "a6010000000000000000000000000001",
+        "Name": "PY | Crear tipo, aplicar y alinear titulos",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 480.0,
+        "Y": 100.0
+      },
+      {
+        "Id": "c6010000000000000000000000000001",
+        "Name": "Log",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 820.0,
+        "Y": 100.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 0.8
+  }
+}

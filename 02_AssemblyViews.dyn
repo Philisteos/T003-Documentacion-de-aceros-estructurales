@@ -1,0 +1,274 @@
+{
+  "Uuid": "8f4c1a2e-0a11-4b6e-9c01-aa0000000003",
+  "IsCustomNode": false,
+  "Description": "Por assembly: crea vista de planta (HorizontalDetail) y corte transversal (DetailSectionA), renombra y asigna escala automatica (>3 m -> 1:50, si no 1:20). Idempotente.",
+  "Name": "02_AssemblyViews",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+      "Id": "b2010000000000000000000000000001",
+      "NodeType": "BooleanInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b2010000000000000000000000000002",
+          "Name": "",
+          "Description": "Boolean",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Enables selection between True and False",
+      "InputValue": true
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "Id": "b2020000000000000000000000000001",
+      "NodeType": "StringInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b2020000000000000000000000000002",
+          "Name": "",
+          "Description": "String",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Creates a string",
+      "InputValue": "FN-1001, PD-1002"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+      "Id": "b2030000000000000000000000000001",
+      "NodeType": "BooleanInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b2030000000000000000000000000002",
+          "Name": "",
+          "Description": "Boolean",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Enables selection between True and False",
+      "InputValue": false
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "# 02_AssemblyViews - Planta + corte por assembly, escala automatica\n# Revit 2027 / Dynamo 4 / CPython3\n# IN[0] = procesar todos los assemblies (bool)\n# IN[1] = filtro por nombre si IN[0] es False (parcial, separado por comas)\n# IN[2] = recrear vistas existentes (bool) - borra y vuelve a crear\n\nimport clr\nclr.AddReference('RevitAPI')\nclr.AddReference('RevitServices')\nfrom Autodesk.Revit.DB import (FilteredElementCollector, AssemblyInstance,\n                               AssemblyViewUtils, AssemblyDetailViewOrientation,\n                               View, UnitUtils, UnitTypeId, XYZ, Element)\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\n\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nprocess_all = bool(IN[0])\nfilter_text = (IN[1] or '').strip()\nrecreate = bool(IN[2])\n\nlog = []\nSUFIJO_CORTE = ' - CORTE A'\n\ndef to_m(v):\n    return UnitUtils.ConvertFromInternalUnits(v, UnitTypeId.Meters)\n\ndef elem_name(e):\n    try:\n        return e.Name\n    except Exception:\n        return Element.Name.__get__(e)\n\ndef set_name(e, name):\n    try:\n        e.Name = name\n    except Exception:\n        Element.Name.__set__(e, name)\n\n# --- assemblies unicos por tipo ---\nby_type = {}\nfor ai in FilteredElementCollector(doc).OfClass(AssemblyInstance):\n    by_type.setdefault(ai.AssemblyTypeName, []).append(ai)\n\nif process_all:\n    targets = sorted(by_type.keys())\nelse:\n    tokens = [t.strip().lower() for t in filter_text.split(',') if t.strip()]\n    if tokens:\n        targets = [n for n in sorted(by_type.keys())\n                   if any(tok in n.lower() for tok in tokens)]\n    else:\n        targets = []\n        log.append('ERROR: \\\"Procesar todos\\\" esta en False y el filtro esta vacio.')\n    log.append('Filtro \\\"{}\\\": {} assemblies seleccionados.'.format(filter_text, len(targets)))\n\n# vistas existentes por nombre (para idempotencia)\nview_ids = {}\nfor v in FilteredElementCollector(doc).OfClass(View):\n    if not v.IsTemplate:\n        view_ids[elem_name(v)] = v.Id\n\ndef local_size(ai):\n    # bbox de los miembros en coordenadas locales del assembly, en metros\n    t = ai.GetTransform()\n    tinv = t.Inverse\n    mins = [float('inf')] * 3\n    maxs = [float('-inf')] * 3\n    for mid in ai.GetMemberIds():\n        el = doc.GetElement(mid)\n        bb = el.get_BoundingBox(None)\n        if bb is None:\n            continue\n        for x in (bb.Min.X, bb.Max.X):\n            for y in (bb.Min.Y, bb.Max.Y):\n                for z in (bb.Min.Z, bb.Max.Z):\n                    p = tinv.OfPoint(XYZ(x, y, z))\n                    vals = (p.X, p.Y, p.Z)\n                    for i in range(3):\n                        if vals[i] < mins[i]:\n                            mins[i] = vals[i]\n                        if vals[i] > maxs[i]:\n                            maxs[i] = vals[i]\n    if mins[0] == float('inf'):\n        return None\n    return [to_m(maxs[i] - mins[i]) for i in range(3)]\n\ncreated = 0\nskipped = 0\nTransactionManager.Instance.EnsureInTransaction(doc)\ntry:\n    for tname in targets:\n        insts = by_type[tname]\n        ai = insts[0]\n        if len(insts) > 1:\n            log.append('AVISO {}: {} instancias del mismo tipo, se documenta la primera.'.format(tname, len(insts)))\n        try:\n            size = local_size(ai)\n            scale = 50 if size is not None and (size[0] > 3.0 or size[1] > 3.0) else 20\n            jobs = ((tname, AssemblyDetailViewOrientation.HorizontalDetail, 'planta'),\n                    (tname + SUFIJO_CORTE, AssemblyDetailViewOrientation.DetailSectionA, 'corte'))\n            for vname, orient, label in jobs:\n                if vname in view_ids:\n                    if recreate:\n                        doc.Delete(view_ids[vname])\n                        del view_ids[vname]\n                        log.append('{}: {} anterior eliminada (tambien su viewport si estaba en un sheet).'.format(tname, label))\n                    else:\n                        log.append('{}: {} ya existe, se salta.'.format(tname, label))\n                        skipped += 1\n                        continue\n                v = AssemblyViewUtils.CreateDetailSection(doc, ai.Id, orient)\n                set_name(v, vname)\n                v.Scale = scale\n                view_ids[vname] = v.Id\n                created += 1\n                log.append('OK {}: {} creada, escala 1:{}.'.format(tname, label, scale))\n        except Exception as e:\n            log.append('ERROR {}: {}'.format(tname, e))\nfinally:\n    TransactionManager.Instance.TransactionTaskDone()\n\nlog.insert(0, 'Assemblies procesados: {} | vistas creadas: {} | saltadas: {}'.format(len(targets), created, skipped))\nOUT = log",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "a2010000000000000000000000000001",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "a2010000000000000000000000000002",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a2010000000000000000000000000003",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a2010000000000000000000000000004",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "a2010000000000000000000000000005",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 620.0,
+      "WatchHeight": 400.0,
+      "Id": "c2010000000000000000000000000001",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "c2010000000000000000000000000002",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c2010000000000000000000000000003",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "b2010000000000000000000000000002",
+      "End": "a2010000000000000000000000000002",
+      "Id": "d2010000000000000000000000000001",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b2020000000000000000000000000002",
+      "End": "a2010000000000000000000000000003",
+      "Id": "d2010000000000000000000000000002",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b2030000000000000000000000000002",
+      "End": "a2010000000000000000000000000004",
+      "Id": "d2010000000000000000000000000003",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "a2010000000000000000000000000005",
+      "End": "c2010000000000000000000000000002",
+      "Id": "d2010000000000000000000000000004",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "EnableLegacyPolyCurveBehavior": false,
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "4.0.2.3852",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Id": "b2010000000000000000000000000001",
+        "Name": "Procesar TODOS los assemblies",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 0.0
+      },
+      {
+        "Id": "b2020000000000000000000000000001",
+        "Name": "Filtro por nombre (si TODOS = False)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 130.0
+      },
+      {
+        "Id": "b2030000000000000000000000000001",
+        "Name": "Recrear vistas existentes (borra y rehace)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 260.0
+      },
+      {
+        "Id": "a2010000000000000000000000000001",
+        "Name": "PY | Crear planta + corte por assembly",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 480.0,
+        "Y": 100.0
+      },
+      {
+        "Id": "c2010000000000000000000000000001",
+        "Name": "Log",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 820.0,
+        "Y": 100.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 0.8
+  }
+}

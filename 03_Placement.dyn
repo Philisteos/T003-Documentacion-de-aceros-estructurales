@@ -1,0 +1,500 @@
+{
+  "Uuid": "8f4c1a2e-0a11-4b6e-9c01-aa0000000004",
+  "IsCustomNode": false,
+  "Description": "Coloca las vistas de assembly (planta + corte) en los sheets destino, en grilla por filas con margenes respecto a la viñeta, pasando al siguiente sheet cuando uno se llena.",
+  "Name": "03_Placement",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [
+    {
+      "Id": "b3010000000000000000000000000001",
+      "Name": "Sheets destino (numeros con coma, o prefijo)",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "test",
+      "Description": "Creates a string."
+    },
+    {
+      "Id": "b3020000000000000000000000000001",
+      "Name": "Procesar TODOS los assemblies",
+      "Type": "boolean",
+      "Type2": "boolean",
+      "Value": "true",
+      "Description": "Enables selection between True and False"
+    },
+    {
+      "Id": "b3030000000000000000000000000001",
+      "Name": "Filtro assemblies (si TODOS = False)",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "",
+      "Description": "Creates a string."
+    },
+    {
+      "Id": "b3040000000000000000000000000001",
+      "Name": "Margen y separacion (mm)",
+      "Type": "number",
+      "Type2": "number",
+      "Value": "5",
+      "MaximumValue": 50.0,
+      "MinimumValue": 5.0,
+      "StepValue": 1.0,
+      "NumberType": "Integer",
+      "Description": "Produces integer values"
+    },
+    {
+      "Id": "b3050000000000000000000000000001",
+      "Name": "Reserva lado derecho (mm)",
+      "Type": "number",
+      "Type2": "number",
+      "Value": "100",
+      "MaximumValue": 200.0,
+      "MinimumValue": 0.0,
+      "StepValue": 5.0,
+      "NumberType": "Integer",
+      "Description": "Produces integer values"
+    },
+    {
+      "Id": "b3060000000000000000000000000001",
+      "Name": "Tipo de viewport con titulo",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "C_ConTitulo",
+      "Description": "Creates a string."
+    }
+  ],
+  "Outputs": [
+    {
+      "Id": "c3010000000000000000000000000001",
+      "Name": "Log",
+      "Type": "unknown",
+      "InitialValue": "",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
+      "Id": "b3010000000000000000000000000001",
+      "NodeType": "StringInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b3010000000000000000000000000002",
+          "Name": "",
+          "Description": "String",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Creates a string.",
+      "InputValue": "test"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+      "Id": "b3020000000000000000000000000001",
+      "NodeType": "BooleanInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b3020000000000000000000000000002",
+          "Name": "",
+          "Description": "Boolean",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Enables selection between True and False",
+      "InputValue": true
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
+      "Id": "b3030000000000000000000000000001",
+      "NodeType": "StringInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b3030000000000000000000000000002",
+          "Name": "",
+          "Description": "String",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Creates a string.",
+      "InputValue": ""
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+      "NumberType": "Integer",
+      "MaximumValue": 50,
+      "MinimumValue": 5,
+      "StepValue": 1,
+      "Id": "b3040000000000000000000000000001",
+      "NodeType": "NumberInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b3040000000000000000000000000002",
+          "Name": "",
+          "Description": "Int64",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Produces integer values",
+      "InputValue": 5
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+      "NumberType": "Integer",
+      "MaximumValue": 200,
+      "MinimumValue": 0,
+      "StepValue": 5,
+      "Id": "b3050000000000000000000000000001",
+      "NodeType": "NumberInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b3050000000000000000000000000002",
+          "Name": "",
+          "Description": "Int64",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Produces integer values",
+      "InputValue": 100
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
+      "Id": "b3060000000000000000000000000001",
+      "NodeType": "StringInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b3060000000000000000000000000002",
+          "Name": "",
+          "Description": "String",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Creates a string.",
+      "InputValue": "C_ConTitulo"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "# 03_Placement - Distribuye vistas de assemblies en sheets, en grilla por filas\n# Revit 2027 / Dynamo 4 / CPython3\n# IN[0] = sheets destino: numeros separados por coma, o un prefijo comun\n# IN[1] = procesar todos los assemblies (bool)\n# IN[2] = filtro de assemblies si IN[1] es False (parcial, comas)\n# IN[3] = margen y separacion entre vistas (mm)\n# IN[4] = reserva en el lado derecho del sheet (mm), p/ cajetin lateral de la viñeta\n# IN[5] = nombre del tipo de viewport con titulo (vacio = tipo por defecto)\n\nimport clr\nclr.AddReference('RevitAPI')\nclr.AddReference('RevitServices')\nfrom Autodesk.Revit.DB import (FilteredElementCollector, AssemblyInstance, ViewSheet,\n                               Viewport, View, BuiltInCategory, XYZ, Element,\n                               ElementType)\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\n\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nsheets_text = (IN[0] or '').strip()\nprocess_all = bool(IN[1])\nfilter_text = (IN[2] or '').strip()\nmargin = float(IN[3]) / 304.8\nright_reserve = float(IN[4]) / 304.8\nvp_type_text = (IN[5] or '').strip()\nlabel_h = 12.0 / 304.8  # reserva bajo cada vista para el titulo del viewport\n\nlog = []\nSUFIJO_CORTE = ' - CORTE A'\n\ndef elem_name(e):\n    try:\n        return e.Name\n    except Exception:\n        return Element.Name.__get__(e)\n\n# --- tipo de viewport con titulo ---\nvp_type = None\nif vp_type_text:\n    vp_types = [t for t in FilteredElementCollector(doc).OfClass(ElementType)\n                if t.FamilyName == 'Viewport']\n    low = vp_type_text.lower()\n    for t in vp_types:\n        if elem_name(t).lower() == low:\n            vp_type = t\n            break\n    if vp_type is None:\n        cands = [t for t in vp_types if low in elem_name(t).lower()]\n        if len(cands) == 1:\n            vp_type = cands[0]\n    if vp_type is None:\n        log.append('AVISO: no existe un tipo de viewport que coincida con {}; se usa el tipo por defecto.'.format(vp_type_text))\n        log.append('Tipos disponibles: ' + ', '.join(sorted(elem_name(t) for t in vp_types)))\n\n# --- sheets destino, ordenados por numero ---\nall_sheets = {}\nfor s in FilteredElementCollector(doc).OfClass(ViewSheet):\n    all_sheets[s.SheetNumber] = s\n\ntarget_sheets = []\nseen = set()\nfor tok in [t.strip() for t in sheets_text.split(',') if t.strip()]:\n    if tok in all_sheets:\n        matches = [all_sheets[tok]]\n    else:\n        matches = [s for n, s in all_sheets.items() if n.startswith(tok)]\n    for s in matches:\n        if s.SheetNumber not in seen:\n            seen.add(s.SheetNumber)\n            target_sheets.append(s)\ntarget_sheets.sort(key=lambda s: s.SheetNumber)\n\nif not target_sheets:\n    log.append('ERROR: ningun sheet coincide con \\\"{}\\\".'.format(sheets_text))\n    log.append('Sheets del proyecto: ' + ', '.join(sorted(all_sheets.keys())[:30]))\n    OUT = log\nelse:\n    # --- vistas a colocar, en orden por assembly: planta y luego corte ---\n    names = sorted(set(ai.AssemblyTypeName\n                       for ai in FilteredElementCollector(doc).OfClass(AssemblyInstance)))\n    if not process_all:\n        tokens = [t.strip().lower() for t in filter_text.split(',') if t.strip()]\n        if tokens:\n            names = [n for n in names if any(tok in n.lower() for tok in tokens)]\n        else:\n            names = []\n            log.append('ERROR: \\\"Todos\\\" esta en False y el filtro esta vacio.')\n\n    view_by_name = {}\n    for v in FilteredElementCollector(doc).OfClass(View):\n        if not v.IsTemplate:\n            view_by_name[elem_name(v)] = v\n\n    placed_ids = set()\n    for vp in FilteredElementCollector(doc).OfClass(Viewport):\n        placed_ids.add(vp.ViewId.Value)\n\n    queue = []\n    for n in names:\n        for vname in (n, n + SUFIJO_CORTE):\n            v = view_by_name.get(vname)\n            if v is None:\n                log.append('AVISO: no existe la vista \\\"{}\\\" (corre 02_AssemblyViews).'.format(vname))\n            elif v.Id.Value in placed_ids:\n                log.append('AVISO: \\\"{}\\\" ya esta en un sheet, se salta.'.format(vname))\n            else:\n                queue.append(v)\n\n    def usable_rect(sheet):\n        # area util = bbox de la viñeta menos margenes (y reserva derecha)\n        col = FilteredElementCollector(doc, sheet.Id).OfCategory(BuiltInCategory.OST_TitleBlocks)\n        tb = col.FirstElement()\n        if tb is not None:\n            bb = tb.get_BoundingBox(sheet)\n            if bb is not None:\n                return (bb.Min.X + margin, bb.Min.Y + margin,\n                        bb.Max.X - margin - right_reserve, bb.Max.Y - margin)\n        o = sheet.Outline\n        return (o.Min.U + margin, o.Min.V + margin,\n                o.Max.U - margin - right_reserve, o.Max.V - margin)\n\n    def paper_size(v):\n        # tamaño en papel (pies) = crop del modelo / escala\n        cb = v.CropBox\n        s = v.Scale if v.Scale > 0 else 1\n        return ((cb.Max.X - cb.Min.X) / s, (cb.Max.Y - cb.Min.Y) / s)\n\n    placed = 0\n    overflow = []\n    si = 0\n    state = None\n\n    TransactionManager.Instance.EnsureInTransaction(doc)\n    try:\n        for v in queue:\n            w, h = paper_size(v)\n            hh = h + label_h\n            done = False\n            while not done:\n                if state is None:\n                    while si < len(target_sheets):\n                        sh = target_sheets[si]\n                        if len(list(sh.GetAllViewports())) > 0:\n                            log.append('AVISO: sheet {} ya tiene vistas colocadas, se omite.'.format(sh.SheetNumber))\n                            si += 1\n                            continue\n                        x0, y0, x1, y1 = usable_rect(sh)\n                        state = {'sh': sh, 'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1,\n                                 'cx': x0, 'cy': y1, 'row_h': 0.0}\n                        break\n                    if state is None:\n                        overflow.append(elem_name(v))\n                        done = True\n                        continue\n                # salto de fila si no cabe a lo ancho\n                if state['cx'] > state['x0'] and state['cx'] + w > state['x1']:\n                    state['cx'] = state['x0']\n                    state['cy'] -= state['row_h'] + margin\n                    state['row_h'] = 0.0\n                if state['cy'] - hh < state['y0'] or state['cx'] + w > state['x1']:\n                    fresh = (state['cx'] == state['x0'] and state['cy'] == state['y1'])\n                    too_big = (state['x1'] - state['x0'] < w) or (state['y1'] - state['y0'] < hh)\n                    if fresh and too_big:\n                        log.append('ERROR: \\\"{}\\\" ({:.0f} x {:.0f} mm en papel) no cabe ni en un sheet vacio.'.format(\n                            elem_name(v), w * 304.8, hh * 304.8))\n                        done = True\n                        continue\n                    si += 1\n                    state = None\n                    continue\n                center = XYZ(state['cx'] + w / 2.0, state['cy'] - h / 2.0, 0.0)\n                try:\n                    vp = Viewport.Create(doc, state['sh'].Id, v.Id, center)\n                    if vp is None:\n                        log.append('ERROR: Revit no permitio colocar \\\"{}\\\" en {}.'.format(elem_name(v), state['sh'].SheetNumber))\n                    else:\n                        if vp_type is not None:\n                            if vp.GetTypeId() != vp_type.Id:\n                                vp.ChangeTypeId(vp_type.Id)\n                            try:\n                                # titulo alineado bajo el borde inferior izquierdo de la vista\n                                vp.LabelOffset = XYZ(0.0, -5.0 / 304.8, 0.0)\n                                vp.LabelLineLength = w\n                            except Exception:\n                                pass\n                        placed += 1\n                        log.append('OK: \\\"{}\\\" -> sheet {}'.format(elem_name(v), state['sh'].SheetNumber))\n                        state['cx'] += w + margin\n                        if hh > state['row_h']:\n                            state['row_h'] = hh\n                except Exception as e:\n                    log.append('ERROR colocando \\\"{}\\\": {}'.format(elem_name(v), e))\n                done = True\n    finally:\n        TransactionManager.Instance.TransactionTaskDone()\n\n    if overflow:\n        log.append('SIN ESPACIO para {} vistas: {}'.format(len(overflow), ', '.join(overflow)))\n        log.append('Crea mas sheets con 01_Sheets y vuelve a correr este graph (lo ya colocado se respeta).')\n    log.insert(0, 'Vistas colocadas: {} de {}'.format(placed, len(queue)))\n    OUT = log",
+      "Engine": "PythonNet3",
+      "VariableInputPorts": true,
+      "Id": "a3010000000000000000000000000001",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "a3010000000000000000000000000002",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a3010000000000000000000000000003",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a3010000000000000000000000000004",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a3010000000000000000000000000005",
+          "Name": "IN[3]",
+          "Description": "Input #3",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a3010000000000000000000000000006",
+          "Name": "IN[4]",
+          "Description": "Input #4",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a3010000000000000000000000000008",
+          "Name": "IN[5]",
+          "Description": "Input #5",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "a3010000000000000000000000000007",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 620.0,
+      "WatchHeight": 400.0,
+      "Id": "c3010000000000000000000000000001",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "c3010000000000000000000000000002",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c3010000000000000000000000000003",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "b3010000000000000000000000000002",
+      "End": "a3010000000000000000000000000002",
+      "Id": "d3010000000000000000000000000001",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b3020000000000000000000000000002",
+      "End": "a3010000000000000000000000000003",
+      "Id": "d3010000000000000000000000000002",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b3030000000000000000000000000002",
+      "End": "a3010000000000000000000000000004",
+      "Id": "d3010000000000000000000000000003",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b3040000000000000000000000000002",
+      "End": "a3010000000000000000000000000005",
+      "Id": "d3010000000000000000000000000004",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b3050000000000000000000000000002",
+      "End": "a3010000000000000000000000000006",
+      "Id": "d3010000000000000000000000000005",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b3060000000000000000000000000002",
+      "End": "a3010000000000000000000000000008",
+      "Id": "d3010000000000000000000000000007",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "a3010000000000000000000000000007",
+      "End": "c3010000000000000000000000000002",
+      "Id": "d3010000000000000000000000000006",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "EnableLegacyPolyCurveBehavior": false,
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "4.0",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "10.3",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "4.0.2.3852",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Id": "b3010000000000000000000000000001",
+        "Name": "Sheets destino (numeros con coma, o prefijo)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 0.0
+      },
+      {
+        "Id": "b3020000000000000000000000000001",
+        "Name": "Procesar TODOS los assemblies",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 130.0
+      },
+      {
+        "Id": "b3030000000000000000000000000001",
+        "Name": "Filtro assemblies (si TODOS = False)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 260.0
+      },
+      {
+        "Id": "b3040000000000000000000000000001",
+        "Name": "Margen y separacion (mm)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 390.0
+      },
+      {
+        "Id": "b3050000000000000000000000000001",
+        "Name": "Reserva lado derecho (mm)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 520.0
+      },
+      {
+        "Id": "b3060000000000000000000000000001",
+        "Name": "Tipo de viewport con titulo",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 650.0
+      },
+      {
+        "Id": "a3010000000000000000000000000001",
+        "Name": "PY | Colocar viewports en grilla",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 520.0,
+        "Y": 200.0
+      },
+      {
+        "Id": "c3010000000000000000000000000001",
+        "Name": "Log",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 860.0,
+        "Y": 200.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 0.8
+  }
+}

@@ -1,0 +1,10 @@
+# Windows
+Thumbs.db
+desktop.ini
+
+# Backups de Dynamo
+backup/
+*.backup
+
+# Configuracion local de Claude Code
+.claude/settings.local.json
