@@ -8,3 +8,10 @@ backup/
 
 # Configuracion local de Claude Code
 .claude/settings.local.json
+
+# Revit: backups, temporales y logs de worksharing
+*_backup/
+Revit_temp/
+*.slog
+*.rws
+*.0[0-9][0-9][0-9].rvt
