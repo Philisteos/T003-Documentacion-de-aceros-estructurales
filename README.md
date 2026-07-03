@@ -18,13 +18,13 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 
 | # | Graph | Qué hace |
 |---|-------|----------|
-| 0 | `00_Audit.dyn` | Diagnóstico: lista assemblies con tamaño, escala que les tocará y origen. Correr primero en cada proyecto nuevo. No modifica nada. |
-| 1 | `01_Sheets.dyn` | Crea N sheets con la viñeta elegida. El primero con número/nombre manual; el resto incrementa el último bloque numérico conservando ceros (`...-006` → `...-007`). Salta números ya ocupados. |
-| 2 | `02_AssemblyViews.dyn` | Por assembly: planta (`HorizontalDetail`) y corte transversal (`DetailSectionA`), renombrados y con escala automática (ancho o largo > 3 m → 1:50, si no 1:20). |
-| 3 | `03_Placement.dyn` | Coloca las vistas (planta + corte, por assembly) en los sheets destino, en grilla por filas con márgenes respecto a la viñeta. Cuando un sheet se llena, sigue en el siguiente. |
-| 4 | `04_Dimensions_Overall.dyn` | Planta: cotas de ancho y largo total. Corte: cota de altura total + spot elevations superior e inferior. |
-| 5 | `05_Dimensions_Chain.dyn` | Planta: cadena borde → eje de cada elemento → borde opuesto (usa los planos de referencia centrales de cada familia). |
-| 6 | `06_ViewportTitles.dyn` | Título bajo cada vista: crea el tipo de viewport con título si no existe (default `C_ConTitulo`), lo aplica a los viewports de los sheets destino y alinea el título justo debajo de cada vista con la línea al ancho de la vista. |
+| 0 | `00_Auditoria de assemblies.dyn` | Diagnóstico: lista assemblies con tamaño, escala que les tocará y origen. Correr primero en cada proyecto nuevo. No modifica nada. |
+| 1 | `01_Crear laminas.dyn` | Crea N sheets con la viñeta elegida. El primero con número/nombre manual; el resto incrementa el último bloque numérico conservando ceros (`...-006` → `...-007`). Salta números ya ocupados. |
+| 2 | `02_Vistas de assembly.dyn` | Por assembly: planta (`HorizontalDetail`) y corte transversal (`DetailSectionA`), renombrados y con escala automática (ancho o largo > 3 m → 1:50, si no 1:20). |
+| 3 | `03_Colocar vistas en laminas.dyn` | Coloca las vistas (planta + corte, por assembly) en los sheets destino, en grilla por filas con márgenes respecto a la viñeta. Cuando un sheet se llena, sigue en el siguiente. |
+| 4 | `04_Cotas generales.dyn` | Planta: cotas de ancho y largo total. Corte: cota de altura total + spot elevations superior e inferior. |
+| 5 | `05_Cotas de ejes.dyn` | Planta: cadena borde → eje de cada elemento → borde opuesto (usa los planos de referencia centrales de cada familia). |
+| 6 | `06_Titulos de vistas.dyn` | Título bajo cada vista: crea el tipo de viewport con título si no existe (default `C_ConTitulo`), lo aplica a los viewports de los sheets destino y alinea el título justo debajo de cada vista con la línea al ancho de la vista. |
 
 Los graphs 04 y 05 pueden correrse en cualquier orden. Para el layout clásico
 (cadena pegada al assembly, total por fuera): 05 con 10 mm y 04 con 20 mm de separación.
@@ -54,7 +54,7 @@ Los graphs 04 y 05 pueden correrse en cualquier orden. Para el layout clásico
 
 ## Mensajes de log frecuentes
 
-- `no existe la vista ... (corre 02_AssemblyViews)` — falta el paso 2 para ese assembly.
+- `no existe la vista ... (corre 02_Vistas de assembly)` — falta el paso 2 para ese assembly.
 - `N elementos sin plano de referencia central en la familia` (05) — abrir la familia y
   marcar sus planos centrales como *Is Reference*: `Center (Left/Right)` /
   `Center (Front/Back)`. Se corrige una vez por familia.
