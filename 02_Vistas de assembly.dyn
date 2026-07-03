@@ -6,8 +6,53 @@
   "ElementResolver": {
     "ResolutionMap": {}
   },
-  "Inputs": [],
-  "Outputs": [],
+  "Inputs": [
+    {
+      "Id": "b2010000000000000000000000000001",
+      "Name": "Procesar TODOS los assemblies",
+      "Type": "boolean",
+      "Type2": "boolean",
+      "Value": "true",
+      "Description": "Enables selection between True and False"
+    },
+    {
+      "Id": "b2020000000000000000000000000001",
+      "Name": "Filtro por nombre (si TODOS = False)",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "",
+      "Description": "Creates a string."
+    },
+    {
+      "Id": "b2030000000000000000000000000001",
+      "Name": "Recrear vistas existentes (borra y rehace)",
+      "Type": "boolean",
+      "Type2": "boolean",
+      "Value": "false",
+      "Description": "Enables selection between True and False"
+    },
+    {
+      "Id": "b2040000000000000000000000000001",
+      "Name": "Altura del corte sobre el assembly (cm)",
+      "Type": "number",
+      "Type2": "number",
+      "Value": "30",
+      "MaximumValue": 100.0,
+      "MinimumValue": 10.0,
+      "StepValue": 5.0,
+      "NumberType": "Integer",
+      "Description": "Produces integer values"
+    }
+  ],
+  "Outputs": [
+    {
+      "Id": "c2010000000000000000000000000001",
+      "Name": "Log",
+      "Type": "unknown",
+      "InitialValue": "",
+      "Description": "Visualizes a node's output"
+    }
+  ],
   "Nodes": [
     {
       "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
@@ -31,6 +76,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
       "Id": "b2020000000000000000000000000001",
       "NodeType": "StringInputNode",
       "Inputs": [],
@@ -46,8 +93,8 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "Creates a string",
-      "InputValue": "FN-1001, PD-1002"
+      "Description": "Creates a string.",
+      "InputValue": ""
     },
     {
       "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
@@ -70,10 +117,33 @@
       "InputValue": false
     },
     {
+      "ConcreteType": "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+      "NumberType": "Integer",
+      "MaximumValue": 100,
+      "MinimumValue": 10,
+      "StepValue": 5,
+      "Id": "b2040000000000000000000000000001",
+      "NodeType": "NumberInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b2040000000000000000000000000002",
+          "Name": "",
+          "Description": "Int64",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Produces integer values",
+      "InputValue": 30
+    },
+    {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "Code": "# 02_Vistas de assembly - Planta + corte por assembly, escala automatica\n# Revit 2027 / Dynamo 4 / CPython3\n# IN[0] = procesar todos los assemblies (bool)\n# IN[1] = filtro por nombre si IN[0] es False (parcial, separado por comas)\n# IN[2] = recrear vistas existentes (bool) - borra y vuelve a crear\n\nimport clr\nclr.AddReference('RevitAPI')\nclr.AddReference('RevitServices')\nfrom Autodesk.Revit.DB import (FilteredElementCollector, AssemblyInstance,\n                               AssemblyViewUtils, AssemblyDetailViewOrientation,\n                               View, UnitUtils, UnitTypeId, XYZ, Element)\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\n\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nprocess_all = bool(IN[0])\nfilter_text = (IN[1] or '').strip()\nrecreate = bool(IN[2])\n\nlog = []\nSUFIJO_CORTE = ' - CORTE A'\n\ndef to_m(v):\n    return UnitUtils.ConvertFromInternalUnits(v, UnitTypeId.Meters)\n\ndef elem_name(e):\n    try:\n        return e.Name\n    except Exception:\n        return Element.Name.__get__(e)\n\ndef set_name(e, name):\n    try:\n        e.Name = name\n    except Exception:\n        Element.Name.__set__(e, name)\n\n# --- assemblies unicos por tipo ---\nby_type = {}\nfor ai in FilteredElementCollector(doc).OfClass(AssemblyInstance):\n    by_type.setdefault(ai.AssemblyTypeName, []).append(ai)\n\nif process_all:\n    targets = sorted(by_type.keys())\nelse:\n    tokens = [t.strip().lower() for t in filter_text.split(',') if t.strip()]\n    if tokens:\n        targets = [n for n in sorted(by_type.keys())\n                   if any(tok in n.lower() for tok in tokens)]\n    else:\n        targets = []\n        log.append('ERROR: \\\"Procesar todos\\\" esta en False y el filtro esta vacio.')\n    log.append('Filtro \\\"{}\\\": {} assemblies seleccionados.'.format(filter_text, len(targets)))\n\n# vistas existentes por nombre (para idempotencia)\nview_ids = {}\nfor v in FilteredElementCollector(doc).OfClass(View):\n    if not v.IsTemplate:\n        view_ids[elem_name(v)] = v.Id\n\ndef local_size(ai):\n    # bbox de los miembros en coordenadas locales del assembly, en metros\n    t = ai.GetTransform()\n    tinv = t.Inverse\n    mins = [float('inf')] * 3\n    maxs = [float('-inf')] * 3\n    for mid in ai.GetMemberIds():\n        el = doc.GetElement(mid)\n        bb = el.get_BoundingBox(None)\n        if bb is None:\n            continue\n        for x in (bb.Min.X, bb.Max.X):\n            for y in (bb.Min.Y, bb.Max.Y):\n                for z in (bb.Min.Z, bb.Max.Z):\n                    p = tinv.OfPoint(XYZ(x, y, z))\n                    vals = (p.X, p.Y, p.Z)\n                    for i in range(3):\n                        if vals[i] < mins[i]:\n                            mins[i] = vals[i]\n                        if vals[i] > maxs[i]:\n                            maxs[i] = vals[i]\n    if mins[0] == float('inf'):\n        return None\n    return [to_m(maxs[i] - mins[i]) for i in range(3)]\n\ncreated = 0\nskipped = 0\nTransactionManager.Instance.EnsureInTransaction(doc)\ntry:\n    for tname in targets:\n        insts = by_type[tname]\n        ai = insts[0]\n        if len(insts) > 1:\n            log.append('AVISO {}: {} instancias del mismo tipo, se documenta la primera.'.format(tname, len(insts)))\n        try:\n            size = local_size(ai)\n            scale = 50 if size is not None and (size[0] > 3.0 or size[1] > 3.0) else 20\n            jobs = ((tname, AssemblyDetailViewOrientation.HorizontalDetail, 'planta'),\n                    (tname + SUFIJO_CORTE, AssemblyDetailViewOrientation.DetailSectionA, 'corte'))\n            for vname, orient, label in jobs:\n                if vname in view_ids:\n                    if recreate:\n                        doc.Delete(view_ids[vname])\n                        del view_ids[vname]\n                        log.append('{}: {} anterior eliminada (tambien su viewport si estaba en un sheet).'.format(tname, label))\n                    else:\n                        log.append('{}: {} ya existe, se salta.'.format(tname, label))\n                        skipped += 1\n                        continue\n                v = AssemblyViewUtils.CreateDetailSection(doc, ai.Id, orient)\n                set_name(v, vname)\n                v.Scale = scale\n                view_ids[vname] = v.Id\n                created += 1\n                log.append('OK {}: {} creada, escala 1:{}.'.format(tname, label, scale))\n        except Exception as e:\n            log.append('ERROR {}: {}'.format(tname, e))\nfinally:\n    TransactionManager.Instance.TransactionTaskDone()\n\nlog.insert(0, 'Assemblies procesados: {} | vistas creadas: {} | saltadas: {}'.format(len(targets), created, skipped))\nOUT = log",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
+      "Code": "# 02_Vistas de assembly - Planta + corte por assembly, escala automatica\n# Revit 2027 / Dynamo 4 / CPython3\n# IN[0] = procesar todos los assemblies (bool)\n# IN[1] = filtro por nombre si IN[0] es False (parcial, separado por comas)\n# IN[2] = recrear vistas existentes (bool) - borra y vuelve a crear\n# IN[3] = altura del plano de corte de la planta sobre el tope del assembly (cm)\n\nimport clr\nclr.AddReference('RevitAPI')\nclr.AddReference('RevitServices')\nfrom Autodesk.Revit.DB import (FilteredElementCollector, AssemblyInstance,\n                               AssemblyViewUtils, AssemblyDetailViewOrientation,\n                               View, UnitUtils, UnitTypeId, XYZ, Element,\n                               ElementTransformUtils, BuiltInParameter, BuiltInCategory)\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\n\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nprocess_all = bool(IN[0])\nfilter_text = (IN[1] or '').strip()\nrecreate = bool(IN[2])\ncut_margin = float(IN[3]) / 30.48  # cm -> pies\n\nlog = []\nSUFIJO_CORTE = ' - CORTE A'\n\ndef to_m(v):\n    return UnitUtils.ConvertFromInternalUnits(v, UnitTypeId.Meters)\n\ndef elem_name(e):\n    try:\n        return e.Name\n    except Exception:\n        return Element.Name.__get__(e)\n\ndef set_name(e, name):\n    try:\n        e.Name = name\n    except Exception:\n        Element.Name.__set__(e, name)\n\n# --- assemblies unicos por tipo ---\nby_type = {}\nfor ai in FilteredElementCollector(doc).OfClass(AssemblyInstance):\n    by_type.setdefault(ai.AssemblyTypeName, []).append(ai)\n\nif process_all:\n    targets = sorted(by_type.keys())\nelse:\n    tokens = [t.strip().lower() for t in filter_text.split(',') if t.strip()]\n    if tokens:\n        targets = [n for n in sorted(by_type.keys())\n                   if any(tok in n.lower() for tok in tokens)]\n    else:\n        targets = []\n        log.append('ERROR: \\\"Procesar todos\\\" esta en False y el filtro esta vacio.')\n    log.append('Filtro \\\"{}\\\": {} assemblies seleccionados.'.format(filter_text, len(targets)))\n\n# vistas existentes por nombre (para idempotencia)\nview_ids = {}\nfor v in FilteredElementCollector(doc).OfClass(View):\n    if not v.IsTemplate:\n        view_ids[elem_name(v)] = v.Id\n\ndef local_size(ai):\n    # bbox de los miembros en coordenadas locales del assembly, en metros\n    t = ai.GetTransform()\n    tinv = t.Inverse\n    mins = [float('inf')] * 3\n    maxs = [float('-inf')] * 3\n    for mid in ai.GetMemberIds():\n        el = doc.GetElement(mid)\n        bb = el.get_BoundingBox(None)\n        if bb is None:\n            continue\n        for x in (bb.Min.X, bb.Max.X):\n            for y in (bb.Min.Y, bb.Max.Y):\n                for z in (bb.Min.Z, bb.Max.Z):\n                    p = tinv.OfPoint(XYZ(x, y, z))\n                    vals = (p.X, p.Y, p.Z)\n                    for i in range(3):\n                        if vals[i] < mins[i]:\n                            mins[i] = vals[i]\n                        if vals[i] > maxs[i]:\n                            maxs[i] = vals[i]\n    if mins[0] == float('inf'):\n        return None\n    return [to_m(maxs[i] - mins[i]) for i in range(3)]\n\ndef world_z_range(ai):\n    zmin = float('inf')\n    zmax = float('-inf')\n    for mid in ai.GetMemberIds():\n        el = doc.GetElement(mid)\n        bb = el.get_BoundingBox(None)\n        if bb is None:\n            continue\n        if bb.Min.Z < zmin:\n            zmin = bb.Min.Z\n        if bb.Max.Z > zmax:\n            zmax = bb.Max.Z\n    if zmin > zmax:\n        return None\n    return (zmin, zmax)\n\ndef find_viewer(vname):\n    # marcador de la vista (categoria Views/Viewers), comparte nombre con la vista\n    for ve in FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Viewers):\n        if elem_name(ve) == vname:\n            return ve\n    return None\n\ndef ajustar_corte_planta(vplan, ai, tname):\n    # sube el plano de corte por encima del assembly (nada queda cortado,\n    # todo se ve en proyeccion como una planta real) y extiende el far clip\n    # para ver hasta abajo del assembly\n    dirz = vplan.ViewDirection.Z\n    if abs(dirz) < 0.99:\n        log.append('AVISO {}: la planta no es una vista vertical, no se ajusta el corte.'.format(tname))\n        return\n    zr = world_z_range(ai)\n    if zr is None:\n        log.append('AVISO {}: sin geometria para ajustar el corte de la planta.'.format(tname))\n        return\n    zmin, zmax = zr\n    if dirz > 0:\n        objetivo = zmax + cut_margin\n        far = (objetivo - zmin) + cut_margin\n    else:\n        objetivo = zmin - cut_margin\n        far = (zmax - objetivo) + cut_margin\n    dz = objetivo - vplan.Origin.Z\n    if abs(dz) > 0.003:\n        viewer = find_viewer(elem_name(vplan))\n        if viewer is None:\n            log.append('AVISO {}: no se encontro el marcador de la planta para mover el corte.'.format(tname))\n            return\n        ElementTransformUtils.MoveElement(doc, viewer.Id, XYZ(0.0, 0.0, dz))\n        log.append('{}: plano de corte de la planta subido {:.2f} m sobre el tope del assembly.'.format(tname, to_m(cut_margin)))\n    p = vplan.get_Parameter(BuiltInParameter.VIEWER_BOUND_OFFSET_FAR)\n    if p is not None and not p.IsReadOnly:\n        p.Set(far)\n\ncreated = 0\nskipped = 0\nTransactionManager.Instance.EnsureInTransaction(doc)\ntry:\n    for tname in targets:\n        insts = by_type[tname]\n        ai = insts[0]\n        if len(insts) > 1:\n            log.append('AVISO {}: {} instancias del mismo tipo, se documenta la primera.'.format(tname, len(insts)))\n        try:\n            size = local_size(ai)\n            scale = 50 if size is not None and (size[0] > 3.0 or size[1] > 3.0) else 20\n            jobs = ((tname, AssemblyDetailViewOrientation.HorizontalDetail, 'planta'),\n                    (tname + SUFIJO_CORTE, AssemblyDetailViewOrientation.DetailSectionA, 'corte'))\n            for vname, orient, label in jobs:\n                v_obj = None\n                if vname in view_ids:\n                    if recreate:\n                        doc.Delete(view_ids[vname])\n                        del view_ids[vname]\n                        log.append('{}: {} anterior eliminada (tambien su viewport si estaba en un sheet).'.format(tname, label))\n                    else:\n                        log.append('{}: {} ya existe, se salta.'.format(tname, label))\n                        skipped += 1\n                        v_obj = doc.GetElement(view_ids[vname])\n                if v_obj is None:\n                    v_obj = AssemblyViewUtils.CreateDetailSection(doc, ai.Id, orient)\n                    set_name(v_obj, vname)\n                    v_obj.Scale = scale\n                    view_ids[vname] = v_obj.Id\n                    created += 1\n                    log.append('OK {}: {} creada, escala 1:{}.'.format(tname, label, scale))\n                if label == 'planta' and v_obj is not None:\n                    try:\n                        ajustar_corte_planta(v_obj, ai, tname)\n                    except Exception as e:\n                        log.append('ERROR {} ajustando corte de planta: {}'.format(tname, e))\n        except Exception as e:\n            log.append('ERROR {}: {}'.format(tname, e))\nfinally:\n    TransactionManager.Instance.TransactionTaskDone()\n\nlog.insert(0, 'Assemblies procesados: {} | vistas creadas: {} | saltadas: {}'.format(len(targets), created, skipped))\nOUT = log",
+      "Engine": "PythonNet3",
       "VariableInputPorts": true,
       "Id": "a2010000000000000000000000000001",
       "NodeType": "PythonScriptNode",
@@ -100,6 +170,15 @@
           "Id": "a2010000000000000000000000000004",
           "Name": "IN[2]",
           "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a2010000000000000000000000000006",
+          "Name": "IN[3]",
+          "Description": "Input #3",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -172,6 +251,12 @@
       "IsHidden": "False"
     },
     {
+      "Start": "b2040000000000000000000000000002",
+      "End": "a2010000000000000000000000000006",
+      "Id": "d2010000000000000000000000000005",
+      "IsHidden": "False"
+    },
+    {
       "Start": "a2010000000000000000000000000005",
       "End": "c2010000000000000000000000000002",
       "Id": "d2010000000000000000000000000004",
@@ -183,7 +268,20 @@
   "EnableLegacyPolyCurveBehavior": false,
   "Thumbnail": "",
   "GraphDocumentationURL": null,
-  "ExtensionWorkspaceData": [],
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "4.0",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "10.3",
+      "Data": {}
+    }
+  ],
   "Author": "",
   "Linting": {
     "activeLinter": "None",
@@ -195,7 +293,7 @@
   "View": {
     "Dynamo": {
       "ScaleFactor": 1.0,
-      "HasRunWithoutCrash": false,
+      "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
       "Version": "4.0.2.3852",
       "RunType": "Manual",
@@ -244,6 +342,16 @@
         "ShowGeometry": true,
         "X": 0.0,
         "Y": 260.0
+      },
+      {
+        "Id": "b2040000000000000000000000000001",
+        "Name": "Altura del corte sobre el assembly (cm)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 390.0
       },
       {
         "Id": "a2010000000000000000000000000001",

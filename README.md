@@ -20,7 +20,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 |---|-------|----------|
 | 0 | `00_Auditoria de assemblies.dyn` | Diagnóstico: lista assemblies con tamaño, escala que les tocará y origen. Correr primero en cada proyecto nuevo. No modifica nada. |
 | 1 | `01_Crear laminas.dyn` | Crea N sheets con la viñeta elegida. El primero con número/nombre manual; el resto incrementa el último bloque numérico conservando ceros (`...-006` → `...-007`). Salta números ya ocupados. |
-| 2 | `02_Vistas de assembly.dyn` | Por assembly: planta (`HorizontalDetail`) y corte transversal (`DetailSectionA`), renombrados y con escala automática (ancho o largo > 3 m → 1:50, si no 1:20). |
+| 2 | `02_Vistas de assembly.dyn` | Por assembly: planta (`HorizontalDetail`) y corte transversal (`DetailSectionA`), renombrados y con escala automática (ancho o largo > 3 m → 1:50, si no 1:20). El plano de corte de la planta se sube por encima del assembly (input en cm, default 30) para que nada aparezca cortado — vista en proyección como una planta real. Re-correrlo también corrige plantas existentes sin recrearlas. |
 | 3 | `03_Colocar vistas en laminas.dyn` | Coloca las vistas (planta + corte, por assembly) en los sheets destino, en grilla por filas con márgenes respecto a la viñeta. Cuando un sheet se llena, sigue en el siguiente. |
 | 4 | `04_Cotas generales.dyn` | Planta: cotas de ancho y largo total. Corte: cota de altura total + spot elevations superior e inferior. |
 | 5 | `05_Cotas de ejes.dyn` | Planta: cadena borde → eje de cada elemento → borde opuesto (usa los planos de referencia centrales de cada familia). |
