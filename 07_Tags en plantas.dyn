@@ -1,0 +1,363 @@
+{
+  "Uuid": "8f4c1a2e-0a11-4b6e-9c01-aa0000000008",
+  "IsCustomNode": false,
+  "Description": "Coloca un Multi-Category Tag sobre cada elemento individual del assembly (no sobre el assembly) en su vista de PLANTA. El usuario solo elige el tipo de tag en el dropdown.",
+  "Name": "07_Tags en plantas",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [
+    {
+      "Id": "b7010000000000000000000000000001",
+      "Name": "Tipo de tag (Multi-Category Tag)",
+      "Type": "selection",
+      "Type2": "dropdownSelection",
+      "Value": "",
+      "Description": "All family types available in the document.",
+      "SelectedIndex": 0
+    },
+    {
+      "Id": "b7020000000000000000000000000001",
+      "Name": "Procesar TODOS los assemblies",
+      "Type": "boolean",
+      "Type2": "boolean",
+      "Value": "true",
+      "Description": "Enables selection between True and False"
+    },
+    {
+      "Id": "b7030000000000000000000000000001",
+      "Name": "Filtro por nombre (si TODOS = False)",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "",
+      "Description": "Creates a string."
+    },
+    {
+      "Id": "b7040000000000000000000000000001",
+      "Name": "Tags con leader",
+      "Type": "boolean",
+      "Type2": "boolean",
+      "Value": "false",
+      "Description": "Enables selection between True and False"
+    }
+  ],
+  "Outputs": [
+    {
+      "Id": "c7010000000000000000000000000001",
+      "Name": "Log",
+      "Type": "unknown",
+      "InitialValue": "",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Nodes": [
+    {
+      "ConcreteType": "DSRevitNodesUI.FamilyTypes, DSRevitNodesUI",
+      "SelectedIndex": 0,
+      "SelectedString": "",
+      "Id": "b7010000000000000000000000000001",
+      "NodeType": "ExtensionNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b7010000000000000000000000000002",
+          "Name": "Family Type",
+          "Description": "The selected Family Type",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "All family types available in the document."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+      "Id": "b7020000000000000000000000000001",
+      "NodeType": "BooleanInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b7020000000000000000000000000002",
+          "Name": "",
+          "Description": "Boolean",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Enables selection between True and False",
+      "InputValue": true
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
+      "Id": "b7030000000000000000000000000001",
+      "NodeType": "StringInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b7030000000000000000000000000002",
+          "Name": "",
+          "Description": "String",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Creates a string.",
+      "InputValue": ""
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+      "Id": "b7040000000000000000000000000001",
+      "NodeType": "BooleanInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b7040000000000000000000000000002",
+          "Name": "",
+          "Description": "Boolean",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Enables selection between True and False",
+      "InputValue": false
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "# 07_Tags en plantas - Multi-Category Tag a cada elemento del assembly (solo planta)\n# Los tags apuntan a los COMPONENTES individuales (GetMemberIds), no al assembly.\n# Revit 2027 / Dynamo 4 / CPython3\n# IN[0] = tipo de tag (dropdown Family Types; debe ser Multi-Category Tag)\n# IN[1] = procesar todos los assemblies (bool)\n# IN[2] = filtro por nombre si IN[1] es False (parcial, comas)\n# IN[3] = tags con leader (bool)\n\nimport clr\nclr.AddReference('RevitAPI')\nclr.AddReference('RevitServices')\nfrom Autodesk.Revit.DB import (FilteredElementCollector, AssemblyInstance, View,\n                               IndependentTag, Reference, TagOrientation,\n                               BuiltInCategory, ElementId, XYZ, Element)\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\n\ndoc = DocumentManager.Instance.CurrentDBDocument\n\ntag_type = UnwrapElement(IN[0])\nprocess_all = bool(IN[1])\nfilter_text = (IN[2] or '').strip()\nleader = bool(IN[3])\n\nlog = []\n\ndef elem_name(e):\n    try:\n        return e.Name\n    except Exception:\n        return Element.Name.__get__(e)\n\ndef tag_label(t):\n    try:\n        return '{} : {}'.format(t.FamilyName, elem_name(t))\n    except Exception:\n        return 'Id ' + str(t.Id)\n\n# --- validar que lo elegido sea un Multi-Category Tag ---\nmc_cat = ElementId(BuiltInCategory.OST_MultiCategoryTags)\nvalido = (tag_type is not None and tag_type.Category is not None\n          and tag_type.Category.Id == mc_cat)\n\nif not valido:\n    log.append('ERROR: el tipo seleccionado NO es un Multi-Category Tag.')\n    log.append('Tags multicategoria cargados en el proyecto:')\n    tt = list(FilteredElementCollector(doc)\n              .OfCategory(BuiltInCategory.OST_MultiCategoryTags)\n              .WhereElementIsElementType())\n    if not tt:\n        log.append('  (ninguno - carga una familia de Multi-Category Tag al proyecto)')\n    for t in tt:\n        log.append('  - ' + tag_label(t))\n    OUT = log\nelse:\n    # --- assemblies objetivo (unicos por tipo, igual que 02) ---\n    by_type = {}\n    for ai in FilteredElementCollector(doc).OfClass(AssemblyInstance):\n        by_type.setdefault(ai.AssemblyTypeName, []).append(ai)\n\n    if process_all:\n        targets = sorted(by_type.keys())\n    else:\n        tokens = [t.strip().lower() for t in filter_text.split(',') if t.strip()]\n        if tokens:\n            targets = [n for n in sorted(by_type.keys())\n                       if any(tok in n.lower() for tok in tokens)]\n        else:\n            targets = []\n            log.append('ERROR: \\\"Todos\\\" esta en False y el filtro esta vacio.')\n\n    views = {}\n    for v in FilteredElementCollector(doc).OfClass(View):\n        if not v.IsTemplate:\n            views[elem_name(v)] = v\n\n    total = 0\n    TransactionManager.Instance.EnsureInTransaction(doc)\n    try:\n        if hasattr(tag_type, 'IsActive') and not tag_type.IsActive:\n            tag_type.Activate()\n        for tname in targets:\n            ai = by_type[tname][0]\n            vplan = views.get(tname)\n            if vplan is None:\n                log.append('AVISO {}: no existe la vista de planta (corre 02_Vistas de assembly).'.format(tname))\n                continue\n            # idempotencia: si la planta ya tiene tags, se salta\n            existentes = FilteredElementCollector(doc, vplan.Id).OfClass(IndependentTag).GetElementCount()\n            if existentes > 0:\n                log.append('{}: la planta ya tiene {} tags, se salta.'.format(tname, existentes))\n                continue\n            n = 0\n            no_tageables = 0\n            for mid in ai.GetMemberIds():\n                el = doc.GetElement(mid)\n                try:\n                    if el is None or el.Category is None:\n                        continue\n                    bb = el.get_BoundingBox(None)\n                    if bb is None:\n                        continue\n                    centro = XYZ((bb.Min.X + bb.Max.X) / 2.0,\n                                 (bb.Min.Y + bb.Max.Y) / 2.0,\n                                 (bb.Min.Z + bb.Max.Z) / 2.0)\n                    IndependentTag.Create(doc, tag_type.Id, vplan.Id, Reference(el),\n                                          leader, TagOrientation.Horizontal, centro)\n                    n += 1\n                except Exception:\n                    no_tageables += 1\n            total += n\n            msg = 'OK {}: {} tags en la planta.'.format(tname, n)\n            if no_tageables:\n                msg += ' ({} elementos no admiten este tag)'.format(no_tageables)\n            log.append(msg)\n    finally:\n        TransactionManager.Instance.TransactionTaskDone()\n\n    log.insert(0, 'Tags creados: {} | assemblies procesados: {} | tag: {}'.format(\n        total, len(targets), tag_label(tag_type)))\n    OUT = log",
+      "Engine": "PythonNet3",
+      "VariableInputPorts": true,
+      "Id": "a7010000000000000000000000000001",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "a7010000000000000000000000000002",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a7010000000000000000000000000003",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a7010000000000000000000000000004",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a7010000000000000000000000000005",
+          "Name": "IN[3]",
+          "Description": "Input #3",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "a7010000000000000000000000000006",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 620.0,
+      "WatchHeight": 400.0,
+      "Id": "c7010000000000000000000000000001",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "c7010000000000000000000000000002",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c7010000000000000000000000000003",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "b7010000000000000000000000000002",
+      "End": "a7010000000000000000000000000002",
+      "Id": "d7010000000000000000000000000001",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b7020000000000000000000000000002",
+      "End": "a7010000000000000000000000000003",
+      "Id": "d7010000000000000000000000000002",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b7030000000000000000000000000002",
+      "End": "a7010000000000000000000000000004",
+      "Id": "d7010000000000000000000000000003",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b7040000000000000000000000000002",
+      "End": "a7010000000000000000000000000005",
+      "Id": "d7010000000000000000000000000004",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "a7010000000000000000000000000006",
+      "End": "c7010000000000000000000000000002",
+      "Id": "d7010000000000000000000000000005",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "EnableLegacyPolyCurveBehavior": false,
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "4.0.2.3852",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Id": "b7010000000000000000000000000001",
+        "Name": "Tipo de tag (Multi-Category Tag)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 0.0
+      },
+      {
+        "Id": "b7020000000000000000000000000001",
+        "Name": "Procesar TODOS los assemblies",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 130.0
+      },
+      {
+        "Id": "b7030000000000000000000000000001",
+        "Name": "Filtro por nombre (si TODOS = False)",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 260.0
+      },
+      {
+        "Id": "b7040000000000000000000000000001",
+        "Name": "Tags con leader",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 0.0,
+        "Y": 390.0
+      },
+      {
+        "Id": "a7010000000000000000000000000001",
+        "Name": "PY | Tag multicategoria por elemento",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 480.0,
+        "Y": 150.0
+      },
+      {
+        "Id": "c7010000000000000000000000000001",
+        "Name": "Log",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 820.0,
+        "Y": 150.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 0.8
+  }
+}

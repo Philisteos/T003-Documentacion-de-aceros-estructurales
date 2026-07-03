@@ -25,6 +25,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 4 | `04_Cotas generales.dyn` | Planta: cotas de ancho y largo total. Corte: cota de altura total + spot elevations superior e inferior. |
 | 5 | `05_Cotas de ejes.dyn` | Planta: cadena borde → eje de cada elemento → borde opuesto (usa los planos de referencia centrales de cada familia). |
 | 6 | `06_Titulos de vistas.dyn` | Título bajo cada vista: crea el tipo de viewport con título si no existe (default `C_ConTitulo`), lo aplica a los viewports de los sheets destino y alinea el título justo debajo de cada vista con la línea al ancho de la vista. |
+| 7 | `07_Tags en plantas.dyn` | Multi-Category Tag sobre cada elemento individual del assembly (no sobre el assembly) en su vista de planta. Solo se elige el tipo de tag en el dropdown; tag horizontal al centro de cada elemento, con leader opcional. |
 
 Los graphs 04 y 05 pueden correrse en cualquier orden. Para el layout clásico
 (cadena pegada al assembly, total por fuera): 05 con 10 mm y 04 con 20 mm de separación.
@@ -64,6 +65,10 @@ Los graphs 04 y 05 pueden correrse en cualquier orden. Para el layout clásico
   (lo ya colocado se respeta).
 - `el tipo seleccionado NO es una viñeta` (01) — elegir en el dropdown uno de los tipos
   que el mismo log lista como válidos.
+- `el tipo seleccionado NO es un Multi-Category Tag` (07) — elegir en el dropdown uno de
+  los tags multicategoría que el log lista; si no hay ninguno, cargar la familia al proyecto.
+- `N elementos no admiten este tag` (07) — categorías que el Multi-Category Tag no
+  etiqueta (p. ej. subcomponentes sin categoría taggeable); es informativo, no un error.
 
 ## Ajustes pendientes / ideas
 
