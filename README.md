@@ -37,11 +37,13 @@ Los graphs 04 y 05 pueden correrse en cualquier orden. Para el layout clásico
 - Si hay **varias instancias del mismo tipo de assembly**, se documenta la primera.
 - Distancias de anotación y márgenes se ingresan en **mm de papel** y se convierten con la
   escala de cada vista (mismo aspecto en 1:20 y 1:50).
-- **Título del corte en lámina** = `{assembly} - {número de detalle}` (el mismo número que
-  muestra el símbolo de corte en la planta). El 03 lo escribe en *Title on Sheet* al colocar
-  el viewport; el nombre interno de la vista sigue siendo `{assembly} - CORTE A` (no
-  renombrar: es lo que usan 02/04/05 para encontrarla). Si se renumeran los detalles a mano,
-  re-correr el 03 actualiza los títulos de los cortes ya colocados.
+- **Los cortes se identifican con letras** (A, B, C… y tras la Z: AA, AB…), únicas por
+  lámina y asignadas en orden visual. El 03 escribe la letra en el *Detail Number* del
+  viewport del corte — es lo que muestra el símbolo de corte en la planta — y el título en
+  lámina queda `{assembly} - CORTE {letra}` vía *Title on Sheet*. Las plantas conservan
+  números. El nombre interno de la vista sigue siendo `{assembly} - CORTE A` (no renombrar:
+  es lo que usan 02/04/05 para encontrarla). Re-correr el 03 re-letra y re-titula los cortes
+  ya colocados (los que ya tienen letra la conservan).
 - **El título bajo cada vista lo controla el tipo de viewport**, no la vista. El 06 crea
   el tipo `C_ConTitulo` si no existe (con *Show Title = Yes*), lo aplica y alinea el título
   bajo el borde inferior izquierdo de cada vista. El 03 usa ese mismo tipo (su input
