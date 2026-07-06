@@ -20,8 +20,8 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 |---|-------|----------|
 | 0 | `00_Auditoria de assemblies.dyn` | Diagnóstico: lista assemblies con tamaño, escala que les tocará y origen. Correr primero en cada proyecto nuevo. No modifica nada. |
 | 1 | `01_Crear laminas.dyn` | Crea N sheets con la viñeta elegida. El primero con número/nombre manual; el resto incrementa el último bloque numérico conservando ceros (`...-006` → `...-007`). Salta números ya ocupados. |
-| 2 | `02_Vistas de assembly.dyn` | Por assembly: planta (`HorizontalDetail`) y corte transversal (`DetailSectionA`), renombrados y con escala automática (ancho o largo > 3 m → 1:50, si no 1:20). El plano de corte de la planta se sube por encima del assembly (input en cm, default 30) para que nada aparezca cortado — vista en proyección como una planta real. Re-correrlo también corrige plantas existentes sin recrearlas. |
-| 3 | `03_Colocar vistas en laminas.dyn` | Coloca las vistas en los sheets destino: por cada assembly, **planta arriba y corte abajo**, centrados en el mismo eje vertical. Los bloques se reparten en grilla con márgenes respecto a la viñeta; cuando un sheet se llena, sigue en el siguiente. Si un bloque excede el área útil, se coloca apilado igual y el log avisa. |
+| 2 | `02_Vistas de assembly.dyn` | Por assembly: planta (`HorizontalDetail`) y **dos cortes perpendiculares que se cruzan al centro** (`DetailSectionA` + `DetailSectionB`, uno por cada eje del assembly), renombrados y con escala automática (ancho o largo > 3 m → 1:50, si no 1:20). El plano de corte de la planta se sube por encima del assembly (input en cm, default 30) para que nada aparezca cortado. En los cortes se ocultan los símbolos de corte (solo la planta los muestra) y se les aplica el tipo de vista del input "Tipo de vista para cortes" (default `02_FORMAS`, que define el símbolo de corte; si no existe en el proyecto, avisa con la lista de tipos disponibles y sigue con el default; vacío = no cambiar). Re-correrlo también corrige plantas y cortes existentes sin recrearlos. |
+| 3 | `03_Colocar vistas en laminas.dyn` | Coloca las vistas en los sheets destino: por cada assembly, **planta arriba y los dos cortes debajo**, centrados en el mismo eje vertical. Los bloques se reparten en grilla con márgenes respecto a la viñeta; cuando un sheet se llena, sigue en el siguiente. Si un bloque excede el área útil, se coloca apilado igual y el log avisa. |
 | 4 | `04_Cotas generales.dyn` | Planta: cotas de ancho y largo total. Corte: cota de altura total + spot elevations superior e inferior. |
 | 5 | `05_Cotas de ejes.dyn` | Planta: cadena borde → eje de cada elemento → borde opuesto (usa los planos de referencia centrales de cada familia). |
 | 6 | `06_Titulos de vistas.dyn` | Título bajo cada vista: crea el tipo de viewport con título si no existe (default `C_ConTitulo`), lo aplica a los viewports de los sheets destino y alinea el título justo debajo de cada vista con la línea al ancho de la vista. |
@@ -32,7 +32,8 @@ Los graphs 04 y 05 pueden correrse en cualquier orden. Para el layout clásico
 
 ## Convenciones (contrato entre graphs)
 
-- **Nombre de la planta = nombre del assembly**. Nombre del corte = `{assembly} - CORTE A`.
+- **Nombre de la planta = nombre del assembly**. Nombres de los cortes = `{assembly} - CORTE A`
+  y `{assembly} - CORTE B` (perpendiculares entre sí, cruzados al centro del assembly).
   No renombrar vistas a mano entre pasos: 03, 04 y 05 buscan las vistas por estos nombres.
 - Si hay **varias instancias del mismo tipo de assembly**, se documenta la primera.
 - Distancias de anotación y márgenes se ingresan en **mm de papel** y se convierten con la
