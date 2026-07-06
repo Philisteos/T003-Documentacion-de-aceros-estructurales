@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(try { $null = Get-Content '02_Vistas de assembly.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '02 : JSON OK' } catch { Write-Output \"02 : JSON ERROR - $\\($_.Exception.Message\\)\" })",
+      "PowerShell(try { $null = Get-Content '03_Colocar vistas en laminas.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '03 : JSON OK' } catch { Write-Output \"03 : JSON ERROR - $\\($_.Exception.Message\\)\" })"
+    ]
+  }
+}

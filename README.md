@@ -47,8 +47,11 @@ Los graphs 04 y 05 pueden correrse en cualquier orden. Para el layout clásico
   ya colocados (los que ya tienen letra la conservan).
 - **El título bajo cada vista lo controla el tipo de viewport**, no la vista. El 06 crea
   el tipo `C_ConTitulo` si no existe (con *Show Title = Yes*), lo aplica y alinea el título
-  bajo el borde inferior izquierdo de cada vista. El 03 usa ese mismo tipo (su input
-  "Tipo de viewport con titulo") para que los viewports nuevos salgan con título de fábrica.
+  bajo el borde inferior izquierdo de cada vista. El 03 aplica tipos de viewport distintos
+  por clase de vista: plantas → input "Tipo de viewport para plantas" (default `C_ConTitulo`),
+  cortes → "Tipo de viewport para cortes" (default `C_Titulo_Seccion`); re-correrlo retrofitea
+  el tipo de los cortes ya colocados. Ojo: el 06 aplica UN solo tipo a todos los viewports
+  del sheet — usarlo solo como corrección gruesa, el 03 es quien diferencia por tipo.
   El título mostrado es el nombre de la vista (salvo que la vista tenga *Title on Sheet*
   definido).
 
