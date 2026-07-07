@@ -24,9 +24,10 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 3 | `03_Cotas generales.dyn` | Planta: cotas de ancho y largo total (arriba e izquierda). Cortes A y B: cota de altura total + spot elevations superior e inferior en cada uno, **acotando solo las caras de hormigón** (input "Filtro material cortes", default `hormig`, coincidencia parcial con el nombre del material; vacío = acotar toda la geometría). |
 | 4 | `04_Cotas de ejes.dyn` | Planta: cadena borde → eje de cada elemento → borde opuesto (usa los planos de referencia centrales de cada familia). |
 | 5 | `05_Tags en plantas.dyn` | Multi-Category Tag **solo a las familias** (FamilyInstance) del assembly — nunca al assembly ni a elementos de sistema — y **solo en las plantas que el usuario seleccione con click** (viewports en la lámina, vistas o assemblies en el modelo). Se elige el tipo de tag en el dropdown; leader opcional. |
+| 6 | `06_Tabla de assemblies.dyn` | Crea, en cada sheet destino, la **tabla de cantidades** de los assemblies documentados en ESE sheet: schedule nativo **Multi-Categoría** (no *Assemblies*: esa categoría no permite desglosar familias miembro), agrupado por assembly (encabezado con su nombre y su "CANT=N") y, debajo, una fila por cada **tipo de familia miembro** (recursivo, incluye anidadas) con columnas **DESCRIPCION / UNIDAD / UNITARIO / TOTAL / MATERIAL / COMENTARIO**. Reglas: *Structural Foundation* → UNIDAD=m3, UNITARIO=suma de `VOLUMEN_TBL`; *Structural Framing* → se ignora; cualquier otra categoría → UNIDAD=un, UNITARIO=cantidad de instancias. TOTAL = UNITARIO × CANT vía **campo calculado nativo** del schedule. MATERIAL se lee del parámetro compartido `MATERIAL` (por GUID, para no confundirlo con el `Material` nativo); COMENTARIO queda vacío para que el modelador lo complete a mano. Reutiliza el esquema `_TBL` ya existente en el proyecto (`UNIDAD_TBL`, `RECUENTO_TBL`, `ELEMENTO_CANT_TBL`, `ELEMENTO_CANT_STR_TBL`) escribiéndolo en cada elemento miembro, más `Mark`/`Comments` igual que en el propio `AssemblyInstance` (nombre del assembly y número de sheet). Solo se recorren los miembros de la primera instancia de cada tipo. Se coloca en la esquina superior derecha, en la franja reservada por 01/02. |
 
 **Flujo**: 00 (crear vistas) → 01 (calcular y crear láminas) → 02 (colocar vistas) →
-03/04 (cotas) → 05 (tags).
+03/04 (cotas) → 05 (tags) → 06 (tabla de assemblies por sheet).
 
 Los graphs 03 y 04 pueden correrse en cualquier orden. Las cotas de la planta van **arriba
 y a la izquierda**, en dos líneas: la cadena de ejes pegada al objeto (04, default 10 mm)
@@ -72,6 +73,9 @@ número de láminas que calculó el 01 puede no alcanzar para lo que realmente c
 - `02`: vistas ya colocadas y sheets que ya tienen viewports se omiten.
 - `03`: salta vistas que ya tienen cualquier cota.
 - `04`: salta plantas que ya tienen una cota de más de un segmento (huella de la cadena).
+- `06`: salta sheets que ya tienen la tabla colocada. El `Comments` de los assemblies se
+  vuelve a escribir en cada corrida (barato, mantiene la asignación al día si algo se
+  movió de sheet).
 
 ## Mensajes de log frecuentes
 
@@ -93,6 +97,14 @@ número de láminas que calculó el 01 puede no alcanzar para lo que realmente c
   viewport con título no existía en el proyecto, se creó automáticamente. Revisar su
   grafismo (fuente, tamaño de texto) en las propiedades de tipo si no coincide con el
   estándar del proyecto.
+- `no se encontro el estilo de linea / tipo de texto ...` (06) — el nombre del input no
+  coincide con ningún estilo/tipo de texto cargado en el proyecto; el schedule se crea
+  igual con el default de Revit. Corrige el nombre del input y vuelve a correr (re-corre
+  también actualiza el grafismo de las tablas ya creadas).
+- `no se encontraron los campos [...] en la categoria Assemblies` (06) — el nombre exacto
+  de un campo del schedule (por defecto se busca "Assembly Name" y "Count") no existe en
+  este Revit; el log lista los campos disponibles para la categoría *Assemblies* para
+  elegir el nombre correcto.
 
 ## Ajustes pendientes / ideas
 
@@ -100,9 +112,13 @@ número de láminas que calculó el 01 puede no alcanzar para lo que realmente c
 - Acotado en cadena también en el corte (hoy solo planta).
 - Fallback geométrico en 04 para familias sin planos de referencia centrales.
 - Orden de colocación en 02 configurable (hoy alfabético por assembly).
-- **Tabla de cantidades en la lámina** (150x150mm, esquina superior derecha): el espacio ya
-  está reservado desde el 01/02 (input "Reserva lado derecho", default 150mm), pero la tabla
-  en sí todavía no se construye.
+- **Tabla de assemblies por sheet** (06): construida como lista simple (assembly + cantidad).
+  Si más adelante se necesita el desglose de materiales/conectores (DESCRIPCION/UNIDAD/
+  UNITARIO/TOTAL/MATERIAL por elemento) que se había explorado antes, es una tabla aparte.
+- Los nombres de campo del schedule ("Assembly Name", "Count") y de los estilos gráficos
+  ("Líneas Tablas Finas", "C_TXT_RomanD2.3mm...") son los inputs por defecto del 06; si el
+  Revit del usuario los expone con otro nombre exacto, el log lo avisa y basta con corregir
+  el input (sin tocar el graph).
 - Si se acumula desperdicio de espacio bajo la reserva del lado derecho (hoy es una franja
   completa a lo alto de la lámina, no solo la esquina), evaluar un recorte más preciso solo
   en la zona de la tabla.
