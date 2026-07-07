@@ -5,7 +5,8 @@
       "PowerShell(try { $null = Get-Content '03_Colocar vistas en laminas.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '03 : JSON OK' } catch { Write-Output \"03 : JSON ERROR - $\\($_.Exception.Message\\)\" })",
       "PowerShell(try { $null = Get-Content '04_Cotas generales.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '04 : JSON OK' } catch { Write-Output \"04 : JSON ERROR - $\\($_.Exception.Message\\)\" })",
       "PowerShell(try { $null = Get-Content '05_Cotas de ejes.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '05 : JSON OK' } catch { Write-Output \"05 : JSON ERROR - $\\($_.Exception.Message\\)\" })",
-      "PowerShell(foreach \\($f in '04_Cotas generales.dyn','05_Cotas de ejes.dyn'\\) { try { $null = Get-Content $f -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output \"$f : JSON OK\" } catch { Write-Output \"$f : JSON ERROR - $\\($_.Exception.Message\\)\" } })"
+      "PowerShell(foreach \\($f in '04_Cotas generales.dyn','05_Cotas de ejes.dyn'\\) { try { $null = Get-Content $f -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output \"$f : JSON OK\" } catch { Write-Output \"$f : JSON ERROR - $\\($_.Exception.Message\\)\" } })",
+      "WebSearch"
     ]
   }
 }
