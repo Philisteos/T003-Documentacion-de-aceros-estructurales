@@ -20,10 +20,10 @@
       "Name": "Margen (mm)",
       "Type": "number",
       "Type2": "number",
-      "Value": "5",
-      "MaximumValue": 50,
-      "MinimumValue": 5,
-      "StepValue": 1,
+      "Value": "20",
+      "MaximumValue": 50.0,
+      "MinimumValue": 5.0,
+      "StepValue": 1.0,
       "NumberType": "Integer",
       "Description": "Produces integer values"
     },
@@ -33,9 +33,9 @@
       "Type": "number",
       "Type2": "number",
       "Value": "150",
-      "MaximumValue": 200,
-      "MinimumValue": 0,
-      "StepValue": 5,
+      "MaximumValue": 200.0,
+      "MinimumValue": 0.0,
+      "StepValue": 5.0,
       "NumberType": "Integer",
       "Description": "Produces integer values"
     },
@@ -92,8 +92,8 @@
   "Nodes": [
     {
       "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0,
-      "SerializedHeight": 0,
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
       "Id": "b6010000000000000000000000000001",
       "NodeType": "StringInputNode",
       "Inputs": [],
@@ -134,7 +134,7 @@
       ],
       "Replication": "Disabled",
       "Description": "Produces integer values",
-      "InputValue": 5
+      "InputValue": 20
     },
     {
       "ConcreteType": "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
@@ -162,8 +162,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0,
-      "SerializedHeight": 0,
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
       "Id": "b6040000000000000000000000000001",
       "NodeType": "StringInputNode",
       "Inputs": [],
@@ -184,8 +184,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0,
-      "SerializedHeight": 0,
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
       "Id": "b6050000000000000000000000000001",
       "NodeType": "StringInputNode",
       "Inputs": [],
@@ -206,8 +206,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0,
-      "SerializedHeight": 0,
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
       "Id": "b6060000000000000000000000000001",
       "NodeType": "StringInputNode",
       "Inputs": [],
@@ -228,8 +228,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0,
-      "SerializedHeight": 0,
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
       "Id": "b6070000000000000000000000000001",
       "NodeType": "StringInputNode",
       "Inputs": [],
@@ -250,8 +250,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0,
-      "SerializedHeight": 0,
+      "SerializedWidth": 0.0,
+      "SerializedHeight": 0.0,
       "Id": "b6080000000000000000000000000001",
       "NodeType": "StringInputNode",
       "Inputs": [],
@@ -367,8 +367,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "WatchWidth": 620,
-      "WatchHeight": 400,
+      "WatchWidth": 620.0,
+      "WatchHeight": 400.0,
       "Id": "c6010000000000000000000000000001",
       "NodeType": "ExtensionNode",
       "Inputs": [
@@ -458,7 +458,20 @@
   "EnableLegacyPolyCurveBehavior": false,
   "Thumbnail": "",
   "GraphDocumentationURL": null,
-  "ExtensionWorkspaceData": [],
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "4.0",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "10.3",
+      "Data": {}
+    }
+  ],
   "Author": "",
   "Linting": {
     "activeLinter": "None",
@@ -469,7 +482,7 @@
   "Bindings": [],
   "View": {
     "Dynamo": {
-      "ScaleFactor": 1,
+      "ScaleFactor": 1.0,
       "HasRunWithoutCrash": false,
       "IsVisibleInDynamoLibrary": true,
       "Version": "4.0.2.3852",
@@ -478,15 +491,15 @@
     },
     "Camera": {
       "Name": "_Background Preview",
-      "EyeX": -17,
-      "EyeY": 24,
-      "EyeZ": 50,
-      "LookX": 12,
-      "LookY": -13,
-      "LookZ": -58,
-      "UpX": 0,
-      "UpY": 1,
-      "UpZ": 0
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
     },
     "ConnectorPins": [],
     "NodeViews": [
@@ -497,8 +510,8 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 0,
-        "Y": 0
+        "X": 0.0,
+        "Y": 0.0
       },
       {
         "Id": "b6020000000000000000000000000001",
@@ -507,8 +520,8 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 0,
-        "Y": 150
+        "X": 0.0,
+        "Y": 150.0
       },
       {
         "Id": "b6030000000000000000000000000001",
@@ -517,8 +530,8 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 0,
-        "Y": 300
+        "X": 0.0,
+        "Y": 300.0
       },
       {
         "Id": "b6040000000000000000000000000001",
@@ -527,8 +540,8 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 0,
-        "Y": 450
+        "X": 0.0,
+        "Y": 450.0
       },
       {
         "Id": "b6050000000000000000000000000001",
@@ -537,8 +550,8 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 0,
-        "Y": 600
+        "X": 0.0,
+        "Y": 600.0
       },
       {
         "Id": "b6060000000000000000000000000001",
@@ -547,8 +560,8 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 0,
-        "Y": 750
+        "X": 0.0,
+        "Y": 750.0
       },
       {
         "Id": "b6070000000000000000000000000001",
@@ -557,8 +570,8 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 0,
-        "Y": 900
+        "X": 0.0,
+        "Y": 900.0
       },
       {
         "Id": "b6080000000000000000000000000001",
@@ -567,8 +580,8 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 0,
-        "Y": 1050
+        "X": 0.0,
+        "Y": 1050.0
       },
       {
         "Id": "a6010000000000000000000000000001",
@@ -577,8 +590,8 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 480,
-        "Y": 350
+        "X": 480.0,
+        "Y": 350.0
       },
       {
         "Id": "c6010000000000000000000000000001",
@@ -587,13 +600,13 @@
         "IsSetAsOutput": true,
         "Excluded": false,
         "ShowGeometry": true,
-        "X": 900,
-        "Y": 350
+        "X": 900.0,
+        "Y": 350.0
       }
     ],
     "Annotations": [],
-    "X": 0,
-    "Y": 0,
+    "X": 0.0,
+    "Y": 0.0,
     "Zoom": 0.8
   }
 }
