@@ -10,7 +10,13 @@
       "PowerShell(foreach \\($f in '04_Colocar vistas en laminas.dyn','05_Cotas generales.dyn','06_Cotas de ejes.dyn','07_Titulos de vistas.dyn','08_Tags en plantas.dyn'\\) { try { $null = Get-Content $f -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output \"$f : JSON OK\" } catch { Write-Output \"$f : JSON ERROR - $\\($_.Exception.Message\\)\" } })",
       "PowerShell(try { $null = Get-Content '03_Calcular y crear laminas.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '03 \\(nuevo\\) : JSON OK' } catch { Write-Output \"03 \\(nuevo\\) : JSON ERROR - $\\($_.Exception.Message\\)\" })",
       "PowerShell(try { $null = Get-Content '01_Calcular y crear laminas.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '01 : JSON OK' } catch { Write-Output \"01 : JSON ERROR - $\\($_.Exception.Message\\)\" })",
-      "PowerShell(try { $null = Get-Content '02_Colocar vistas en laminas.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '02 : JSON OK' } catch { Write-Output \"02 : JSON ERROR - $\\($_.Exception.Message\\)\" })"
+      "PowerShell(try { $null = Get-Content '02_Colocar vistas en laminas.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '02 : JSON OK' } catch { Write-Output \"02 : JSON ERROR - $\\($_.Exception.Message\\)\" })",
+      "PowerShell(try { $null = Get-Content '06_Auditoria de parametros TBL.dyn' -Raw -Encoding utf8 | ConvertFrom-Json; Write-Output '06 : JSON OK' } catch { Write-Output \"06 : JSON ERROR - $\\($_.Exception.Message\\)\" })",
+      "mcp__revit-2027-oficial__get_running_revit_instances",
+      "mcp__revit-2027-oficial__query_model",
+      "mcp__revit-2027-oficial__get_element_data",
+      "Bash(node -e ' *)",
+      "Bash(node \"C:/Users/JAVIER~2/AppData/Local/Temp/claude/c--Users-Javier-Ochoa-Desktop-Design-Technologist-T001-Generador-de-planos/d3b6e54c-45fe-46c5-bc3b-743b3ca456be/scratchpad/build_06.js\" \"C:/Users/JAVIER~2/AppData/Local/Temp/claude/c--Users-Javier-Ochoa-Desktop-Design-Technologist-T001-Generador-de-planos/d3b6e54c-45fe-46c5-bc3b-743b3ca456be/scratchpad/06_code.py\" \"06_Tabla de assemblies.dyn\")"
     ]
   }
 }
