@@ -1,730 +1,919 @@
 {
-  "Uuid": "8f4c1a2e-0a11-4b6e-9c01-aa0000000003",
-  "IsCustomNode": false,
-  "Description": "Por assembly: crea vista de planta (HorizontalDetail) y corte transversal (DetailSectionA), renombra y asigna escala automatica (>2 m -> 1:50, si no 1:25). Idempotente.",
-  "Name": "00_Vistas de assembly",
-  "ElementResolver": {
-    "ResolutionMap": {}
-  },
-  "Inputs": [
-    {
-      "Id": "b2010000000000000000000000000001",
-      "Name": "Procesar TODOS los assemblies",
-      "Type": "boolean",
-      "Type2": "boolean",
-      "Value": "true",
-      "Description": "Enables selection between True and False"
-    },
-    {
-      "Id": "b2020000000000000000000000000001",
-      "Name": "Filtro por nombre (si TODOS = False)",
-      "Type": "string",
-      "Type2": "string",
-      "Value": "",
-      "Description": "Creates a string."
-    },
-    {
-      "Id": "b2030000000000000000000000000001",
-      "Name": "Recrear vistas existentes (borra y rehace)",
-      "Type": "boolean",
-      "Type2": "boolean",
-      "Value": "false",
-      "Description": "Enables selection between True and False"
-    },
-    {
-      "Id": "b2040000000000000000000000000001",
-      "Name": "Altura del corte sobre el assembly (cm)",
-      "Type": "number",
-      "Type2": "number",
-      "Value": "30",
-      "MaximumValue": 100.0,
-      "MinimumValue": 10.0,
-      "StepValue": 5.0,
-      "NumberType": "Integer",
-      "Description": "Produces integer values"
-    },
-    {
-      "Id": "b2050000000000000000000000000001",
-      "Name": "Tipo de vista para cortes (simbolo)",
-      "Type": "string",
-      "Type2": "string",
-      "Value": "02_FORMAS",
-      "Description": "Creates a string."
-    },
-    {
-      "Id": "b2060000000000000000000000000001",
-      "Name": "View template para las vistas (vacio = ninguno)",
-      "Type": "string",
-      "Type2": "string",
-      "Value": "",
-      "Description": "Creates a string."
-    },
-    {
-      "Id": "b2070000000000000000000000000001",
-      "Name": "Margen del crop, planta y cortes (mm)",
-      "Type": "number",
-      "Type2": "number",
-      "Value": "30",
-      "MaximumValue": 30.0,
-      "MinimumValue": 0.0,
-      "StepValue": 1.0,
-      "NumberType": "Integer",
-      "Description": "Produces integer values"
-    },
-    {
-      "Id": "b2080000000000000000000000000001",
-      "Name": "Familia de pedestal para callouts",
-      "Type": "string",
-      "Type2": "string",
-      "Value": "C-Pedestal",
-      "Description": "Creates a string."
-    },
-    {
-      "Id": "b2090000000000000000000000000001",
-      "Name": "Escala de los callouts (1:N)",
-      "Type": "number",
-      "Type2": "number",
-      "Value": "10",
-      "MaximumValue": 50.0,
-      "MinimumValue": 5.0,
-      "StepValue": 5.0,
-      "NumberType": "Integer",
-      "Description": "Produces integer values"
-    },
-    {
-      "Id": "b2100000000000000000000000000001",
-      "Name": "Margen del callout (mm)",
-      "Type": "number",
-      "Type2": "number",
-      "Value": "15",
-      "MaximumValue": 50.0,
-      "MinimumValue": 5.0,
-      "StepValue": 1.0,
-      "NumberType": "Integer",
-      "Description": "Produces integer values"
-    }
-  ],
-  "Outputs": [
-    {
-      "Id": "c2010000000000000000000000000001",
-      "Name": "Log",
-      "Type": "unknown",
-      "InitialValue": "",
-      "Description": "Visualizes a node's output"
-    }
-  ],
-  "Nodes": [
-    {
-      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
-      "Id": "b2010000000000000000000000000001",
-      "NodeType": "BooleanInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2010000000000000000000000000002",
-          "Name": "",
-          "Description": "Boolean",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Enables selection between True and False",
-      "InputValue": true
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0.0,
-      "SerializedHeight": 0.0,
-      "Id": "b2020000000000000000000000000001",
-      "NodeType": "StringInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2020000000000000000000000000002",
-          "Name": "",
-          "Description": "String",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Creates a string.",
-      "InputValue": ""
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
-      "Id": "b2030000000000000000000000000001",
-      "NodeType": "BooleanInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2030000000000000000000000000002",
-          "Name": "",
-          "Description": "Boolean",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Enables selection between True and False",
-      "InputValue": false
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
-      "NumberType": "Integer",
-      "MaximumValue": 100,
-      "MinimumValue": 10,
-      "StepValue": 5,
-      "Id": "b2040000000000000000000000000001",
-      "NodeType": "NumberInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2040000000000000000000000000002",
-          "Name": "",
-          "Description": "Int64",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Produces integer values",
-      "InputValue": 30
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0.0,
-      "SerializedHeight": 0.0,
-      "Id": "b2050000000000000000000000000001",
-      "NodeType": "StringInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2050000000000000000000000000002",
-          "Name": "",
-          "Description": "String",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Creates a string.",
-      "InputValue": "02_FORMAS"
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0.0,
-      "SerializedHeight": 0.0,
-      "Id": "b2060000000000000000000000000001",
-      "NodeType": "StringInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2060000000000000000000000000002",
-          "Name": "",
-          "Description": "String",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Creates a string.",
-      "InputValue": ""
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
-      "NumberType": "Integer",
-      "MaximumValue": 30,
-      "MinimumValue": 0,
-      "StepValue": 1,
-      "Id": "b2070000000000000000000000000001",
-      "NodeType": "NumberInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2070000000000000000000000000002",
-          "Name": "",
-          "Description": "Int64",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Produces integer values",
-      "InputValue": 30
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
-      "SerializedWidth": 0,
-      "SerializedHeight": 0,
-      "Id": "b2080000000000000000000000000001",
-      "NodeType": "StringInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2080000000000000000000000000002",
-          "Name": "",
-          "Description": "String",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Creates a string.",
-      "InputValue": "C-Pedestal"
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
-      "NumberType": "Integer",
-      "MaximumValue": 50,
-      "MinimumValue": 5,
-      "StepValue": 5,
-      "Id": "b2090000000000000000000000000001",
-      "NodeType": "NumberInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2090000000000000000000000000002",
-          "Name": "",
-          "Description": "Int64",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Produces integer values",
-      "InputValue": 10
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
-      "NumberType": "Integer",
-      "MaximumValue": 50,
-      "MinimumValue": 5,
-      "StepValue": 1,
-      "Id": "b2100000000000000000000000000001",
-      "NodeType": "NumberInputNode",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "b2100000000000000000000000000002",
-          "Name": "",
-          "Description": "Int64",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Produces integer values",
-      "InputValue": 15
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "Code": "# 00_Vistas de assembly - Planta + corte por assembly, escala automatica, Detail Level Fine\n# Revit 2027 / Dynamo 4 / CPython3\n# IN[0] = procesar todos los assemblies (bool)\n# IN[1] = filtro por nombre si IN[0] es False (parcial, separado por comas)\n# IN[2] = recrear vistas existentes (bool) - borra y vuelve a crear\n# IN[3] = altura del plano de corte de la planta sobre el tope del assembly (cm)\n# IN[4] = tipo de vista de detalle para los cortes (define el simbolo de corte;\n#         vacio = tipo por defecto; si no existe en el proyecto, avisa y sigue)\n# IN[5] = view template para todas las vistas (vacio = ninguno; si no existe, avisa)\n# IN[6] = margen del crop de planta y cortes sobre el borde del assembly, en mm de papel\n# IN[7] = familia de pedestal para el criterio de callouts (default C-Pedestal)\n# IN[8] = escala de los callouts de pedestal (1:N)\n# IN[9] = margen del callout de pedestal, en mm de papel del callout\n\nimport clr\nclr.AddReference('RevitAPI')\nclr.AddReference('RevitServices')\nfrom Autodesk.Revit.DB import (FilteredElementCollector, AssemblyInstance,\n                               AssemblyViewUtils, AssemblyDetailViewOrientation,\n                               View, UnitUtils, UnitTypeId, XYZ, Element,\n                               ElementTransformUtils, BuiltInParameter, BuiltInCategory,\n                               ElementId, ViewFamilyType, ViewFamily, StorageType,\n                               BoundingBoxXYZ, ViewDetailLevel, Options, Solid,\n                               GeometryInstance, Plane, FamilyInstance, ViewSection)\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\nfrom System.Collections.Generic import List\n\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nprocess_all = bool(IN[0])\nfilter_text = (IN[1] or '').strip()\nrecreate = bool(IN[2])\ncut_margin = float(IN[3]) / 30.48  # cm -> pies\nsec_type_text = (IN[4] or '').strip()\ntpl_text = (IN[5] or '').strip()\ncrop_margin_mm = float(IN[6])\npedestal_fam = (IN[7] or '').strip() or 'C-Pedestal'\npedestal_fam_low = pedestal_fam.lower()\ncallout_scale = int(IN[8]) if IN[8] else 10\ncallout_margin_mm = float(IN[9]) if IN[9] else 15.0\n\nlog = []\nSUFIJO_CORTE = ' - CORTE A'\nSUFIJO_CORTE_B = ' - CORTE B'\n# sufijo SOLO para el titulo mostrado en lamina de la planta (Title on Sheet),\n# no para el nombre interno de la vista (View.Name sigue siendo el nombre del\n# assembly - lo usan 01, 02, 03, 04, 06 y 07 para encontrar la vista por nombre;\n# cambiar View.Name romperia esas busquedas). Mismo mecanismo que ya usa el\n# titulo en lamina de los cortes (\"{assembly} - CORTE {letra}\").\nSUFIJO_TITULO_PLANTA = ' - FORMAS'\n\ndef to_m(v):\n    return UnitUtils.ConvertFromInternalUnits(v, UnitTypeId.Meters)\n\ndef elem_name(e):\n    try:\n        return e.Name\n    except Exception:\n        return Element.Name.__get__(e)\n\ndef set_name(e, name):\n    try:\n        e.Name = name\n    except Exception:\n        Element.Name.__set__(e, name)\n\n# --- tipo de vista para los cortes (define el simbolo de corte en la planta) ---\nsec_type = None\nif sec_type_text:\n    detail_types = [t for t in FilteredElementCollector(doc).OfClass(ViewFamilyType)\n                    if t.ViewFamily in (ViewFamily.Detail, ViewFamily.Section)]\n    low = sec_type_text.lower()\n    for t in detail_types:\n        if elem_name(t).lower() == low:\n            sec_type = t\n            break\n    if sec_type is None:\n        log.append('AVISO: no existe el tipo de vista {} (ni como Section ni como Detail View); los cortes quedan con el tipo por defecto.'.format(sec_type_text))\n        log.append('Tipos disponibles en este proyecto: ' + ', '.join(sorted(elem_name(t) for t in detail_types)))\n\n# --- view template unico para todas las vistas ---\ntemplates = [t for t in FilteredElementCollector(doc).OfClass(View) if t.IsTemplate]\nview_template = None\nif not tpl_text:\n    log.append('Sin view template (campo vacio). Templates cargados en el proyecto:')\n    for t in sorted(templates, key=lambda t: elem_name(t)):\n        log.append('  - ' + elem_name(t))\n    if not templates:\n        log.append('  (ninguno cargado en este proyecto)')\nelse:\n    lowt = tpl_text.lower()\n    for t in templates:\n        if elem_name(t).lower() == lowt:\n            view_template = t\n            break\n    if view_template is None:\n        cands = [t for t in templates if lowt in elem_name(t).lower()]\n        if len(cands) == 1:\n            view_template = cands[0]\n    if view_template is None:\n        log.append('AVISO: no existe un view template que coincida con {}; las vistas quedan sin template.'.format(tpl_text))\n        log.append('Templates cargados en el proyecto: ' + ', '.join(sorted(elem_name(t) for t in templates)))\n\n# --- tipo de vista para los callouts de pedestal (debe ser ViewFamily.Detail) ---\nvftype_detail = None\ntipos_vft_detail = [t for t in FilteredElementCollector(doc).OfClass(ViewFamilyType)\n                    if t.ViewFamily == ViewFamily.Detail]\nif tipos_vft_detail:\n    vftype_detail = sorted(tipos_vft_detail, key=lambda t: elem_name(t))[0]\nelse:\n    log.append('AVISO: no hay ningun ViewFamilyType de tipo Detail en el proyecto; no se pueden crear callouts de pedestal.')\n\n# --- assemblies unicos por tipo ---\nby_type = {}\nfor ai in FilteredElementCollector(doc).OfClass(AssemblyInstance):\n    by_type.setdefault(ai.AssemblyTypeName, []).append(ai)\n\nif process_all:\n    targets = sorted(by_type.keys())\nelse:\n    tokens = [t.strip().lower() for t in filter_text.split(',') if t.strip()]\n    if tokens:\n        targets = [n for n in sorted(by_type.keys())\n                   if any(tok in n.lower() for tok in tokens)]\n    else:\n        targets = []\n        log.append('ERROR: \\\"Procesar todos\\\" esta en False y el filtro esta vacio.')\n    log.append('Filtro \\\"{}\\\": {} assemblies seleccionados.'.format(filter_text, len(targets)))\n\n# vistas existentes por nombre (para idempotencia)\nview_ids = {}\nfor v in FilteredElementCollector(doc).OfClass(View):\n    if not v.IsTemplate:\n        view_ids[elem_name(v)] = v.Id\n\ndef member_solid_bbox(el):\n    # bounding box de el a partir de su geometria SOLIDA real (Volume > 0), en vez\n    # de Element.get_BoundingBox() - que puede devolver un bbox \"fantasma\" (de\n    # referencias/work planes) para elementos con geometria vacia o degenerada\n    # (Volume=0), como paso con un C-Zapata con datos rotos (2026-07-13: bbox de\n    # 3.7 m de alto para una zapata de 0.4x0.4 m, con Volume=0 y Area=0 - la\n    # seccion se veia como un recuadro vacio y ademas inflaba la estimacion de\n    # alto que usan 01/02 para armar la grilla de laminas). Devuelve None si el\n    # elemento no tiene ningun solido valido (en vez de un bbox fantasma), asi\n    # el llamador puede excluirlo del calculo y el log avisa cual assembly tiene\n    # el problema. Maneja simbolos anidados (GeometryInstance), mismo patron que\n    # collect_faces() en 03_Cotas generales.\n    opt = Options()\n    opt.DetailLevel = ViewDetailLevel.Fine\n    try:\n        geo = el.get_Geometry(opt)\n    except Exception:\n        geo = None\n    if geo is None:\n        return None\n    minx = miny = minz = float('inf')\n    maxx = maxy = maxz = float('-inf')\n    hay = False\n    def acumular(solid, trf):\n        sbb = solid.GetBoundingBox()\n        for x in (sbb.Min.X, sbb.Max.X):\n            for y in (sbb.Min.Y, sbb.Max.Y):\n                for z in (sbb.Min.Z, sbb.Max.Z):\n                    p = sbb.Transform.OfPoint(XYZ(x, y, z))\n                    if trf is not None:\n                        p = trf.OfPoint(p)\n                    yield p\n    pts = []\n    for g in geo:\n        if isinstance(g, Solid) and g.Volume > 1e-9:\n            pts.extend(list(acumular(g, None)))\n        elif isinstance(g, GeometryInstance):\n            for sg in g.GetSymbolGeometry():\n                if isinstance(sg, Solid) and sg.Volume > 1e-9:\n                    pts.extend(list(acumular(sg, g.Transform)))\n    for p in pts:\n        hay = True\n        if p.X < minx: minx = p.X\n        if p.X > maxx: maxx = p.X\n        if p.Y < miny: miny = p.Y\n        if p.Y > maxy: maxy = p.Y\n        if p.Z < minz: minz = p.Z\n        if p.Z > maxz: maxz = p.Z\n    if not hay:\n        return None\n    class _BB(object):\n        pass\n    r = _BB()\n    r.Min = XYZ(minx, miny, minz)\n    r.Max = XYZ(maxx, maxy, maxz)\n    return r\n\ndef local_size(ai):\n    # bbox de los miembros en coordenadas locales del assembly, en metros\n    t = ai.GetTransform()\n    tinv = t.Inverse\n    mins = [float('inf')] * 3\n    maxs = [float('-inf')] * 3\n    for mid in ai.GetMemberIds():\n        el = doc.GetElement(mid)\n        bb = member_solid_bbox(el)\n        if bb is None:\n            continue\n        for x in (bb.Min.X, bb.Max.X):\n            for y in (bb.Min.Y, bb.Max.Y):\n                for z in (bb.Min.Z, bb.Max.Z):\n                    p = tinv.OfPoint(XYZ(x, y, z))\n                    vals = (p.X, p.Y, p.Z)\n                    for i in range(3):\n                        if vals[i] < mins[i]:\n                            mins[i] = vals[i]\n                        if vals[i] > maxs[i]:\n                            maxs[i] = vals[i]\n    if mins[0] == float('inf'):\n        return None\n    return [to_m(maxs[i] - mins[i]) for i in range(3)]\n\ndef world_z_range(ai):\n    zmin = float('inf')\n    zmax = float('-inf')\n    for mid in ai.GetMemberIds():\n        el = doc.GetElement(mid)\n        bb = member_solid_bbox(el)\n        if bb is None:\n            continue\n        if bb.Min.Z < zmin:\n            zmin = bb.Min.Z\n        if bb.Max.Z > zmax:\n            zmax = bb.Max.Z\n    if zmin > zmax:\n        return None\n    return (zmin, zmax)\n\ndef find_viewer(vname):\n    # marcador de la vista (categoria Views/Viewers), comparte nombre con la vista\n    for ve in FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Viewers):\n        if elem_name(ve) == vname:\n            return ve\n    return None\n\ndef orientar_burbuja_corte(v, tname, label):\n    # la burbuja (circulo con la letra) del simbolo de corte debe quedar del\n    # lado norte (arriba en la lamina); el otro extremo de la linea (flecha\n    # verde) queda entonces al sur (abajo). La linea de corte en planta es\n    # PERPENDICULAR a la ViewDirection (la vista mira perpendicular a su\n    # propia linea): un corte con linea vertical (norte-sur, el que tiene\n    # lado arriba/abajo) tiene ViewDirection dominante en X; uno con linea\n    # horizontal (ViewDirection dominante en Y) no tiene ese lado, se deja\n    # como esta. Se logra espejando el marcador (categoria Views/Viewers)\n    # respecto al plano horizontal que pasa por el centro del crop: es la\n    # misma operacion que el control de flip de Revit al seleccionar la\n    # linea de corte (tambien invierte la direccion de vista, por lo que el\n    # corte queda mirado desde el lado opuesto).\n    vd = v.ViewDirection\n    if abs(vd.X) <= abs(vd.Y):\n        return\n    viewer = find_viewer(elem_name(v))\n    if viewer is None:\n        log.append('AVISO {}: no se encontro el marcador de {} para orientar la burbuja.'.format(tname, label))\n        return\n    cb = v.CropBox\n    centro_local = XYZ((cb.Min.X + cb.Max.X) / 2.0, (cb.Min.Y + cb.Max.Y) / 2.0, (cb.Min.Z + cb.Max.Z) / 2.0)\n    centro = cb.Transform.OfPoint(centro_local)\n    try:\n        marcador_y = viewer.Location.Point.Y\n    except Exception:\n        marcador_y = v.Origin.Y\n    if marcador_y >= centro.Y:\n        return  # la burbuja ya esta al norte (arriba)\n    plano = Plane.CreateByNormalAndOrigin(XYZ(0.0, 1.0, 0.0), centro)\n    # MirrorElements con mirrorCopies=False voltea el marcador ORIGINAL en su\n    # lugar (equivalente al control de flip de Revit): la burbuja pasa al\n    # extremo norte y el otro extremo queda como flecha. OJO: MirrorElement\n    # (singular) NO sirve aca - siempre crea una COPIA espejada, que en un\n    # viewer significa duplicar la vista de corte entera (bug visto el\n    # 2026-07-13: aparecian cortes Detail View duplicados con burbuja en\n    # ambos extremos).\n    ids = List[ElementId]([viewer.Id])\n    ElementTransformUtils.MirrorElements(doc, ids, plano, False)\n    doc.Regenerate()\n    log.append('{}: burbuja de {} pasada al lado norte (arriba en la lamina).'.format(tname, label))\n\ndef ajustar_corte_planta(vplan, ai, tname):\n    # sube el plano de corte por encima del assembly (nada queda cortado,\n    # todo se ve en proyeccion como una planta real) y extiende el far clip\n    # para ver hasta abajo del assembly\n    dirz = vplan.ViewDirection.Z\n    if abs(dirz) < 0.99:\n        log.append('AVISO {}: la planta no es una vista vertical, no se ajusta el corte.'.format(tname))\n        return\n    zr = world_z_range(ai)\n    if zr is None:\n        log.append('AVISO {}: sin geometria para ajustar el corte de la planta.'.format(tname))\n        return\n    zmin, zmax = zr\n    if dirz > 0:\n        objetivo = zmax + cut_margin\n        far = (objetivo - zmin) + cut_margin\n    else:\n        objetivo = zmin - cut_margin\n        far = (zmax - objetivo) + cut_margin\n    dz = objetivo - vplan.Origin.Z\n    if abs(dz) > 0.003:\n        viewer = find_viewer(elem_name(vplan))\n        if viewer is None:\n            log.append('AVISO {}: no se encontro el marcador de la planta para mover el corte.'.format(tname))\n            return\n        ElementTransformUtils.MoveElement(doc, viewer.Id, XYZ(0.0, 0.0, dz))\n        log.append('{}: plano de corte de la planta subido {:.2f} m sobre el tope del assembly.'.format(tname, to_m(cut_margin)))\n    p = vplan.get_Parameter(BuiltInParameter.VIEWER_BOUND_OFFSET_FAR)\n    if p is not None and not p.IsReadOnly:\n        p.Set(far)\n\ndef ajustar_crop_planta(vplan, ai, tname):\n    # recorta el crop de la planta justo al borde del assembly (+ margen).\n    # Se trabaja en el sistema local del CropBox (su Transform), no en el del\n    # assembly, para que quede correcto sin importar la orientacion de la vista.\n    # El Annotation Crop se desactiva para que cotas/tags/leaders (que viven\n    # fuera del borde del assembly) nunca queden cortados por este recorte.\n    bb = vplan.CropBox\n    inv = bb.Transform.Inverse\n    minx = miny = float('inf')\n    maxx = maxy = float('-inf')\n    hay_geo = False\n    for mid in ai.GetMemberIds():\n        el = doc.GetElement(mid)\n        mbb = member_solid_bbox(el)\n        if mbb is None:\n            continue\n        hay_geo = True\n        for x in (mbb.Min.X, mbb.Max.X):\n            for y in (mbb.Min.Y, mbb.Max.Y):\n                for z in (mbb.Min.Z, mbb.Max.Z):\n                    p = inv.OfPoint(XYZ(x, y, z))\n                    if p.X < minx:\n                        minx = p.X\n                    if p.X > maxx:\n                        maxx = p.X\n                    if p.Y < miny:\n                        miny = p.Y\n                    if p.Y > maxy:\n                        maxy = p.Y\n    if not hay_geo:\n        log.append('AVISO {}: sin geometria para ajustar el crop de la planta.'.format(tname))\n        return\n    margen = crop_margin_mm / 304.8 * vplan.Scale\n    nuevo = BoundingBoxXYZ()\n    nuevo.Transform = bb.Transform\n    nuevo.Min = XYZ(minx - margen, miny - margen, bb.Min.Z)\n    nuevo.Max = XYZ(maxx + margen, maxy + margen, bb.Max.Z)\n    vplan.CropBox = nuevo\n    try:\n        mgr = vplan.GetCropRegionShapeManager()\n        mgr.IsAnnotationCropActive = False\n    except Exception:\n        pass\n    log.append('{}: crop de planta ajustado al borde del assembly (+{:.0f} mm).'.format(tname, crop_margin_mm))\n\ndef ajustar_crop_corte(vsec, ai, tname, label):\n    # recorta el crop de los cortes -ANCHO y ALTO, ejes propios del corte- al borde\n    # del assembly; esto tambien acorta la linea de seccion dibujada en la planta,\n    # que antes salia mucho mas larga que el assembly. Ajustar el ALTO (agregado\n    # 2026-07-13) es seguro porque el Annotation Crop se desactiva mas abajo: la\n    # cota de altura y la spot elevation superior de 03, que se colocan por fuera\n    # de este crop, no quedan cortadas aunque el crop quede ceñido a la geometria.\n    # Antes el alto quedaba en el default de Revit (mucho mayor que una zapata\n    # chica), lo que inflaba la estimacion de View.CropBox que usan 01/02 para\n    # armar la grilla de laminas: cada bloque parecia ocupar casi una lamina\n    # entera y el packing abandonaba la fila/lamina casi vacia.\n    # Igual que en la planta, se desactiva el Annotation Crop para no cortar\n    # la cota de altura ni las spot elevations de 04, que quedan mas afuera.\n    bb = vsec.CropBox\n    inv = bb.Transform.Inverse\n    minx = miny = float('inf')\n    maxx = maxy = float('-inf')\n    hay_geo = False\n    for mid in ai.GetMemberIds():\n        el = doc.GetElement(mid)\n        mbb = member_solid_bbox(el)\n        if mbb is None:\n            continue\n        hay_geo = True\n        for x in (mbb.Min.X, mbb.Max.X):\n            for y in (mbb.Min.Y, mbb.Max.Y):\n                for z in (mbb.Min.Z, mbb.Max.Z):\n                    p = inv.OfPoint(XYZ(x, y, z))\n                    if p.X < minx:\n                        minx = p.X\n                    if p.X > maxx:\n                        maxx = p.X\n                    if p.Y < miny:\n                        miny = p.Y\n                    if p.Y > maxy:\n                        maxy = p.Y\n    if not hay_geo:\n        log.append('AVISO {}: sin geometria para ajustar el crop de {}.'.format(tname, label))\n        return\n    margen = crop_margin_mm / 304.8 * vsec.Scale\n    nuevo = BoundingBoxXYZ()\n    nuevo.Transform = bb.Transform\n    nuevo.Min = XYZ(minx - margen, miny - margen, bb.Min.Z)\n    nuevo.Max = XYZ(maxx + margen, maxy + margen, bb.Max.Z)\n    vsec.CropBox = nuevo\n    try:\n        mgr = vsec.GetCropRegionShapeManager()\n        mgr.IsAnnotationCropActive = False\n    except Exception:\n        pass\n    log.append('{}: crop de {} ajustado al assembly (+{:.0f} mm, ancho y alto).'.format(tname, label, crop_margin_mm))\n\ndef ajustar_titulo_planta(v, tname):\n    # titulo en lamina = '{assembly} - FORMAS' via Title on Sheet, sin tocar el\n    # nombre interno de la vista (ver SUFIJO_TITULO_PLANTA arriba).\n    p = v.get_Parameter(BuiltInParameter.VIEW_DESCRIPTION)\n    if p is None or p.IsReadOnly:\n        return\n    deseado = tname + SUFIJO_TITULO_PLANTA\n    if p.AsString() != deseado:\n        p.Set(deseado)\n\ndef ocultar_simbolos_corte(v):\n    # los cortes salen limpios: sin simbolos de corte de otras vistas\n    try:\n        cat = ElementId(BuiltInCategory.OST_Sections)\n        if v.CanCategoryBeHidden(cat):\n            v.SetCategoryHidden(cat, True)\n    except Exception:\n        pass\n\nPARAM_CANTIDAD = 'Cantidad_Inserto'\n_param_avisado = [False]\n\ndef set_cantidad(v, cantidad, tname):\n    # cantidad de assemblies de este tipo en el proyecto -> parametro del titulo\n    p = v.LookupParameter(PARAM_CANTIDAD)\n    if p is None:\n        if not _param_avisado[0]:\n            _param_avisado[0] = True\n            log.append('AVISO: las vistas no tienen el parametro {} (agregarlo como parametro de proyecto en la categoria Views).'.format(PARAM_CANTIDAD))\n        return\n    if p.IsReadOnly:\n        return\n    st = p.StorageType\n    if st == StorageType.Integer:\n        p.Set(int(cantidad))\n    elif st == StorageType.Double:\n        p.Set(float(cantidad))\n    else:\n        p.Set(str(cantidad))\n    log.append('{}: {} = {}.'.format(tname, PARAM_CANTIDAD, cantidad))\n\ndef aplicar_template(v, tname, label, scale):\n    if view_template is None:\n        return\n    try:\n        if v.ViewTemplateId != view_template.Id:\n            v.ViewTemplateId = view_template.Id\n            log.append('{}: template aplicado a {}.'.format(tname, label))\n        try:\n            # re-asegurar la escala automatica (si el template la controla, gana el template)\n            if v.Scale != scale:\n                v.Scale = scale\n        except Exception:\n            pass\n    except Exception as e:\n        log.append('ERROR {} aplicando template a {}: {}'.format(tname, label, e))\n\ndef instancias_recursivas(ai):\n    # TODAS las FamilyInstance del assembly (contenedores y hojas, cualquier\n    # profundidad de anidamiento) - igual patron que 99_Diagnostico pedestales.\n    vistos = set()\n    resultado = []\n    stack = list(ai.GetMemberIds())\n    while stack:\n        eid = stack.pop()\n        if eid.Value in vistos:\n            continue\n        vistos.add(eid.Value)\n        el = doc.GetElement(eid)\n        if el is None or not isinstance(el, FamilyInstance):\n            continue\n        resultado.append(el)\n        try:\n            stack.extend(list(el.GetSubComponentIds()))\n        except Exception:\n            pass\n    return resultado\n\ndef tipos_pedestal(ai):\n    # agrupa por TIPO (Symbol.Name) las instancias de la familia de pedestal\n    # (IN[7], default C-Pedestal); con 0 o 1 tipo distinto no se crea ningun\n    # callout - solo interesan los assemblies con 2 o mas tipos.\n    grupos = {}\n    for el in instancias_recursivas(ai):\n        try:\n            fam = el.Symbol.Family.Name\n        except Exception:\n            continue\n        if fam.lower() != pedestal_fam_low:\n            continue\n        tn = elem_name(el.Symbol)\n        grupos.setdefault(tn, []).append(el)\n    return grupos\n\ndef bbox_con_anidados(el):\n    # bbox solido de el INCLUYENDO sus sub-componentes anidados (recursivo).\n    # Un C-Pedestal es un CONTENEDOR: su geometria real de hormigon vive en\n    # familias anidadas mas profundas (ej. el G35 dentro del PD-1004), y\n    # member_solid_bbox solo ve solidos propios y del primer nivel de\n    # GeometryInstance - para el contenedor devuelve None (visto 2026-07-13:\n    # todos los pedestales daban 'sin geometria valida' y ningun callout se\n    # creaba). Los sub-componentes son FamilyInstance reales cuya geometria\n    # ya viene en coordenadas de mundo, asi que basta unir sus bboxes.\n    pila = [el]\n    vistos = set()\n    minx = miny = minz = float('inf')\n    maxx = maxy = maxz = float('-inf')\n    hay = False\n    while pila:\n        e = pila.pop()\n        if e is None:\n            continue\n        try:\n            eid = e.Id.Value\n        except Exception:\n            eid = None\n        if eid is not None:\n            if eid in vistos:\n                continue\n            vistos.add(eid)\n        bb = member_solid_bbox(e)\n        if bb is not None:\n            hay = True\n            if bb.Min.X < minx: minx = bb.Min.X\n            if bb.Max.X > maxx: maxx = bb.Max.X\n            if bb.Min.Y < miny: miny = bb.Min.Y\n            if bb.Max.Y > maxy: maxy = bb.Max.Y\n            if bb.Min.Z < minz: minz = bb.Min.Z\n            if bb.Max.Z > maxz: maxz = bb.Max.Z\n        if isinstance(e, FamilyInstance):\n            try:\n                for sid in e.GetSubComponentIds():\n                    pila.append(doc.GetElement(sid))\n            except Exception:\n                pass\n    if not hay:\n        return None\n    class _BB(object):\n        pass\n    r = _BB()\n    r.Min = XYZ(minx, miny, minz)\n    r.Max = XYZ(maxx, maxy, maxz)\n    return r\n\ndef elemento_mas_a_la_derecha(vplan, instancias):\n    # de las instancias de UN tipo, la que queda mas a la derecha en el\n    # sistema LOCAL de la planta (coordenada X de su CropBox.Transform) - asi\n    # el resultado es correcto sin importar la rotacion real del assembly.\n    inv = vplan.CropBox.Transform.Inverse\n    mejor = None\n    mejor_x = float('-inf')\n    for el in instancias:\n        bb = bbox_con_anidados(el)\n        if bb is None:\n            continue\n        cx = (bb.Min.X + bb.Max.X) / 2.0\n        cy = (bb.Min.Y + bb.Max.Y) / 2.0\n        cz = (bb.Min.Z + bb.Max.Z) / 2.0\n        p_local = inv.OfPoint(XYZ(cx, cy, cz))\n        if p_local.X > mejor_x:\n            mejor_x = p_local.X\n            mejor = (el, bb)\n    return mejor\n\ndef crear_callout_pedestal(vplan, tname, tipo, bb, vftype, escala, margen_mm):\n    # crea (o salta si ya existe) el callout de UN tipo de pedestal, alrededor\n    # del pedestal elegido (bb = bounding box real en coordenadas de MUNDO,\n    # de member_solid_bbox). Los puntos van en coordenadas de mundo (igual\n    # tecnica que ajustar_crop_planta/ajustar_crop_corte: local via\n    # CropBox.Transform.Inverse, expandir el margen, volver a mundo con\n    # CropBox.Transform) - confirmado con un test reversible que CreateCallout\n    # acepta puntos de mundo sobre una planta de assembly (Detail View).\n    global callouts_creados, callouts_saltados\n    inv = vplan.CropBox.Transform.Inverse\n    tr = vplan.CropBox.Transform\n    minx = miny = float('inf')\n    maxx = maxy = float('-inf')\n    for x in (bb.Min.X, bb.Max.X):\n        for y in (bb.Min.Y, bb.Max.Y):\n            for z in (bb.Min.Z, bb.Max.Z):\n                p = inv.OfPoint(XYZ(x, y, z))\n                if p.X < minx:\n                    minx = p.X\n                if p.X > maxx:\n                    maxx = p.X\n                if p.Y < miny:\n                    miny = p.Y\n                if p.Y > maxy:\n                    maxy = p.Y\n    margen = margen_mm / 304.8 * escala\n    p1 = tr.OfPoint(XYZ(minx - margen, miny - margen, 0.0))\n    p2 = tr.OfPoint(XYZ(maxx + margen, maxy + margen, 0.0))\n    vname = '{} - PEDESTAL {}'.format(tname, tipo)\n    if vname in view_ids:\n        if recreate:\n            doc.Delete(view_ids[vname])\n            del view_ids[vname]\n            log.append('{}: callout de {} anterior eliminado.'.format(tname, tipo))\n        else:\n            log.append('{}: callout de {} ya existe, se salta.'.format(tname, tipo))\n            callouts_saltados += 1\n            return\n    callout = ViewSection.CreateCallout(doc, vplan.Id, vftype.Id, p1, p2)\n    set_name(callout, vname)\n    callout.Scale = escala\n    callout.DetailLevel = ViewDetailLevel.Fine\n    try:\n        if callout.CropBoxVisible:\n            callout.CropBoxVisible = False\n    except Exception:\n        pass\n    view_ids[vname] = callout.Id\n    callouts_creados += 1\n    log.append('OK {}: callout de pedestal {} creado (\\\"{}\\\"), escala 1:{}.'.format(tname, tipo, vname, escala))\n\ncallouts_creados = 0\ncallouts_saltados = 0\ncreated = 0\nskipped = 0\nTransactionManager.Instance.EnsureInTransaction(doc)\ntry:\n    for tname in targets:\n        insts = by_type[tname]\n        ai = insts[0]\n        if len(insts) > 1:\n            log.append('AVISO {}: {} instancias del mismo tipo, se documenta la primera.'.format(tname, len(insts)))\n        try:\n            size = local_size(ai)\n            scale = 50 if size is not None and (size[0] > 2.0 or size[1] > 2.0) else 25\n            jobs = ((tname, AssemblyDetailViewOrientation.HorizontalDetail, 'planta'),\n                    (tname + SUFIJO_CORTE, AssemblyDetailViewOrientation.DetailSectionA, 'corte A'),\n                    (tname + SUFIJO_CORTE_B, AssemblyDetailViewOrientation.DetailSectionB, 'corte B'))\n            vplan_obj = None\n            for vname, orient, label in jobs:\n                v_obj = None\n                if vname in view_ids:\n                    if recreate:\n                        doc.Delete(view_ids[vname])\n                        del view_ids[vname]\n                        log.append('{}: {} anterior eliminada (tambien su viewport si estaba en un sheet).'.format(tname, label))\n                    else:\n                        log.append('{}: {} ya existe, se salta.'.format(tname, label))\n                        skipped += 1\n                        v_obj = doc.GetElement(view_ids[vname])\n                if v_obj is None:\n                    v_obj = AssemblyViewUtils.CreateDetailSection(doc, ai.Id, orient)\n                    set_name(v_obj, vname)\n                    v_obj.Scale = scale\n                    v_obj.DetailLevel = ViewDetailLevel.Fine\n                    view_ids[vname] = v_obj.Id\n                    created += 1\n                    log.append('OK {}: {} creada, escala 1:{}.'.format(tname, label, scale))\n                if v_obj is not None:\n                    try:\n                        # \"Crop View\" (geometria) activo: sin esto la vista muestra\n                        # su extension completa sin recortar, mucho mas grande que\n                        # el CropBox que ajustan ajustar_crop_planta/ajustar_crop_corte\n                        # mas abajo - desperdicia espacio en la grilla de 01/02 aunque\n                        # el CropBox este bien calculado. Distinto del Annotation Crop\n                        # (ese se desactiva a proposito para no cortar cotas/tags).\n                        if not v_obj.CropBoxActive:\n                            v_obj.CropBoxActive = True\n                        # el RECTANGULO del crop no se dibuja (linea visible), pero\n                        # el recorte de geometria (CropBoxActive) sigue activo arriba\n                        if v_obj.CropBoxVisible:\n                            v_obj.CropBoxVisible = False\n                    except Exception as e:\n                        log.append('ERROR {} activando Crop View: {}'.format(tname, e))\n                    aplicar_template(v_obj, tname, label, scale)\n                if label == 'planta' and v_obj is not None:\n                    try:\n                        ajustar_corte_planta(v_obj, ai, tname)\n                    except Exception as e:\n                        log.append('ERROR {} ajustando corte de planta: {}'.format(tname, e))\n                    try:\n                        ajustar_crop_planta(v_obj, ai, tname)\n                    except Exception as e:\n                        log.append('ERROR {} ajustando crop de planta: {}'.format(tname, e))\n                    try:\n                        ajustar_titulo_planta(v_obj, tname)\n                    except Exception as e:\n                        log.append('ERROR {} ajustando titulo de planta: {}'.format(tname, e))\n                    try:\n                        set_cantidad(v_obj, len(insts), tname)\n                    except Exception as e:\n                        log.append('ERROR {} seteando {}: {}'.format(tname, PARAM_CANTIDAD, e))\n                    vplan_obj = v_obj\n                elif v_obj is not None:\n                    ocultar_simbolos_corte(v_obj)\n                    try:\n                        orientar_burbuja_corte(v_obj, tname, label)\n                    except Exception as e:\n                        log.append('ERROR {} orientando burbuja de {}: {}'.format(tname, label, e))\n                    try:\n                        ajustar_crop_corte(v_obj, ai, tname, label)\n                    except Exception as e:\n                        log.append('ERROR {} ajustando crop de {}: {}'.format(tname, label, e))\n                    if sec_type is not None and v_obj.GetTypeId() != sec_type.Id:\n                        try:\n                            v_obj.ChangeTypeId(sec_type.Id)\n                            log.append('{}: {} cambiado al tipo de vista {}.'.format(tname, label, sec_type_text))\n                        except Exception as e:\n                            log.append('ERROR {} cambiando el tipo de {}: {}'.format(tname, label, e))\n            if vplan_obj is not None and vftype_detail is not None:\n                try:\n                    grupos = tipos_pedestal(ai)\n                except Exception as e:\n                    grupos = {}\n                    log.append('ERROR {} agrupando pedestales: {}'.format(tname, e))\n                if len(grupos) >= 2:\n                    log.append('{}: {} tipos de {} -> se crean callouts (uno por tipo, el mas a la derecha).'.format(tname, len(grupos), pedestal_fam))\n                    for tipo in sorted(grupos):\n                        elegido = elemento_mas_a_la_derecha(vplan_obj, grupos[tipo])\n                        if elegido is None:\n                            log.append('AVISO {}: sin geometria valida para el pedestal tipo {}.'.format(tname, tipo))\n                            continue\n                        el_ped, bb_ped = elegido\n                        try:\n                            crear_callout_pedestal(vplan_obj, tname, tipo, bb_ped, vftype_detail, callout_scale, callout_margin_mm)\n                        except Exception as e:\n                            log.append('ERROR {} creando callout de {}: {}'.format(tname, tipo, e))\n        except Exception as e:\n            log.append('ERROR {}: {}'.format(tname, e))\nfinally:\n    TransactionManager.Instance.TransactionTaskDone()\n\nlog.insert(0, 'Assemblies procesados: {} | vistas creadas: {} | saltadas: {} | callouts creados: {} | callouts saltados: {}'.format(len(targets), created, skipped, callouts_creados, callouts_saltados))\nOUT = log",
-      "Engine": "PythonNet3",
-      "VariableInputPorts": true,
-      "Id": "a2010000000000000000000000000001",
-      "NodeType": "PythonScriptNode",
-      "Inputs": [
-        {
-          "Id": "a2010000000000000000000000000002",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a2010000000000000000000000000003",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a2010000000000000000000000000004",
-          "Name": "IN[2]",
-          "Description": "Input #2",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a2010000000000000000000000000006",
-          "Name": "IN[3]",
-          "Description": "Input #3",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a2010000000000000000000000000007",
-          "Name": "IN[4]",
-          "Description": "Input #4",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a2010000000000000000000000000008",
-          "Name": "IN[5]",
-          "Description": "Input #5",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a2010000000000000000000000000009",
-          "Name": "IN[6]",
-          "Description": "Input #6",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a201000000000000000000000000000a",
-          "Name": "IN[7]",
-          "Description": "Input #7",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a201000000000000000000000000000b",
-          "Name": "IN[8]",
-          "Description": "Input #8",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a201000000000000000000000000000c",
-          "Name": "IN[9]",
-          "Description": "Input #9",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "a2010000000000000000000000000005",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "WatchWidth": 620.0,
-      "WatchHeight": 400.0,
-      "Id": "c2010000000000000000000000000001",
-      "NodeType": "ExtensionNode",
-      "Inputs": [
-        {
-          "Id": "c2010000000000000000000000000002",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "c2010000000000000000000000000003",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualizes a node's output"
-    }
-  ],
-  "Connectors": [
-    {
-      "Start": "b2010000000000000000000000000002",
-      "End": "a2010000000000000000000000000002",
-      "Id": "d2010000000000000000000000000001",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "b2020000000000000000000000000002",
-      "End": "a2010000000000000000000000000003",
-      "Id": "d2010000000000000000000000000002",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "b2030000000000000000000000000002",
-      "End": "a2010000000000000000000000000004",
-      "Id": "d2010000000000000000000000000003",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "b2040000000000000000000000000002",
-      "End": "a2010000000000000000000000000006",
-      "Id": "d2010000000000000000000000000005",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "b2050000000000000000000000000002",
-      "End": "a2010000000000000000000000000007",
-      "Id": "d2010000000000000000000000000006",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "b2060000000000000000000000000002",
-      "End": "a2010000000000000000000000000008",
-      "Id": "d2010000000000000000000000000007",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "b2070000000000000000000000000002",
-      "End": "a2010000000000000000000000000009",
-      "Id": "d2010000000000000000000000000008",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "a2010000000000000000000000000005",
-      "End": "c2010000000000000000000000000002",
-      "Id": "d2010000000000000000000000000004",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "b2080000000000000000000000000002",
-      "End": "a201000000000000000000000000000a",
-      "Id": "d2010000000000000000000000000009",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "b2090000000000000000000000000002",
-      "End": "a201000000000000000000000000000b",
-      "Id": "d201000000000000000000000000000a",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "b2100000000000000000000000000002",
-      "End": "a201000000000000000000000000000c",
-      "Id": "d201000000000000000000000000000b",
-      "IsHidden": "False"
-    }
-  ],
-  "Dependencies": [],
-  "NodeLibraryDependencies": [],
-  "EnableLegacyPolyCurveBehavior": false,
-  "Thumbnail": "",
-  "GraphDocumentationURL": null,
-  "ExtensionWorkspaceData": [
-    {
-      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
-      "Name": "Properties",
-      "Version": "4.0",
-      "Data": {}
-    },
-    {
-      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
-      "Name": "Generative Design",
-      "Version": "10.3",
-      "Data": {}
-    }
-  ],
-  "Author": "",
-  "Linting": {
-    "activeLinter": "None",
-    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
-    "warningCount": 0,
-    "errorCount": 0
-  },
-  "Bindings": [],
-  "View": {
-    "Dynamo": {
-      "ScaleFactor": 1.0,
-      "HasRunWithoutCrash": true,
-      "IsVisibleInDynamoLibrary": true,
-      "Version": "4.0.2.3852",
-      "RunType": "Manual",
-      "RunPeriod": "1000"
-    },
-    "Camera": {
-      "Name": "_Background Preview",
-      "EyeX": -17.0,
-      "EyeY": 24.0,
-      "EyeZ": 50.0,
-      "LookX": 12.0,
-      "LookY": -13.0,
-      "LookZ": -58.0,
-      "UpX": 0.0,
-      "UpY": 1.0,
-      "UpZ": 0.0
-    },
-    "ConnectorPins": [],
-    "NodeViews": [
-      {
-        "Id": "b2010000000000000000000000000001",
-        "Name": "Procesar TODOS los assemblies",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 0.0
-      },
-      {
-        "Id": "b2020000000000000000000000000001",
-        "Name": "Filtro por nombre (si TODOS = False)",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 130.0
-      },
-      {
-        "Id": "b2030000000000000000000000000001",
-        "Name": "Recrear vistas existentes (borra y rehace)",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 260.0
-      },
-      {
-        "Id": "b2040000000000000000000000000001",
-        "Name": "Altura del corte sobre el assembly (cm)",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 390.0
-      },
-      {
-        "Id": "b2050000000000000000000000000001",
-        "Name": "Tipo de vista para cortes (simbolo)",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 520.0
-      },
-      {
-        "Id": "b2060000000000000000000000000001",
-        "Name": "View template para las vistas (vacio = ninguno)",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 650.0
-      },
-      {
-        "Id": "b2070000000000000000000000000001",
-        "Name": "Margen del crop, planta y cortes (mm)",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 780.0
-      },
-      {
-        "Id": "b2080000000000000000000000000001",
-        "Name": "Familia de pedestal para callouts",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 910.0
-      },
-      {
-        "Id": "b2090000000000000000000000000001",
-        "Name": "Escala de los callouts (1:N)",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 1040.0
-      },
-      {
-        "Id": "b2100000000000000000000000000001",
-        "Name": "Margen del callout (mm)",
-        "IsSetAsInput": true,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 0.0,
-        "Y": 1170.0
-      },
-      {
-        "Id": "a2010000000000000000000000000001",
-        "Name": "PY | Crear planta + corte por assembly",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 480.0,
-        "Y": 100.0
-      },
-      {
-        "Id": "c2010000000000000000000000000001",
-        "Name": "Log",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": true,
-        "Excluded": false,
-        "ShowGeometry": true,
-        "X": 820.0,
-        "Y": 100.0
-      }
-    ],
-    "Annotations": [],
-    "X": 195.2000000000001,
-    "Y": -127.20000000000005,
-    "Zoom": 0.8
-  }
+    "Uuid":  "8f4c1a2e-0a11-4b6e-9c01-aa0000000003",
+    "IsCustomNode":  false,
+    "Description":  "Por assembly: 1 planta NIPB + N plantas T.A. (agrupadas por altura real de las vigas) + 1 elevacion por cada eje que cruza el assembly. Escribe un nombre en \"04. Subcarpeta\" y se crea un tipo de vista con ese nombre para agrupar todo en el Project Browser. Idempotente: salta las vistas que ya existen (usa \"Recrear\" para rehacerlas).",
+    "Name":  "00_Vistas de assembly",
+    "ElementResolver":  {
+                            "ResolutionMap":  {
+
+                                              }
+                        },
+    "Inputs":  [
+                   {
+                       "Id":  "b2010000000000000000000000000001",
+                       "Name":  "Procesar TODOS los assemblies",
+                       "Type":  "boolean",
+                       "Type2":  "boolean",
+                       "Value":  "true",
+                       "Description":  "Enables selection between True and False"
+                   },
+                   {
+                       "Id":  "b2020000000000000000000000000001",
+                       "Name":  "Filtro por nombre (si TODOS = False)",
+                       "Type":  "string",
+                       "Type2":  "string",
+                       "Value":  "",
+                       "Description":  "Creates a string."
+                   },
+                   {
+                       "Id":  "b2030000000000000000000000000001",
+                       "Name":  "Recrear vistas existentes (borra y rehace)",
+                       "Type":  "boolean",
+                       "Type2":  "boolean",
+                       "Value":  "false",
+                       "Description":  "Enables selection between True and False"
+                   },
+                   {
+                       "Id":  "b2040000000000000000000000000001",
+                       "Name":  "Altura del corte sobre el assembly (cm)",
+                       "Type":  "number",
+                       "Type2":  "number",
+                       "Value":  "30",
+                       "MaximumValue":  100.0,
+                       "MinimumValue":  10.0,
+                       "StepValue":  5.0,
+                       "NumberType":  "Integer",
+                       "Description":  "Produces integer values"
+                   },
+                   {
+                       "Id":  "b2050000000000000000000000000001",
+                       "Name":  "Tipo de vista para cortes (simbolo)",
+                       "Type":  "string",
+                       "Type2":  "string",
+                       "Value":  "02_FORMAS",
+                       "Description":  "Creates a string."
+                   },
+                   {
+                       "Id":  "b2060000000000000000000000000001",
+                       "Name":  "View template para las vistas (vacio = ninguno)",
+                       "Type":  "string",
+                       "Type2":  "string",
+                       "Value":  "",
+                       "Description":  "Creates a string."
+                   },
+                   {
+                       "Id":  "b2070000000000000000000000000001",
+                       "Name":  "Margen del crop, planta y cortes (mm)",
+                       "Type":  "number",
+                       "Type2":  "number",
+                       "Value":  "30",
+                       "MaximumValue":  30.0,
+                       "MinimumValue":  0.0,
+                       "StepValue":  1.0,
+                       "NumberType":  "Integer",
+                       "Description":  "Produces integer values"
+                   },
+                   {
+                       "Id":  "b2080000000000000000000000000001",
+                       "Name":  "Familia de pedestal para callouts",
+                       "Type":  "string",
+                       "Type2":  "string",
+                       "Value":  "C-Pedestal",
+                       "Description":  "Creates a string."
+                   },
+                   {
+                       "Id":  "b2090000000000000000000000000001",
+                       "Name":  "Escala de los callouts (1:N)",
+                       "Type":  "number",
+                       "Type2":  "number",
+                       "Value":  "10",
+                       "MaximumValue":  50.0,
+                       "MinimumValue":  5.0,
+                       "StepValue":  5.0,
+                       "NumberType":  "Integer",
+                       "Description":  "Produces integer values"
+                   },
+                   {
+                       "Id":  "b2100000000000000000000000000001",
+                       "Name":  "Margen del callout (mm)",
+                       "Type":  "number",
+                       "Type2":  "number",
+                       "Value":  "15",
+                       "MaximumValue":  50.0,
+                       "MinimumValue":  5.0,
+                       "StepValue":  1.0,
+                       "NumberType":  "Integer",
+                       "Description":  "Produces integer values"
+                   }
+               ],
+    "Outputs":  [
+                    {
+                        "Id":  "c2010000000000000000000000000001",
+                        "Name":  "Log",
+                        "Type":  "unknown",
+                        "InitialValue":  "",
+                        "Description":  "Visualizes a node\u0027s output"
+                    }
+                ],
+    "Nodes":  [
+                  {
+                      "ConcreteType":  "PythonNodeModels.PythonNode, PythonNodeModels",
+                      "Code":  "# 00_Vistas de assembly - ACERO: planta NIPB + plantas T.A. (clustering geometrico)\r\n# + una elevacion por cada eje que cruza el assembly.\r\n# Revit 2027 / Dynamo 4 / CPython3\r\n# IN[0] = procesar todos los assemblies (bool)\r\n# IN[1] = filtro por nombre si IN[0] es False (parcial, separado por comas)\r\n# IN[2] = recrear vistas existentes (bool) - borra y vuelve a crear\r\n# IN[3] = offset del plano de corte NIPB sobre la cara mas baja del assembly (cm)\r\n# IN[4] = tolerancia de agrupacion de vigas por altura T.A. (cm)\r\n# IN[5] = offset del plano de corte T.A. sobre el nivel dominante del grupo (cm)\r\n# IN[6] = tipo de vista (ViewFamilyType de Section) para las elevaciones de eje\r\n# IN[7] = view template para todas las vistas (vacio = ninguno; si no existe, avisa)\r\n# IN[8] = margen del crop sobre el borde del assembly, en mm de papel\r\n# IN[9] = escala de todas las vistas (1:N) - plantas y elevaciones comparten escala\r\n# IN[10] = Far Clip Offset (mm) de las ELEVACIONES de eje (las plantas usan IN[12])\r\n# IN[6]  = nombre del tipo de vista, comun a plantas y elevaciones (ej. 02_ESTRUCTURAS)\r\n# IN[11] = profundidad de las PLANTAS por debajo del nivel definido (cm)\r\n# IN[12] = subcarpeta del Project Browser: se crea un TIPO DE VISTA con ese nombre\r\n#          (duplicado del tipo base de IN[6]) y se asigna a todas las vistas, que es\r\n#          lo que hace aparecer el nodo en el browser. Vacio = usar el tipo de IN[6].\r\n#\r\n# NOTA DE DISE\u00d1O (2026-07-28): las plantas NO se crean con AssemblyViewUtils.\r\n# Una vista de assembly limita lo que muestra a los MIEMBROS del assembly y por eso\r\n# nunca dibuja datums: verificado en el modelo real, la planta de assembly devolvia\r\n# 0 ejes mientras una ViewPlan normal del mismo sector devolvia 54. Sin ejes visibles\r\n# tampoco se ven las cotas entre ejes de 03, porque sus referencias son los ejes.\r\n# Por eso las plantas son ViewPlan normales, recortadas al assembly y AISLADAS a sus\r\n# miembros + los ejes que lo cruzan - la misma tecnica que ya funcionaba en las\r\n# elevaciones de eje.\r\n\r\nimport clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom Autodesk.Revit.DB import (FilteredElementCollector, AssemblyInstance,\r\n                               View, UnitUtils, UnitTypeId, XYZ, Element,\r\n                               BuiltInParameter, BuiltInCategory,\r\n                               ElementId, ViewFamilyType, ViewFamily, StorageType,\r\n                               BoundingBoxXYZ, ViewDetailLevel, Options, Solid,\r\n                               GeometryInstance, FamilyInstance, ViewSection,\r\n                               Grid, Line, Transform, ViewPlan, Level,\r\n                               PlanViewPlane)\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\nfrom System.Collections.Generic import List\r\n\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\nprocess_all = bool(IN[0])\r\nfilter_text = (IN[1] or '').strip()\r\nrecreate = bool(IN[2])\r\noff_nipb = float(IN[3]) / 30.48        # cm -> pies\r\ntol_ta = float(IN[4]) / 30.48          # cm -> pies\r\noff_ta = float(IN[5]) / 30.48          # cm -> pies\r\nsec_type_text = (IN[6] or '').strip()\r\ntpl_text = (IN[7] or '').strip()\r\ncrop_margin_mm = float(IN[8])\r\nescala = int(IN[9]) if IN[9] else 75\r\nfar_clip = float(IN[10]) / 304.8 if IN[10] else 5500.0 / 304.8   # mm -> pies\r\n# El MISMO nombre de tipo sirve para plantas y elevaciones: son ViewFamilyType\r\n# distintos (Floor Plan vs Section) que en este proyecto se llaman igual\r\n# (\"02_ESTRUCTURAS\"). Cada uno se resuelve dentro de su propia ViewFamily.\r\nplan_type_text = sec_type_text\r\nprof_planta = float(IN[11]) / 30.48 if IN[11] else 100.0 / 30.48   # cm -> pies\r\nnombre_carpeta = (IN[12] or '').strip()\r\n\r\n# Holgura del plano Top por encima del plano de corte. NO puede ser cero: un View\r\n# Range con Top == Cut es degenerado y colapsa el espesor del CropBox, dejando la\r\n# vista sin dibujar (Revit ni siquiera la puede abrir). 10 cm alcanzan para que el\r\n# rango sea valido sin arrastrar el nivel de arriba a la planta.\r\nHOLGURA_TOP = 10.0 / 30.48   # cm -> pies\r\n\r\nlog = []\r\n\r\n# --- contrato de nombres (lo usan 01, 02, 03, 04, 06 y 07 para encontrar las vistas) ---\r\n# El NOMBRE INTERNO de la vista es estable y correlativo; el TITULO EN LAMINA\r\n# (Title on Sheet / VIEW_DESCRIPTION) es el legible y puede llevar la cota.\r\nSUF_NIPB = ' - NIPB'\r\nSUF_TA = ' - T.A. '        # + correlativo de 2 digitos, ascendente por altura\r\nSUF_EJE = ' - EJE '        # + nombre del eje\r\nTIT_NIPB = ' - PLANTA N.I.P.B.'\r\nTIT_TA = ' - PLANTA T.A. (EL. {})'\r\nTIT_EJE = ' - ELEVACION EJE {}'\r\n\r\n# Categoria que define el \"tope de acero\": solo las vigas mandan en el clustering.\r\nCAT_VIGAS = BuiltInCategory.OST_StructuralFraming\r\nID_CAT_VIGAS = ElementId(CAT_VIGAS).Value\r\n\r\n\r\ndef to_m(v):\r\n    return UnitUtils.ConvertFromInternalUnits(v, UnitTypeId.Meters)\r\n\r\n\r\ndef fmt_cota(m):\r\n    # formato chileno (punto de miles, coma decimal), igual que las vistas que ya\r\n    # existen en el modelo: \"PLANTA ESTRUCTURA EL. 2.305,25 T.A.\"\r\n    s = '{:,.2f}'.format(m)\r\n    return s.replace(',', '@').replace('.', ',').replace('@', '.')\r\n\r\n\r\ndef elem_name(e):\r\n    try:\r\n        return e.Name\r\n    except Exception:\r\n        return Element.Name.__get__(e)\r\n\r\n\r\ndef set_name(e, name):\r\n    try:\r\n        e.Name = name\r\n    except Exception:\r\n        Element.Name.__set__(e, name)\r\n\r\n\r\n# --- tipo de vista para las elevaciones de eje (debe ser ViewFamily.Section) ---\r\nsec_vft = None\r\ntipos_section = [t for t in FilteredElementCollector(doc).OfClass(ViewFamilyType)\r\n                 if t.ViewFamily == ViewFamily.Section]\r\nif sec_type_text:\r\n    low = sec_type_text.lower()\r\n    for t in tipos_section:\r\n        if elem_name(t).lower() == low:\r\n            sec_vft = t\r\n            break\r\n    if sec_vft is None:\r\n        log.append('AVISO: no existe el tipo de vista de seccion {}; se usa el primero disponible.'.format(sec_type_text))\r\n        log.append('Tipos de Section en este proyecto: ' + ', '.join(sorted(elem_name(t) for t in tipos_section)))\r\nif sec_vft is None:\r\n    if tipos_section:\r\n        sec_vft = sorted(tipos_section, key=lambda t: elem_name(t))[0]\r\n    else:\r\n        log.append('ERROR: no hay ningun ViewFamilyType de tipo Section en el proyecto; no se pueden crear elevaciones de eje.')\r\n\r\n# --- tipo de vista para las plantas (StructuralPlan o FloorPlan) ---\r\nplan_vft = None\r\nFAMILIAS_PLAN = (ViewFamily.StructuralPlan, ViewFamily.FloorPlan)\r\ntipos_plan = [t for t in FilteredElementCollector(doc).OfClass(ViewFamilyType)\r\n              if t.ViewFamily in FAMILIAS_PLAN]\r\nif plan_type_text:\r\n    lowp = plan_type_text.lower()\r\n    for t in tipos_plan:\r\n        if elem_name(t).lower() == lowp:\r\n            plan_vft = t\r\n            break\r\n    if plan_vft is None:\r\n        log.append('AVISO: no existe el tipo de vista de planta {}; se usa el primero disponible.'.format(plan_type_text))\r\n        log.append('Tipos de planta en este proyecto: ' + ', '.join(sorted(elem_name(t) for t in tipos_plan)))\r\nif plan_vft is None:\r\n    # se prefiere StructuralPlan sobre FloorPlan\r\n    estructurales = [t for t in tipos_plan if t.ViewFamily == ViewFamily.StructuralPlan]\r\n    fuente = estructurales if estructurales else tipos_plan\r\n    if fuente:\r\n        plan_vft = sorted(fuente, key=lambda t: elem_name(t))[0]\r\n    else:\r\n        log.append('ERROR: no hay ningun ViewFamilyType de planta (StructuralPlan/FloorPlan) en el proyecto.')\r\n\r\n\r\ndef tipo_carpeta(base_vft, familias, etiqueta):\r\n    # \"Subcarpeta del Project Browser\" = un TIPO DE VISTA propio.\r\n    #\r\n    # El Project Browser agrupa las vistas por \"Family and Type\", asi que la forma\r\n    # de conseguir un nodo propio SIN depender de que alguien configure a mano un\r\n    # esquema de Browser Organization es crear un ViewFamilyType con ese nombre y\r\n    # asignarselo a todas las vistas. Se duplica del tipo base (input 05) para\r\n    # heredar su grafismo.\r\n    #\r\n    # OJO: la ViewFamily (Floor Plans / Sections) es un nivel de agrupacion POR\r\n    # ENCIMA del tipo, asi que esto da DOS nodos con el mismo nombre -uno con las\r\n    # plantas y otro con las elevaciones-, no una carpeta unica con todo. Una\r\n    # carpeta unica que mezcle ambas solo se logra con un esquema de Browser\r\n    # Organization que agrupe por un parametro compartido.\r\n    #\r\n    # Duplicate() necesita una transaccion abierta: se llama desde el bloque\r\n    # principal, no aca arriba.\r\n    if not nombre_carpeta or base_vft is None:\r\n        return base_vft\r\n    low = nombre_carpeta.lower()\r\n    for t in FilteredElementCollector(doc).OfClass(ViewFamilyType):\r\n        if t.ViewFamily in familias and elem_name(t).lower() == low:\r\n            return t\r\n    try:\r\n        nuevo = base_vft.Duplicate(nombre_carpeta)\r\n        log.append('Carpeta \"{}\": tipo de vista creado para {} (duplicado de \"{}\").'.format(\r\n            nombre_carpeta, etiqueta, elem_name(base_vft)))\r\n        return nuevo\r\n    except Exception as e:\r\n        log.append('ERROR creando el tipo de vista \"{}\" para {}: {}'.format(nombre_carpeta, etiqueta, e))\r\n        return base_vft\r\n\r\n# --- niveles, solo como ancla del View Range de las plantas ---\r\n# El nivel NO define la cota de la planta (el criterio sigue siendo geometrico): se\r\n# usa como origen de los offsets del View Range, que es lo unico que pide la API.\r\ndef elev_nivel(l):\r\n    # SIEMPRE ProjectElevation, NUNCA Elevation.\r\n    # Este modelo usa \"Elevation Base = Shared\": los niveles reportan la cota real\r\n    # del sitio (~7546 pies = 2300 m, el salar) mientras la geometria vive cerca del\r\n    # origen del proyecto (una columna medida da Z = 3,84 a 10,83 pies). Anclar el\r\n    # View Range con Elevation mandaba el plano de corte ~7538 pies fuera del modelo:\r\n    # las plantas salian VACIAS y, sin plano de corte que cruzara sus extensiones,\r\n    # los ejes tampoco se dibujaban. ProjectElevation va siempre en coordenadas de\r\n    # proyecto, el mismo sistema en el que se mide la geometria.\r\n    try:\r\n        return l.ProjectElevation\r\n    except Exception:\r\n        return l.Elevation\r\n\r\n\r\nniveles = sorted(FilteredElementCollector(doc).OfClass(Level), key=elev_nivel)\r\nif not niveles:\r\n    log.append('ERROR: el proyecto no tiene ningun Level; ViewPlan.Create no puede crear plantas.')\r\nelse:\r\n    try:\r\n        _l0 = niveles[0]\r\n        if abs(_l0.Elevation - _l0.ProjectElevation) > 0.01:\r\n            log.append('NOTA: el modelo usa cota compartida (nivel {}: Elevation {} m vs ProjectElevation {} m).'.format(\r\n                elem_name(_l0), fmt_cota(to_m(_l0.Elevation)), fmt_cota(to_m(_l0.ProjectElevation))))\r\n            log.append('      El View Range se ancla con ProjectElevation, que es el sistema de la geometria.')\r\n    except Exception:\r\n        pass\r\n\r\n\r\ndef nivel_ancla(z):\r\n    return min(niveles, key=lambda l: abs(elev_nivel(l) - z))\r\n\r\n# --- view template unico para todas las vistas ---\r\ntemplates = [t for t in FilteredElementCollector(doc).OfClass(View) if t.IsTemplate]\r\nview_template = None\r\nif not tpl_text:\r\n    log.append('Sin view template (campo vacio). Templates cargados en el proyecto:')\r\n    for t in sorted(templates, key=lambda t: elem_name(t)):\r\n        log.append('  - ' + elem_name(t))\r\n    if not templates:\r\n        log.append('  (ninguno cargado en este proyecto)')\r\nelse:\r\n    lowt = tpl_text.lower()\r\n    for t in templates:\r\n        if elem_name(t).lower() == lowt:\r\n            view_template = t\r\n            break\r\n    if view_template is None:\r\n        cands = [t for t in templates if lowt in elem_name(t).lower()]\r\n        if len(cands) == 1:\r\n            view_template = cands[0]\r\n    if view_template is None:\r\n        log.append('AVISO: no existe un view template que coincida con {}; las vistas quedan sin template.'.format(tpl_text))\r\n        log.append('Templates cargados en el proyecto: ' + ', '.join(sorted(elem_name(t) for t in templates)))\r\n\r\n# --- assemblies unicos por tipo ---\r\nby_type = {}\r\nfor ai in FilteredElementCollector(doc).OfClass(AssemblyInstance):\r\n    by_type.setdefault(ai.AssemblyTypeName, []).append(ai)\r\n\r\nif not by_type:\r\n    log.append('AVISO: no hay ningun Assembly en el modelo. Todo este pipeline es assembly-driven:')\r\n    log.append('  crea los assemblies en Revit (Modificar > Crear ensamblaje) y vuelve a correr.')\r\n\r\nif process_all:\r\n    targets = sorted(by_type.keys())\r\nelse:\r\n    tokens = [t.strip().lower() for t in filter_text.split(',') if t.strip()]\r\n    if tokens:\r\n        targets = [n for n in sorted(by_type.keys())\r\n                   if any(tok in n.lower() for tok in tokens)]\r\n    else:\r\n        targets = []\r\n        log.append('ERROR: \"Procesar todos\" esta en False y el filtro esta vacio.')\r\n    log.append('Filtro \"{}\": {} assemblies seleccionados.'.format(filter_text, len(targets)))\r\n\r\n# vistas existentes por nombre (para idempotencia)\r\nview_ids = {}\r\nfor v in FilteredElementCollector(doc).OfClass(View):\r\n    if not v.IsTemplate:\r\n        view_ids[elem_name(v)] = v.Id\r\n\r\n\r\ndef member_solid_bbox(el):\r\n    # bounding box de el a partir de su geometria SOLIDA real (Volume > 0), en vez\r\n    # de Element.get_BoundingBox() - que puede devolver un bbox \"fantasma\" (de\r\n    # referencias/work planes) para elementos con geometria vacia o degenerada.\r\n    # Devuelve None si el elemento no tiene ningun solido valido, asi el llamador\r\n    # puede excluirlo del calculo en vez de heredar un tama\u00f1o inventado.\r\n    opt = Options()\r\n    opt.DetailLevel = ViewDetailLevel.Fine\r\n    try:\r\n        geo = el.get_Geometry(opt)\r\n    except Exception:\r\n        geo = None\r\n    if geo is None:\r\n        return None\r\n    minx = miny = minz = float('inf')\r\n    maxx = maxy = maxz = float('-inf')\r\n    hay = False\r\n\r\n    def puntos(solid, trf):\r\n        sbb = solid.GetBoundingBox()\r\n        for x in (sbb.Min.X, sbb.Max.X):\r\n            for y in (sbb.Min.Y, sbb.Max.Y):\r\n                for z in (sbb.Min.Z, sbb.Max.Z):\r\n                    p = sbb.Transform.OfPoint(XYZ(x, y, z))\r\n                    if trf is not None:\r\n                        p = trf.OfPoint(p)\r\n                    yield p\r\n\r\n    pts = []\r\n    for g in geo:\r\n        if isinstance(g, Solid) and g.Volume > 1e-9:\r\n            pts.extend(list(puntos(g, None)))\r\n        elif isinstance(g, GeometryInstance):\r\n            for sg in g.GetSymbolGeometry():\r\n                if isinstance(sg, Solid) and sg.Volume > 1e-9:\r\n                    pts.extend(list(puntos(sg, g.Transform)))\r\n    for p in pts:\r\n        hay = True\r\n        if p.X < minx: minx = p.X\r\n        if p.X > maxx: maxx = p.X\r\n        if p.Y < miny: miny = p.Y\r\n        if p.Y > maxy: maxy = p.Y\r\n        if p.Z < minz: minz = p.Z\r\n        if p.Z > maxz: maxz = p.Z\r\n    if not hay:\r\n        return None\r\n\r\n    class _BB(object):\r\n        pass\r\n    r = _BB()\r\n    r.Min = XYZ(minx, miny, minz)\r\n    r.Max = XYZ(maxx, maxy, maxz)\r\n    return r\r\n\r\n\r\ndef instancias_recursivas(ai):\r\n    # TODAS las FamilyInstance del assembly (contenedores y hojas, cualquier\r\n    # profundidad de anidamiento).\r\n    vistos = set()\r\n    resultado = []\r\n    stack = list(ai.GetMemberIds())\r\n    while stack:\r\n        eid = stack.pop()\r\n        if eid.Value in vistos:\r\n            continue\r\n        vistos.add(eid.Value)\r\n        el = doc.GetElement(eid)\r\n        if el is None or not isinstance(el, FamilyInstance):\r\n            continue\r\n        resultado.append(el)\r\n        try:\r\n            stack.extend(list(el.GetSubComponentIds()))\r\n        except Exception:\r\n            pass\r\n    return resultado\r\n\r\n\r\ndef ids_recursivos(ai):\r\n    # TODOS los ElementId del assembly (cualquier clase, cualquier profundidad).\r\n    # Se usa para aislar el assembly en las elevaciones de eje, que son secciones\r\n    # normales del modelo (no vistas de assembly) y por defecto muestran todo.\r\n    vistos = set()\r\n    resultado = []\r\n    stack = list(ai.GetMemberIds())\r\n    while stack:\r\n        eid = stack.pop()\r\n        if eid.Value in vistos:\r\n            continue\r\n        vistos.add(eid.Value)\r\n        resultado.append(eid)\r\n        el = doc.GetElement(eid)\r\n        if isinstance(el, FamilyInstance):\r\n            try:\r\n                stack.extend(list(el.GetSubComponentIds()))\r\n            except Exception:\r\n                pass\r\n    return resultado\r\n\r\n\r\ndef bbox_con_anidados(el):\r\n    # bbox solido de el INCLUYENDO sus sub-componentes anidados (recursivo). Los\r\n    # contenedores (familias cuya geometria real vive en anidadas mas profundas)\r\n    # devuelven None con member_solid_bbox a secas.\r\n    pila = [el]\r\n    vistos = set()\r\n    minx = miny = minz = float('inf')\r\n    maxx = maxy = maxz = float('-inf')\r\n    hay = False\r\n    while pila:\r\n        e = pila.pop()\r\n        if e is None:\r\n            continue\r\n        try:\r\n            eid = e.Id.Value\r\n        except Exception:\r\n            eid = None\r\n        if eid is not None:\r\n            if eid in vistos:\r\n                continue\r\n            vistos.add(eid)\r\n        bb = member_solid_bbox(e)\r\n        if bb is not None:\r\n            hay = True\r\n            if bb.Min.X < minx: minx = bb.Min.X\r\n            if bb.Max.X > maxx: maxx = bb.Max.X\r\n            if bb.Min.Y < miny: miny = bb.Min.Y\r\n            if bb.Max.Y > maxy: maxy = bb.Max.Y\r\n            if bb.Min.Z < minz: minz = bb.Min.Z\r\n            if bb.Max.Z > maxz: maxz = bb.Max.Z\r\n        if isinstance(e, FamilyInstance):\r\n            try:\r\n                for sid in e.GetSubComponentIds():\r\n                    pila.append(doc.GetElement(sid))\r\n            except Exception:\r\n                pass\r\n    if not hay:\r\n        return None\r\n\r\n    class _BB(object):\r\n        pass\r\n    r = _BB()\r\n    r.Min = XYZ(minx, miny, minz)\r\n    r.Max = XYZ(maxx, maxy, maxz)\r\n    return r\r\n\r\n\r\ndef bbox_assembly(ai):\r\n    # bbox de MUNDO del assembly completo, medido sobre geometria solida real.\r\n    minx = miny = minz = float('inf')\r\n    maxx = maxy = maxz = float('-inf')\r\n    hay = False\r\n    for mid in ai.GetMemberIds():\r\n        el = doc.GetElement(mid)\r\n        bb = bbox_con_anidados(el) if el is not None else None\r\n        if bb is None:\r\n            continue\r\n        hay = True\r\n        if bb.Min.X < minx: minx = bb.Min.X\r\n        if bb.Max.X > maxx: maxx = bb.Max.X\r\n        if bb.Min.Y < miny: miny = bb.Min.Y\r\n        if bb.Max.Y > maxy: maxy = bb.Max.Y\r\n        if bb.Min.Z < minz: minz = bb.Min.Z\r\n        if bb.Max.Z > maxz: maxz = bb.Max.Z\r\n    if not hay:\r\n        return None\r\n\r\n    class _BB(object):\r\n        pass\r\n    r = _BB()\r\n    r.Min = XYZ(minx, miny, minz)\r\n    r.Max = XYZ(maxx, maxy, maxz)\r\n    return r\r\n\r\n\r\n# ---------------------------------------------------------------- clustering T.A.\r\n\r\ndef tops_de_vigas(ai):\r\n    # elevacion Z de la CARA SUPERIOR de cada viga del assembly (recursivo).\r\n    # Se mide sobre geometria solida real, no sobre el Level nativo: los niveles\r\n    # que crean los modeladores no son fiables (nomenclatura inconsistente y\r\n    # varios a menos de 1 m entre si).\r\n    tops = []\r\n    for el in instancias_recursivas(ai):\r\n        try:\r\n            cat = el.Category\r\n            if cat is None or cat.Id.Value != ID_CAT_VIGAS:\r\n                continue\r\n        except Exception:\r\n            continue\r\n        bb = bbox_con_anidados(el)\r\n        if bb is None:\r\n            continue\r\n        tops.append(bb.Max.Z)\r\n    return sorted(tops)\r\n\r\n\r\ndef agrupar_por_altura(tops, tol):\r\n    # Agrupamiento por cercania con AMPLITUD ACOTADA: se recorre en orden\r\n    # ascendente y se abre un grupo nuevo cuando la viga se aleja mas de \"tol\"\r\n    # del INICIO del grupo actual (no de la viga anterior). Encadenar por la\r\n    # viga anterior permitiria que una escalera de vigas separadas 0.9 m cada\r\n    # una terminara en un solo grupo de decenas de metros; asi cada grupo mide\r\n    # como maximo \"tol\" de amplitud, que es lo que pide el criterio de +-1 m.\r\n    grupos = []\r\n    if not tops:\r\n        return grupos\r\n    actual = [tops[0]]\r\n    z0 = tops[0]\r\n    for z in tops[1:]:\r\n        if z - z0 <= tol:\r\n            actual.append(z)\r\n        else:\r\n            grupos.append(actual)\r\n            actual = [z]\r\n            z0 = z\r\n    grupos.append(actual)\r\n    return grupos\r\n\r\n\r\ndef z_dominante(grupo):\r\n    # nivel dominante del grupo = la elevacion con MAS vigas (moda), agrupando\r\n    # en cubetas de 5 mm para que valores casi identicos cuenten juntos.\r\n    # Empate -> gana la cubeta mas alta (el T.A. real suele ser la cara mas alta).\r\n    conteo = {}\r\n    for z in grupo:\r\n        k = int(round(z * 304.8 / 5.0))\r\n        conteo.setdefault(k, []).append(z)\r\n    mejor_k = None\r\n    mejor = None\r\n    for k, zs in conteo.items():\r\n        clave = (len(zs), k)\r\n        if mejor is None or clave > mejor:\r\n            mejor = clave\r\n            mejor_k = k\r\n    zs = conteo[mejor_k]\r\n    return sum(zs) / float(len(zs))\r\n\r\n\r\n# ---------------------------------------------------------------- ejes / grids\r\n\r\ndef segmento_cruza_rect(p0, p1, xmin, ymin, xmax, ymax):\r\n    # recorte Liang-Barsky del SEGMENTO (no la recta infinita) contra el\r\n    # rectangulo en planta: \"el eje cruza el assembly\" significa que el eje tal\r\n    # como esta dibujado pasa por la huella del assembly.\r\n    dx = p1.X - p0.X\r\n    dy = p1.Y - p0.Y\r\n    t0 = 0.0\r\n    t1 = 1.0\r\n    for pc, q in ((-dx, p0.X - xmin), (dx, xmax - p0.X),\r\n                  (-dy, p0.Y - ymin), (dy, ymax - p0.Y)):\r\n        if abs(pc) < 1e-12:\r\n            if q < 0:\r\n                return False\r\n        else:\r\n            r = q / pc\r\n            if pc < 0:\r\n                if r > t1:\r\n                    return False\r\n                if r > t0:\r\n                    t0 = r\r\n            else:\r\n                if r < t0:\r\n                    return False\r\n                if r < t1:\r\n                    t1 = r\r\n    return True\r\n\r\n\r\ndef ejes_que_cruzan(bb, tname):\r\n    # ejes cuya linea atraviesa la huella en planta del assembly\r\n    res = []\r\n    for g in FilteredElementCollector(doc).OfClass(Grid):\r\n        try:\r\n            c = g.Curve\r\n        except Exception:\r\n            continue\r\n        if c is None:\r\n            continue\r\n        if not isinstance(c, Line):\r\n            log.append('AVISO {}: el eje {} no es una linea recta; se omite su elevacion.'.format(tname, elem_name(g)))\r\n            continue\r\n        p0 = c.GetEndPoint(0)\r\n        p1 = c.GetEndPoint(1)\r\n        if segmento_cruza_rect(p0, p1, bb.Min.X, bb.Min.Y, bb.Max.X, bb.Max.Y):\r\n            res.append(g)\r\n    res.sort(key=lambda g: elem_name(g))\r\n    return res\r\n\r\n\r\n# ---------------------------------------------------------------- ajustes de vista\r\n\r\n_viewers = None\r\n\r\n\r\ndef find_viewer(vname):\r\n    # marcador de la vista (categoria Views/Viewers), comparte nombre con la vista\r\n    global _viewers\r\n    if _viewers is None:\r\n        _viewers = {}\r\n        for ve in FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Viewers):\r\n            _viewers[elem_name(ve)] = ve\r\n    v = _viewers.get(vname)\r\n    if v is not None:\r\n        return v\r\n    # puede ser una vista recien creada en esta corrida: refrescar el indice\r\n    _viewers = {}\r\n    for ve in FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Viewers):\r\n        _viewers[elem_name(ve)] = ve\r\n    return _viewers.get(vname)\r\n\r\n\r\ndef aplicar_far_clip(v, tname, label):\r\n    # Far Clip Offset fijo (input), igual para plantas y elevaciones. Si el modo de\r\n    # recorte lejano esta en \"sin recorte\" (0), el offset no haria nada, asi que se\r\n    # activa: 0 = No clip, 1 = Clip without line, 2 = Clip with line.\r\n    try:\r\n        pa = v.get_Parameter(BuiltInParameter.VIEWER_BOUND_ACTIVE_FAR)\r\n        if pa is not None and not pa.IsReadOnly and pa.AsInteger() == 0:\r\n            pa.Set(1)\r\n    except Exception:\r\n        pass\r\n    try:\r\n        p = v.get_Parameter(BuiltInParameter.VIEWER_BOUND_OFFSET_FAR)\r\n        if p is not None and not p.IsReadOnly:\r\n            p.Set(far_clip)\r\n    except Exception as e:\r\n        log.append('AVISO {}: no se pudo fijar el Far Clip de {}: {}'.format(tname, label, e))\r\n\r\n\r\ndef fijar_view_range(vplan, z_corte, z_fondo, level, tname, label):\r\n    # En una ViewPlan la profundidad no la controla el Far Clip Offset sino el\r\n    # View Range. Todos los planos se anclan al MISMO nivel y se expresan como\r\n    # offset respecto a su elevacion, asi que el nivel elegido es indiferente\r\n    # (solo es el origen de coordenadas del rango).\r\n    #   Top    = Cut + HOLGURA_TOP\r\n    #   Bottom = View Depth = z_fondo\r\n    # El fondo se mide desde el NIVEL DEFINIDO (la cara mas baja en la NIPB, el\r\n    # nivel dominante en las T.A.), no desde el plano de corte: el corte va un\r\n    # offset por encima del nivel y no tiene por que arrastrar la profundidad.\r\n    # El Far Clip Offset del input NO se usa aca; es solo para las elevaciones.\r\n    #\r\n    # ORDEN ESTRICTO (2026-07-28): Revit exige Top >= Cut >= Bottom >= ViewDepth.\r\n    # Antes se ponia Top = Cut y eso rompia la vista entera: con el rango de altura\r\n    # colapsado a cero, el CropBox que ajustar_crop_a_assembly() lee justo despues\r\n    # hereda un espesor nulo (Min.Z == Max.Z) y el BoundingBoxXYZ queda degenerado.\r\n    # Sintoma: la planta no dibuja NADA y Revit ni siquiera puede abrirla, aunque\r\n    # FilteredElementCollector(doc, view.Id) siga contando elementos visibles.\r\n    e = elev_nivel(level)\r\n    corte = z_corte - e\r\n    fondo = z_fondo - e\r\n    if fondo > corte - HOLGURA_TOP:\r\n        # el fondo quedo por encima (o pegado) al corte: se fuerza un rango sano\r\n        log.append('AVISO {}: el fondo de {} quedaba sobre el plano de corte; se baja a {:.2f} m bajo el corte.'.format(\r\n            tname, label, to_m(prof_planta)))\r\n        fondo = corte - max(prof_planta, HOLGURA_TOP)\r\n    top = corte + HOLGURA_TOP\r\n    try:\r\n        vr = vplan.GetViewRange()\r\n        for plano, off in ((PlanViewPlane.TopClipPlane, top),\r\n                           (PlanViewPlane.CutPlane, corte),\r\n                           (PlanViewPlane.BottomClipPlane, fondo),\r\n                           (PlanViewPlane.ViewDepthPlane, fondo)):\r\n            vr.SetLevelId(plano, level.Id)\r\n            vr.SetOffset(plano, off)\r\n        vplan.SetViewRange(vr)\r\n        log.append('{}: {} cortada en EL. {}, fondo en EL. {} ({:.2f} m de profundidad, top +{:.2f} m).'.format(\r\n            tname, label, fmt_cota(to_m(z_corte)), fmt_cota(to_m(z_fondo)),\r\n            to_m(z_corte - z_fondo), to_m(HOLGURA_TOP)))\r\n    except Exception as ex:\r\n        log.append('ERROR {}: no se pudo fijar el View Range de {}: {}'.format(tname, label, ex))\r\n\r\n\r\ndef ajustar_crop_a_assembly(v, ai, tname, label):\r\n    # recorta el crop (ancho y alto, en los ejes propios de la vista) al borde\r\n    # del assembly + margen de papel. El Annotation Crop se desactiva para que\r\n    # cotas/tags/leaders, que viven por fuera del borde, no queden cortados.\r\n    bb = v.CropBox\r\n    inv = bb.Transform.Inverse\r\n    minx = miny = float('inf')\r\n    maxx = maxy = float('-inf')\r\n    hay_geo = False\r\n    for mid in ai.GetMemberIds():\r\n        el = doc.GetElement(mid)\r\n        mbb = bbox_con_anidados(el) if el is not None else None\r\n        if mbb is None:\r\n            continue\r\n        hay_geo = True\r\n        for x in (mbb.Min.X, mbb.Max.X):\r\n            for y in (mbb.Min.Y, mbb.Max.Y):\r\n                for z in (mbb.Min.Z, mbb.Max.Z):\r\n                    p = inv.OfPoint(XYZ(x, y, z))\r\n                    if p.X < minx: minx = p.X\r\n                    if p.X > maxx: maxx = p.X\r\n                    if p.Y < miny: miny = p.Y\r\n                    if p.Y > maxy: maxy = p.Y\r\n    if not hay_geo:\r\n        log.append('AVISO {}: sin geometria para ajustar el crop de {}.'.format(tname, label))\r\n        return\r\n    margen = crop_margin_mm / 304.8 * (v.Scale if v.Scale > 0 else 1)\r\n    # El espesor en Z se hereda del crop actual, pero NUNCA puede quedar en cero:\r\n    # un BoundingBoxXYZ degenerado deja la vista sin dibujar. En una planta el Z del\r\n    # crop lo deriva Revit del View Range, asi que si el rango venia colapsado esto\r\n    # es la ultima linea de defensa (ver nota en fijar_view_range).\r\n    zmin_c = bb.Min.Z\r\n    zmax_c = bb.Max.Z\r\n    if zmax_c - zmin_c < 1e-6:\r\n        zmin_c = zmin_c - 1.0\r\n        zmax_c = zmax_c + 1.0\r\n        log.append('AVISO {}: el crop de {} venia con espesor cero; se le dio 2 m.'.format(tname, label))\r\n    nuevo = BoundingBoxXYZ()\r\n    nuevo.Transform = bb.Transform\r\n    nuevo.Min = XYZ(minx - margen, miny - margen, zmin_c)\r\n    nuevo.Max = XYZ(maxx + margen, maxy + margen, zmax_c)\r\n    v.CropBox = nuevo\r\n    try:\r\n        mgr = v.GetCropRegionShapeManager()\r\n        mgr.IsAnnotationCropActive = False\r\n    except Exception:\r\n        pass\r\n    log.append('   crop de {}: {:.2f} x {:.2f} m.'.format(\r\n        label, to_m(maxx - minx + 2 * margen), to_m(maxy - miny + 2 * margen)))\r\n\r\n\r\ndef preparar_vista(v, tname, label):\r\n    # ajustes comunes a toda vista creada por este graph\r\n    # El tipo de vista es lo que define la carpeta del Project Browser, y se\r\n    # reaplica tambien a las vistas que YA existian: asi cambiar el nombre de la\r\n    # carpeta no obliga a recrearlas. Va primero, porque cambiar el tipo puede\r\n    # arrastrar propiedades que los ajustes de mas abajo vuelven a fijar.\r\n    try:\r\n        objetivo = plan_vft if isinstance(v, ViewPlan) else sec_vft\r\n        if objetivo is not None and v.GetTypeId() != objetivo.Id:\r\n            v.ChangeTypeId(objetivo.Id)\r\n    except Exception as e:\r\n        log.append('AVISO {}: no se pudo cambiar el tipo de vista de {}: {}'.format(tname, label, e))\r\n    try:\r\n        v.Scale = escala\r\n    except Exception:\r\n        pass\r\n    try:\r\n        v.DetailLevel = ViewDetailLevel.Fine\r\n    except Exception:\r\n        pass\r\n    try:\r\n        # \"Crop View\" (recorte de geometria) activo, pero SIN dibujar el rectangulo:\r\n        # sin el recorte la vista ocupa su extension completa y 01/02 calculan\r\n        # bloques mucho mas grandes de lo real.\r\n        if not v.CropBoxActive:\r\n            v.CropBoxActive = True\r\n        if v.CropBoxVisible:\r\n            v.CropBoxVisible = False\r\n    except Exception as e:\r\n        log.append('ERROR {} activando Crop View en {}: {}'.format(tname, label, e))\r\n    if view_template is not None:\r\n        try:\r\n            if v.ViewTemplateId != view_template.Id:\r\n                v.ViewTemplateId = view_template.Id\r\n            # la escala la manda el input, no el template\r\n            if v.Scale != escala:\r\n                v.Scale = escala\r\n        except Exception as e:\r\n            log.append('ERROR {} aplicando template a {}: {}'.format(tname, label, e))\r\n    # Far Clip despues del template: si el template trae su propio valor, gana el input.\r\n    # Se aplica a TODA vista que crea este graph - plantas y elevaciones por igual.\r\n    aplicar_far_clip(v, tname, label)\r\n\r\n\r\n\r\ndef set_titulo(v, texto):\r\n    # titulo mostrado en lamina (Title on Sheet), sin tocar el nombre interno\r\n    p = v.get_Parameter(BuiltInParameter.VIEW_DESCRIPTION)\r\n    if p is None or p.IsReadOnly:\r\n        return\r\n    if p.AsString() != texto:\r\n        p.Set(texto)\r\n\r\n\r\ndef ocultar_simbolos_corte(v):\r\n    # las elevaciones salen limpias: sin las lineas de seccion de las otras\r\n    # elevaciones del mismo assembly cruzandolas\r\n    try:\r\n        cat = ElementId(BuiltInCategory.OST_Sections)\r\n        if v.CanCategoryBeHidden(cat):\r\n            v.SetCategoryHidden(cat, True)\r\n    except Exception:\r\n        pass\r\n\r\n\r\nPARAM_CANTIDAD = 'Cantidad_Inserto'\r\n_param_avisado = [False]\r\n\r\n\r\ndef set_cantidad(v, cantidad, tname):\r\n    p = v.LookupParameter(PARAM_CANTIDAD)\r\n    if p is None:\r\n        if not _param_avisado[0]:\r\n            _param_avisado[0] = True\r\n            log.append('AVISO: las vistas no tienen el parametro {} (agregarlo como parametro de proyecto en la categoria Views).'.format(PARAM_CANTIDAD))\r\n        return\r\n    if p.IsReadOnly:\r\n        return\r\n    st = p.StorageType\r\n    if st == StorageType.Integer:\r\n        p.Set(int(cantidad))\r\n    elif st == StorageType.Double:\r\n        p.Set(float(cantidad))\r\n    else:\r\n        p.Set(str(cantidad))\r\n\r\n\r\n# ---------------------------------------------------------------- creacion\r\n\r\ndef borrar_si_toca(vname, tname, label):\r\n    # devuelve la vista existente si hay que conservarla, None si hay que crearla\r\n    if vname not in view_ids:\r\n        return None, False\r\n    if recreate:\r\n        doc.Delete(view_ids[vname])\r\n        del view_ids[vname]\r\n        log.append('{}: {} anterior eliminada (tambien su viewport si estaba en un sheet).'.format(tname, label))\r\n        return None, False\r\n    return doc.GetElement(view_ids[vname]), True\r\n\r\n\r\ndef limpiar_sobrantes(tname):\r\n    # con \"recrear\" activo se borran TODAS las T.A. y elevaciones previas del\r\n    # assembly, no solo las que esta corrida va a volver a crear: el clustering\r\n    # puede devolver menos grupos que antes (o cruzar menos ejes) y las vistas\r\n    # sobrantes quedarian huerfanas con un nombre correlativo que ya no aplica.\r\n    pref_ta = tname + SUF_TA\r\n    pref_eje = tname + SUF_EJE\r\n    for vname in list(view_ids.keys()):\r\n        if vname.startswith(pref_ta) or vname.startswith(pref_eje):\r\n            try:\r\n                doc.Delete(view_ids[vname])\r\n                del view_ids[vname]\r\n            except Exception:\r\n                pass\r\n\r\n\r\ndef nueva_planta(vname, level):\r\n    # ViewPlan normal (no vista de assembly): es la unica forma de que los ejes se\r\n    # dibujen y de que 03 pueda acotarlos. El recorte al assembly lo hace el\r\n    # CropBox y el filtrado por assembly lo hace aislar_assembly().\r\n    if plan_vft is None or not niveles:\r\n        return None\r\n    v = ViewPlan.Create(doc, plan_vft.Id, level.Id)\r\n    set_name(v, vname)\r\n    return v\r\n\r\n\r\ndef crear_elevacion_eje(ai, g, bb, tname):\r\n    # Seccion real del modelo alineada con el eje. No es una vista de assembly\r\n    # (AssemblyViewUtils solo ofrece orientaciones fijas: HorizontalDetail y\r\n    # DetailSection A-D, que no sirven para \"una elevacion por cada eje\"), asi\r\n    # que el aislamiento del assembly se hace explicito mas abajo.\r\n    gname = elem_name(g)\r\n    vname = tname + SUF_EJE + gname\r\n    existente, saltar = borrar_si_toca(vname, tname, 'elevacion del eje ' + gname)\r\n    if saltar:\r\n        return existente, True\r\n    if sec_vft is None:\r\n        return None, False\r\n\r\n    c = g.Curve\r\n    d = c.GetEndPoint(1) - c.GetEndPoint(0)\r\n    d = XYZ(d.X, d.Y, 0.0)\r\n    if d.GetLength() < 1e-9:\r\n        log.append('AVISO {}: el eje {} es degenerado en planta; se omite.'.format(tname, gname))\r\n        return None, False\r\n    d = d.Normalize()\r\n    up = XYZ.BasisZ\r\n    n = d.CrossProduct(up).Normalize()   # horizontal, perpendicular al eje\r\n    origen = XYZ(c.GetEndPoint(0).X, c.GetEndPoint(0).Y, 0.0)\r\n\r\n    # extension del assembly en el sistema local de la elevacion\r\n    lxmin = lymin = lzmin = float('inf')\r\n    lxmax = lymax = lzmax = float('-inf')\r\n    for mid in ai.GetMemberIds():\r\n        el = doc.GetElement(mid)\r\n        mbb = bbox_con_anidados(el) if el is not None else None\r\n        if mbb is None:\r\n            continue\r\n        for x in (mbb.Min.X, mbb.Max.X):\r\n            for y in (mbb.Min.Y, mbb.Max.Y):\r\n                for z in (mbb.Min.Z, mbb.Max.Z):\r\n                    p = XYZ(x, y, z)\r\n                    rel = p - origen\r\n                    lx = rel.DotProduct(d)\r\n                    ly = p.Z\r\n                    lz = rel.DotProduct(n)\r\n                    if lx < lxmin: lxmin = lx\r\n                    if lx > lxmax: lxmax = lx\r\n                    if ly < lymin: lymin = ly\r\n                    if ly > lymax: lymax = ly\r\n                    if lz < lzmin: lzmin = lz\r\n                    if lz > lzmax: lzmax = lz\r\n    if lxmin == float('inf'):\r\n        log.append('AVISO {}: sin geometria para la elevacion del eje {}.'.format(tname, gname))\r\n        return None, False\r\n\r\n    m = crop_margin_mm / 304.8 * escala\r\n    t = Transform.Identity\r\n    t.BasisX = d          # a lo largo del eje = horizontal en la vista\r\n    t.BasisY = up         # vertical en la vista\r\n    t.BasisZ = n          # hacia el observador (BasisX x BasisY = n, sistema derecho)\r\n    t.Origin = origen\r\n    caja = BoundingBoxXYZ()\r\n    caja.Transform = t\r\n    caja.Min = XYZ(lxmin - m, lymin - m, lzmin - m)\r\n    caja.Max = XYZ(lxmax + m, lymax + m, lzmax + m)\r\n\r\n    v = ViewSection.CreateSection(doc, sec_vft.Id, caja)\r\n    set_name(v, vname)\r\n    view_ids[vname] = v.Id\r\n    return v, False\r\n\r\n\r\ndef aislar_assembly(v, ai, grids, tname, label, extra=None):\r\n    # La elevacion es una seccion normal: por defecto muestra TODO el modelo\r\n    # dentro de la caja. Se aisla el assembly y se convierte el aislamiento\r\n    # temporal en permanente, que es lo unico que sobrevive al cierre de la vista.\r\n    # Se incluyen TODOS los ejes que cruzan el assembly, no solo el propio: 03\r\n    # enciende la categoria Grids en estas vistas y los ejes transversales deben\r\n    # poder verse; un eje que no entre en este aislamiento queda oculto para\r\n    # siempre y 03 no puede recuperarlo encendiendo la categoria.\r\n    ids = List[ElementId]()\r\n    for eid in ids_recursivos(ai):\r\n        ids.Add(eid)\r\n    for g in (grids or []):\r\n        if g is not None:\r\n            ids.Add(g.Id)\r\n    for eid in (extra or []):\r\n        ids.Add(eid)\r\n    if ids.Count == 0:\r\n        log.append('AVISO {}: {} sin miembros que aislar.'.format(tname, label))\r\n        return\r\n    try:\r\n        v.IsolateElementsTemporary(ids)\r\n        doc.Regenerate()\r\n        v.ConvertTemporaryHideIsolateToPermanent()\r\n    except Exception as e:\r\n        log.append('ERROR {} aislando el assembly en {}: {}'.format(tname, label, e))\r\n\r\n\r\n# ---------------------------------------------------------------- main\r\n\r\nplantas_creadas = 0\r\nelevs_creadas = 0\r\nsaltadas = 0\r\nresumen = []\r\n\r\nTransactionManager.Instance.EnsureInTransaction(doc)\r\ntry:\r\n    # La subcarpeta del Project Browser se materializa como un tipo de vista propio\r\n    # (ver tipo_carpeta). Tiene que resolverse DENTRO de la transaccion porque\r\n    # duplica un ViewFamilyType, y antes del bucle para que todas las vistas de esta\r\n    # corrida nazcan ya con el tipo correcto.\r\n    if nombre_carpeta:\r\n        plan_vft = tipo_carpeta(plan_vft, FAMILIAS_PLAN, 'las plantas')\r\n        sec_vft = tipo_carpeta(sec_vft, (ViewFamily.Section,), 'las elevaciones')\r\n        # Regenerate obligatorio: sin esto, las vistas creadas en ESTA MISMA corrida\r\n        # (ViewPlan.Create / ViewSection.CreateSection con el Id del tipo recien\r\n        # duplicado) nacian con el tipo BASE en vez del nuevo -Revit no deja el tipo\r\n        # recien duplicado listo para usarse en otras creaciones de la misma\r\n        # transaccion hasta que se regenera-. Verificado 2026-07-29: sin esta linea\r\n        # habia que correr el graph dos veces (la 2da corrida ya encontraba el tipo\r\n        # existente por nombre y preparar_vista lo reasignaba).\r\n        doc.Regenerate()\r\n\r\n    for tname in targets:\r\n        insts = by_type[tname]\r\n        ai = insts[0]\r\n        if len(insts) > 1:\r\n            log.append('AVISO {}: {} instancias del mismo tipo, se documenta la primera.'.format(tname, len(insts)))\r\n        try:\r\n            bb = bbox_assembly(ai)\r\n            if bb is None:\r\n                log.append('ERROR {}: sin geometria solida valida en ningun miembro; se omite el assembly.'.format(tname))\r\n                continue\r\n            zmin = bb.Min.Z\r\n            zmax = bb.Max.Z\r\n\r\n            if recreate:\r\n                limpiar_sobrantes(tname)\r\n\r\n            # los ejes se resuelven ANTES que las vistas: las plantas se aislan a\r\n            # los miembros del assembly MAS estos ejes, y sin ellos en la lista de\r\n            # aislamiento no habria forma de que se dibujen.\r\n            ejes = ejes_que_cruzan(bb, tname)\r\n            if not ejes:\r\n                log.append('AVISO {}: ningun eje cruza la huella del assembly.'.format(tname))\r\n            else:\r\n                log.append('{}: {} eje(s) cruzan el assembly -> {}'.format(\r\n                    tname, len(ejes), ', '.join(elem_name(g) for g in ejes)))\r\n\r\n            plantas = []   # (vista, etiqueta) para aislar al final\r\n\r\n            # ---------- 1. planta NIPB (una por assembly) ----------\r\n            vname = tname + SUF_NIPB\r\n            z_nipb = zmin + off_nipb\r\n            vnipb, saltar = borrar_si_toca(vname, tname, 'planta NIPB')\r\n            if saltar:\r\n                saltadas += 1\r\n            else:\r\n                vnipb = nueva_planta(vname, nivel_ancla(z_nipb))\r\n                if vnipb is None:\r\n                    log.append('ERROR {}: no se pudo crear la planta NIPB.'.format(tname))\r\n                    continue\r\n                view_ids[vname] = vnipb.Id\r\n                plantas_creadas += 1\r\n                log.append('OK {}: planta NIPB creada, escala 1:{}.'.format(tname, escala))\r\n            if vnipb is not None:\r\n                preparar_vista(vnipb, tname, 'planta NIPB')\r\n                # corte a +off_nipb sobre la cara mas baja de TODO el assembly,\r\n                # sea placa base, pletina o lo que resulte ser el punto mas bajo\r\n                # el fondo se mide bajo la CARA MAS BAJA (zmin), no bajo el corte\r\n                fijar_view_range(vnipb, z_nipb, zmin - prof_planta,\r\n                                 nivel_ancla(z_nipb), tname, 'planta NIPB')\r\n                ajustar_crop_a_assembly(vnipb, ai, tname, 'planta NIPB')\r\n                set_titulo(vnipb, tname + TIT_NIPB)\r\n                set_cantidad(vnipb, len(insts), tname)\r\n                plantas.append((vnipb, 'planta NIPB'))\r\n\r\n            # ---------- 2. plantas T.A. (clustering geometrico de vigas) ----------\r\n            tops = tops_de_vigas(ai)\r\n            if not tops:\r\n                log.append('AVISO {}: no hay vigas (Structural Framing) con geometria; no se generan plantas T.A.'.format(tname))\r\n                grupos = []\r\n            else:\r\n                grupos = agrupar_por_altura(tops, tol_ta)\r\n                log.append('{}: {} vigas -> {} nivel(es) T.A. (tolerancia {:.2f} m).'.format(\r\n                    tname, len(tops), len(grupos), to_m(tol_ta)))\r\n\r\n            n_ta = 0\r\n            for gi, grupo in enumerate(grupos):\r\n                n_ta += 1\r\n                zdom = z_dominante(grupo)\r\n                vname = '{}{}{:02d}'.format(tname, SUF_TA, n_ta)\r\n                vta, saltar = borrar_si_toca(vname, tname, 'planta T.A. {:02d}'.format(n_ta))\r\n                if saltar:\r\n                    saltadas += 1\r\n                else:\r\n                    vta = nueva_planta(vname, nivel_ancla(zdom + off_ta))\r\n                    if vta is None:\r\n                        log.append('ERROR {}: no se pudo crear la planta T.A. {:02d}.'.format(tname, n_ta))\r\n                        continue\r\n                    view_ids[vname] = vta.Id\r\n                    plantas_creadas += 1\r\n                if vta is not None:\r\n                    etiqueta_ta = 'planta T.A. {:02d}'.format(n_ta)\r\n                    preparar_vista(vta, tname, etiqueta_ta)\r\n                    # el plano de corte va OFF_TA por encima del nivel dominante\r\n                    # para capturar las vigas desfasadas dentro del rango, y el\r\n                    # fondo baja PROF_PLANTA por debajo de ese mismo nivel\r\n                    # dominante: la planta muestra su nivel y nada mas.\r\n                    fijar_view_range(vta, zdom + off_ta, zdom - prof_planta,\r\n                                     nivel_ancla(zdom + off_ta), tname, etiqueta_ta)\r\n                    ajustar_crop_a_assembly(vta, ai, tname, etiqueta_ta)\r\n                    set_titulo(vta, tname + TIT_TA.format(fmt_cota(to_m(zdom))))\r\n                    plantas.append((vta, etiqueta_ta))\r\n                    log.append('   T.A. {:02d}: {} viga(s), dominante EL. {}, amplitud {:.2f} m.'.format(\r\n                        n_ta, len(grupo), fmt_cota(to_m(zdom)), to_m(max(grupo) - min(grupo))))\r\n\r\n            # ---------- 3. elevaciones de eje ----------\r\n            for g in ejes:\r\n                gname = elem_name(g)\r\n                label = 'elevacion del eje ' + gname\r\n                try:\r\n                    velev, saltar = crear_elevacion_eje(ai, g, bb, tname)\r\n                    if velev is None:\r\n                        continue\r\n                    # Una elevacion ya existente NO se salta entera: se le vuelven a\r\n                    # aplicar escala, template, far clip, aislamiento y titulo. Antes\r\n                    # se hacia \"continue\" y las vistas creadas por corridas viejas\r\n                    # quedaban congeladas con los defaults de entonces (visto el\r\n                    # 2026-07-28: elevaciones con template ESTRUCTURAS_1/50, escala\r\n                    # 1:100 y far clip 8550 mm mucho despues de cambiar los defaults).\r\n                    if saltar:\r\n                        saltadas += 1\r\n                    else:\r\n                        elevs_creadas += 1\r\n                    preparar_vista(velev, tname, label)\r\n                    aislar_assembly(velev, ai, ejes, tname, label)\r\n                    ocultar_simbolos_corte(velev)\r\n                    try:\r\n                        mgr = velev.GetCropRegionShapeManager()\r\n                        mgr.IsAnnotationCropActive = False\r\n                    except Exception:\r\n                        pass\r\n                    set_titulo(velev, tname + TIT_EJE.format(gname))\r\n                    log.append('{} {}: {}.'.format(\r\n                        'OK' if not saltar else '  ', tname,\r\n                        label + (' creada' if not saltar else ' ya existia, ajustes reaplicados')))\r\n                except Exception as e:\r\n                    log.append('ERROR {} creando {}: {}'.format(tname, label, e))\r\n\r\n            # ---------- 4. aislar las plantas ----------\r\n            # Se hace AL FINAL, cuando las elevaciones ya existen, para poder incluir\r\n            # sus marcadores (categoria Views/Viewers) en el aislamiento: si quedaran\r\n            # fuera, las plantas no mostrarian las marcas de seccion que referencian\r\n            # a las elevaciones.\r\n            marcadores = []\r\n            for g in ejes:\r\n                mk = find_viewer(tname + SUF_EJE + elem_name(g))\r\n                if mk is not None:\r\n                    marcadores.append(mk.Id)\r\n            for v_pl, etiqueta in plantas:\r\n                aislar_assembly(v_pl, ai, ejes, tname, etiqueta, marcadores)\r\n\r\n            resumen.append('{}: 1 NIPB + {} T.A. + {} elevacion(es) = {} vista(s).'.format(\r\n                tname, n_ta, len(ejes), 1 + n_ta + len(ejes)))\r\n        except Exception as e:\r\n            log.append('ERROR {}: {}'.format(tname, e))\r\nfinally:\r\n    TransactionManager.Instance.TransactionTaskDone()\r\n\r\nlog.insert(0, 'Assemblies procesados: {} | plantas creadas: {} | elevaciones creadas: {} | saltadas: {}'.format(\r\n    len(targets), plantas_creadas, elevs_creadas, saltadas))\r\nfor i, linea in enumerate(resumen):\r\n    log.insert(1 + i, '  ' + linea)\r\nOUT = log\r\n",
+                      "Engine":  "PythonNet3",
+                      "VariableInputPorts":  true,
+                      "Id":  "a2010000000000000000000000000001",
+                      "NodeType":  "PythonScriptNode",
+                      "Inputs":  [
+                                     {
+                                         "Id":  "a2010000000000000000000000000002",
+                                         "Name":  "IN[0]",
+                                         "Description":  "Input #0",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a2010000000000000000000000000003",
+                                         "Name":  "IN[1]",
+                                         "Description":  "Input #1",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a2010000000000000000000000000004",
+                                         "Name":  "IN[2]",
+                                         "Description":  "Input #2",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a2010000000000000000000000000006",
+                                         "Name":  "IN[3]",
+                                         "Description":  "Input #3",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a2010000000000000000000000000007",
+                                         "Name":  "IN[4]",
+                                         "Description":  "Input #4",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a2010000000000000000000000000008",
+                                         "Name":  "IN[5]",
+                                         "Description":  "Input #5",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a2010000000000000000000000000009",
+                                         "Name":  "IN[6]",
+                                         "Description":  "Input #6",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a201000000000000000000000000000a",
+                                         "Name":  "IN[7]",
+                                         "Description":  "Input #7",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a201000000000000000000000000000b",
+                                         "Name":  "IN[8]",
+                                         "Description":  "Input #8",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a201000000000000000000000000000c",
+                                         "Name":  "IN[9]",
+                                         "Description":  "Input #9",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a2010000000000000000000000000030",
+                                         "Name":  "IN[10]",
+                                         "Description":  "Input #10",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a2010000000000000000000000000031",
+                                         "Name":  "IN[11]",
+                                         "Description":  "Input #11",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a2010000000000000000000000000032",
+                                         "Name":  "IN[12]",
+                                         "Description":  "Input #12",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     }
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "a2010000000000000000000000000005",
+                                          "Name":  "OUT",
+                                          "Description":  "Result of the python script",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Runs an embedded Python script."
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Watch, CoreNodeModels",
+                      "WatchWidth":  620.0,
+                      "WatchHeight":  400.0,
+                      "Id":  "c2010000000000000000000000000001",
+                      "NodeType":  "ExtensionNode",
+                      "Inputs":  [
+                                     {
+                                         "Id":  "c2010000000000000000000000000002",
+                                         "Name":  "",
+                                         "Description":  "Node to show output from",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     }
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "c2010000000000000000000000000003",
+                                          "Name":  "",
+                                          "Description":  "Node output",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Visualizes a node\u0027s output"
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+                      "Id":  "b2010000000000000000000000000001",
+                      "NodeType":  "BooleanInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2010000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Boolean",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Enables selection between True and False",
+                      "InputValue":  true
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.StringInput, CoreNodeModels",
+                      "SerializedWidth":  0,
+                      "SerializedHeight":  0,
+                      "Id":  "b2020000000000000000000000000001",
+                      "NodeType":  "StringInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2020000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "String",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Creates a string.",
+                      "InputValue":  ""
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+                      "Id":  "b2030000000000000000000000000001",
+                      "NodeType":  "BooleanInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2030000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Boolean",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Enables selection between True and False",
+                      "InputValue":  false
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+                      "NumberType":  "Integer",
+                      "MaximumValue":  500,
+                      "MinimumValue":  0,
+                      "StepValue":  10,
+                      "Id":  "b2040000000000000000000000000001",
+                      "NodeType":  "NumberInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2040000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Int64",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Produces integer values",
+                      "InputValue":  100
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+                      "NumberType":  "Integer",
+                      "MaximumValue":  500,
+                      "MinimumValue":  10,
+                      "StepValue":  10,
+                      "Id":  "b2050000000000000000000000000001",
+                      "NodeType":  "NumberInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2050000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Int64",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Produces integer values",
+                      "InputValue":  100
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+                      "NumberType":  "Integer",
+                      "MaximumValue":  500,
+                      "MinimumValue":  0,
+                      "StepValue":  10,
+                      "Id":  "b2060000000000000000000000000001",
+                      "NodeType":  "NumberInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2060000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Int64",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Produces integer values",
+                      "InputValue":  100
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.StringInput, CoreNodeModels",
+                      "SerializedWidth":  0,
+                      "SerializedHeight":  0,
+                      "Id":  "b2070000000000000000000000000001",
+                      "NodeType":  "StringInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2070000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "String",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Creates a string.",
+                      "InputValue":  "02_ESTRUCTURAS"
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.StringInput, CoreNodeModels",
+                      "SerializedWidth":  0,
+                      "SerializedHeight":  0,
+                      "Id":  "b2080000000000000000000000000001",
+                      "NodeType":  "StringInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2080000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "String",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Creates a string.",
+                      "InputValue":  "ESTRUCTURA_1/75"
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+                      "NumberType":  "Integer",
+                      "MaximumValue":  100,
+                      "MinimumValue":  5,
+                      "StepValue":  5,
+                      "Id":  "b2090000000000000000000000000001",
+                      "NodeType":  "NumberInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2090000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Int64",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Produces integer values",
+                      "InputValue":  30
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+                      "NumberType":  "Integer",
+                      "MaximumValue":  500,
+                      "MinimumValue":  10,
+                      "StepValue":  5,
+                      "Id":  "b2100000000000000000000000000001",
+                      "NodeType":  "NumberInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2100000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Int64",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Produces integer values",
+                      "InputValue":  75
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+                      "NumberType":  "Integer",
+                      "MaximumValue":  30000,
+                      "MinimumValue":  500,
+                      "StepValue":  500,
+                      "Id":  "b2110000000000000000000000000001",
+                      "NodeType":  "NumberInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2110000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Int64",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Produces integer values",
+                      "InputValue":  5500
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+                      "NumberType":  "Integer",
+                      "MaximumValue":  1000,
+                      "MinimumValue":  10,
+                      "StepValue":  10,
+                      "Id":  "b2120000000000000000000000000001",
+                      "NodeType":  "NumberInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2120000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Int64",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Produces integer values",
+                      "InputValue":  100
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.StringInput, CoreNodeModels",
+                      "SerializedWidth":  0,
+                      "SerializedHeight":  0,
+                      "Id":  "b2130000000000000000000000000001",
+                      "NodeType":  "StringInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b2130000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "String",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Creates a string.",
+                      "InputValue":  ""
+                  }
+              ],
+    "Connectors":  [
+                       {
+                           "Start":  "a2010000000000000000000000000005",
+                           "End":  "c2010000000000000000000000000002",
+                           "Id":  "d2010000000000000000000000000004",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2010000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000002",
+                           "Id":  "d2010000000000000000000000000020",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2020000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000003",
+                           "Id":  "d2010000000000000000000000000021",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2030000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000004",
+                           "Id":  "d2010000000000000000000000000022",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2040000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000006",
+                           "Id":  "d2010000000000000000000000000023",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2050000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000007",
+                           "Id":  "d2010000000000000000000000000024",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2060000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000008",
+                           "Id":  "d2010000000000000000000000000025",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2070000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000009",
+                           "Id":  "d2010000000000000000000000000026",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2080000000000000000000000000002",
+                           "End":  "a201000000000000000000000000000a",
+                           "Id":  "d2010000000000000000000000000027",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2090000000000000000000000000002",
+                           "End":  "a201000000000000000000000000000b",
+                           "Id":  "d2010000000000000000000000000028",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2100000000000000000000000000002",
+                           "End":  "a201000000000000000000000000000c",
+                           "Id":  "d2010000000000000000000000000029",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2110000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000030",
+                           "Id":  "d2010000000000000000000000000030",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2120000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000031",
+                           "Id":  "d2010000000000000000000000000031",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b2130000000000000000000000000002",
+                           "End":  "a2010000000000000000000000000032",
+                           "Id":  "d2010000000000000000000000000032",
+                           "IsHidden":  "False"
+                       }
+                   ],
+    "Dependencies":  [
+
+                     ],
+    "NodeLibraryDependencies":  [
+
+                                ],
+    "EnableLegacyPolyCurveBehavior":  false,
+    "Thumbnail":  "",
+    "GraphDocumentationURL":  null,
+    "ExtensionWorkspaceData":  [
+                                   {
+                                       "ExtensionGuid":  "28992e1d-abb9-417f-8b1b-05e053bee670",
+                                       "Name":  "Properties",
+                                       "Version":  "4.0",
+                                       "Data":  {
+
+                                                }
+                                   },
+                                   {
+                                       "ExtensionGuid":  "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+                                       "Name":  "Generative Design",
+                                       "Version":  "10.3",
+                                       "Data":  {
+
+                                                }
+                                   }
+                               ],
+    "Author":  "",
+    "Linting":  {
+                    "activeLinter":  "None",
+                    "activeLinterId":  "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+                    "warningCount":  0,
+                    "errorCount":  0
+                },
+    "Bindings":  [
+
+                 ],
+    "View":  {
+                 "Dynamo":  {
+                                "ScaleFactor":  1.0,
+                                "HasRunWithoutCrash":  true,
+                                "IsVisibleInDynamoLibrary":  true,
+                                "Version":  "4.0.2.3852",
+                                "RunType":  "Manual",
+                                "RunPeriod":  "1000"
+                            },
+                 "Camera":  {
+                                "Name":  "_Background Preview",
+                                "EyeX":  -17.0,
+                                "EyeY":  24.0,
+                                "EyeZ":  50.0,
+                                "LookX":  12.0,
+                                "LookY":  -13.0,
+                                "LookZ":  -58.0,
+                                "UpX":  0.0,
+                                "UpY":  1.0,
+                                "UpZ":  0.0
+                            },
+                 "ConnectorPins":  [
+
+                                   ],
+                 "NodeViews":  [
+                                   {
+                                       "Id":  "a2010000000000000000000000000001",
+                                       "Name":  "PY | NIPB + plantas T.A. + elevaciones de eje",
+                                       "IsSetAsInput":  false,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  480.0,
+                                       "Y":  100.0
+                                   },
+                                   {
+                                       "Id":  "c2010000000000000000000000000001",
+                                       "Name":  "Log",
+                                       "IsSetAsInput":  false,
+                                       "IsSetAsOutput":  true,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  820.0,
+                                       "Y":  100.0
+                                   },
+                                   {
+                                       "Id":  "b2010000000000000000000000000001",
+                                       "Name":  "01. Procesar TODOS los assemblies",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  0
+                                   },
+                                   {
+                                       "Id":  "b2020000000000000000000000000001",
+                                       "Name":  "02. Filtro por nombre (si TODOS = False)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  130
+                                   },
+                                   {
+                                       "Id":  "b2030000000000000000000000000001",
+                                       "Name":  "03. Recrear vistas existentes (borra y rehace)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  260
+                                   },
+                                   {
+                                       "Id":  "b2040000000000000000000000000001",
+                                       "Name":  "08. Offset del corte NIPB sobre la cara mas baja (cm)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  390
+                                   },
+                                   {
+                                       "Id":  "b2050000000000000000000000000001",
+                                       "Name":  "09. Tolerancia de agrupacion T.A. (cm)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  520
+                                   },
+                                   {
+                                       "Id":  "b2060000000000000000000000000001",
+                                       "Name":  "10. Offset del corte T.A. sobre el nivel dominante (cm)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  650
+                                   },
+                                   {
+                                       "Id":  "b2070000000000000000000000000001",
+                                       "Name":  "05. Tipo de vista BASE (se duplica para la subcarpeta)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  780
+                                   },
+                                   {
+                                       "Id":  "b2080000000000000000000000000001",
+                                       "Name":  "06. View template para las vistas (vacio = ninguno)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  910
+                                   },
+                                   {
+                                       "Id":  "b2090000000000000000000000000001",
+                                       "Name":  "12. Margen del crop (mm)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  1040
+                                   },
+                                   {
+                                       "Id":  "b2100000000000000000000000000001",
+                                       "Name":  "07. Escala de las vistas (1:N)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  1170
+                                   },
+                                   {
+                                       "Id":  "b2110000000000000000000000000001",
+                                       "Name":  "13. Far Clip de las elevaciones (mm)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  1300
+                                   },
+                                   {
+                                       "Id":  "b2120000000000000000000000000001",
+                                       "Name":  "11. Profundidad de las plantas bajo el nivel (cm)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  1430
+                                   },
+                                   {
+                                       "Id":  "b2130000000000000000000000000001",
+                                       "Name":  "04. Subcarpeta del Project Browser (vacio = usar el tipo base)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  1560
+                                   }
+                               ],
+                 "Annotations":  [
+
+                                 ],
+                 "X":  195.2000000000001,
+                 "Y":  -127.20000000000005,
+                 "Zoom":  0.8
+             }
 }
