@@ -465,6 +465,9 @@ Enciende la categoría *Grids* (`SetCategoryHidden(..., False)`) en las plantas 
 y —si el input lo pide— también en las elevaciones de eje. Es idempotente: si la categoría
 ya estaba encendida, no hace nada.
 
+> El input `Mostrar ejes tambien en las elevaciones` es además el interruptor general de
+> todo lo que 03 hace en las elevaciones: en False, no las toca.
+
 ### Una sola burbuja por eje: arriba y a la izquierda
 
 Por defecto Revit dibuja las dos burbujas de cada eje, así que una planta queda con
@@ -490,7 +493,45 @@ manda el ancho (el de más a la izquierda). Así también funciona con ejes obli
 vistas rotadas, sin depender de que `End0`/`End1` estén dibujados en un orden concreto —
 que es cosa del modelador, no de Revit.
 
-> Solo se aplica a las **plantas**. Las elevaciones de eje no se tocan.
+> Solo se aplica a las **plantas**. Las elevaciones de eje llevan su propio tratamiento,
+> acá abajo.
+
+### En las elevaciones: solo los dos ejes extremos, recortados al alto del assembly
+
+Una elevación solo dibuja los ejes **perpendiculares al papel** — el eje de la propia
+elevación corre a lo largo de la vista y Revit no lo dibuja, así que queda fuera solo. De
+los que sí se dibujan se conservan **los dos extremos** y se ocultan los de por medio
+(input `Elevaciones: dejar solo los dos ejes extremos`, default True):
+
+```
+   (13a) (13b) (13c) (14a) (16) (18a)        <- lo que sale por defecto
+     |     |     |     |    |     |
+                                              (13a)              (18a)
+   +---------------------------+      -->       |                  |
+   |         ELEVACION         |                +------------------+
+   +---------------------------+                |    ELEVACION     |
+                                                +------------------+
+```
+
+La posición de cada eje ya está acotada en las plantas; repetirla en la elevación solo
+tapa la estructura con líneas verticales. Los extremos se quedan porque son la referencia
+del ancho de la estructura.
+
+Se usa `View.HideElements` / `UnhideElements` (específico de la vista). **Cada corrida
+recupera primero los que ocultó la anterior** y vuelve a decidir cuáles son los extremos:
+si el assembly creció o se agregó un eje, los de antes tienen que volver.
+
+**La extensión** de los que quedan pasa a ser específica de la vista
+(`SetDatumExtentType(..., ViewSpecific)` + `SetCurveInView`), del alto del assembly más lo
+que sobresalga por arriba y por abajo (inputs en mm de papel, defaults **3** y **2**), con
+la burbuja arriba. Por defecto el eje cruza la vista entera porque su extensión 3D es la
+de toda la planta industrial; esa extensión **no se toca**, el recorte vive solo en esta
+vista. Apagar el input devuelve los ejes a `DatumExtentType.Model`, no los deja congelados
+con el recorte anterior.
+
+> Cuál de los dos extremos de la curva quedó arriba se **lee de vuelta** con
+> `GetCurvesInView` en vez de darlo por supuesto: si Revit invirtiera la curva, la burbuja
+> iría al pie del eje.
 
 ### Eje de cada viga en las plantas T.A. (línea roja `L-CENTER`)
 
