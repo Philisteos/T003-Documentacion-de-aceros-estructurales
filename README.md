@@ -33,13 +33,17 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
 | 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes (una burbuja por eje), dibuja el eje de cada viga en las T.A. (L-CENTER) y acota entre ejes y entre ejes de viga |
-| 4 | `04_Cotas de ejes.dyn` | ⚠️ fundaciones | Cadena borde → eje de **elemento** → borde — **sin adaptar** |
+| 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
 | 5 | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sirve igual en acero |
 | 6 | `06_Tabla de assemblies.dyn` | ⚠️ fundaciones | Tabla por sheet — **sin adaptar** (ver *Pendientes*) |
 
 **Flujo**: 00 (crear vistas) → 01 (calcular y crear láminas) → 02 (colocar vistas y
-leyendas) → 03 (ejes y cotas entre ejes). Los pasos 04 y 06 todavía responden al modelo de
-fundaciones; ver *Pendientes*.
+leyendas) → 03 (ejes y cotas entre ejes) → 04 (grating). El paso 06 todavía responde al
+modelo de fundaciones; ver *Pendientes*.
+
+> El `04_Cotas de ejes.dyn` de fundaciones (cadena borde → eje de elemento → borde) se
+> descartó y el número quedó libre; el 04 de acero es otra cosa. Si hace falta recuperarlo,
+> está en el historial de git y en T001.
 
 > `03` se llamaba `03_Cotas generales.dyn` y hacía cotas de ancho/largo/altura y spot
 > elevations sobre `Structural Foundation`. Esas anotaciones no sirven en acero, así que
@@ -732,6 +736,148 @@ nuevas.
 
 ---
 
+## 04 — Grating en plantas
+
+> **Estado: escrito pero no probado en Revit.** La geometría se diseñó midiendo el modelo
+> real, pero ninguna de las booleanas se ejecutó todavía. Esperá iterar.
+
+### El grating no se puede simplemente encender
+
+| Dato medido (2026-08-03) | Valor |
+|---|---|
+| Familia / tipo | `C-GRATING ARRIGONI ARS-5` / `GRATING ARRIGONI` |
+| Categoría | `Structural Framing`, `FamilyInstance` |
+| Instancias | 101, en 4 niveles |
+| Un paño | 2,54 × 0,97 m, **32 mm** de espesor |
+| Cota | Z = 3,300 → **3,332** m |
+| `Assembly Name` | `ES-1003` (es miembro del assembly) |
+
+La cota es la clave: el T.A. es **tope de acero**, o sea que las vigas terminan en 3,300 y
+el grating se apoya **encima**. Encender su subcategoría no sirve: taparía la estructura,
+que es justo lo que el plano tiene que mostrar.
+
+Verificado además que en la T.A. generada hay **cero** instancias visibles, y que no es por
+el aislamiento de 00 (es miembro) ni por el View Range (3,300–3,332 cae entre el fondo 2,80
+y el corte 4,30). Queda como causa la visibilidad de la subcategoría en el view template.
+
+### Lo que hacen los modeladores, y por qué es una convención y no una oclusión
+
+Dibujan una **Filled Region** con trama de rejilla y la recortan alrededor de cada elemento
+que la cruza, para que el grating se lea **por debajo** del acero. Como el grating está en
+realidad arriba, ese recorte no es geométrico: es una convención de dibujo. Además separan
+la trama **35 mm** de cada viga para que no quede sucia contra el ala.
+
+Eso simplifica el problema: **no hay que razonar cotas**. Se resta la huella en planta de
+todo lo que pisa el paño, sin importar quién está encima de quién.
+
+### Revit no tiene booleanas 2D: se hacen en 3D
+
+| Paso | Herramienta |
+|---|---|
+| Sombra en planta de un sólido | `ExtrusionAnalyzer` → `GetExtrusionBase()` → `GetEdgesAsCurveLoops()` |
+| Engordar la sombra 35 mm | `CurveLoop.CreateViaOffset` |
+| La resta | extruir a prismas y `BooleanOperationsUtils.ExecuteBooleanOperation(Difference)` |
+| Recuperar los retazos | caras planas del resultado con normal `+Z` → `GetEdgesAsCurveLoops()` |
+| Dibujar | `FilledRegion.Create(doc, tipoId, vistaId, loops)` |
+
+De la sombra de cada obstáculo se toma **solo el contorno exterior**: los huecos de un
+perfil no cambian lo que tapa en el dibujo.
+
+#### ⚠️ El grating no es una plancha, son barras
+
+`NUM BARRAS RECT LONG = 31`, `NUM BARRAS CIRCULARES = 25`: la familia modela las barras una
+por una. Su volumen es 0,50 pies³ contra los 2,78 que tendría una plancha maciza — un 18 %
+de llenado. Su sombra real es un **peine**, no un rectángulo, así que no sirve como
+contorno del paño.
+
+Por eso el contorno se toma como el rectángulo que envuelve todas las barras **en el sistema
+local de la instancia** (`FamilyInstance.GetTransform()`), no el bounding box del mundo: así
+también vale para paños girados.
+
+#### ⚠️ `CreateViaOffset` no dice hacia qué lado desplaza
+
+Depende de la orientación del contorno, que no se controla. Se prueban los dos signos y gana
+el que **aumenta el área** — que es el que separa la trama de la viga en vez de comérsela.
+
+#### Qué paños le tocan a cada planta
+
+El grating **no aparece en el colector por vista** (su subcategoría está apagada), así que no
+se puede preguntar «qué se ve acá». Se calcula la franja de altura de la vista con
+`GetViewRange()` y se toman los paños cuyo bounding box la cruza. Es el mismo criterio con el
+que Revit decide qué dibuja, así que el grating seleccionado es el que corresponde.
+
+#### Qué se resta
+
+Todo lo que la vista dibuja de la estructura del assembly: `Structural Framing` (vigas
+**y diagonales**) y `Structural Columns`. Las **conexiones quedan fuera a propósito** —
+sillas, placas y pernos no corresponden a una planta de T.A.
+
+> ⚠️ Hoy 00 enciende `Structural Connections` en **todas** las plantas, porque la NIPB las
+> necesita. En las T.A. no deberían verse. Pendiente de arreglar en 00.
+
+#### Costos y modos de fallo esperados
+
+- Se pre-filtra por solapamiento de bounding box: sin eso serían ~20 paños × 162 miembros =
+  3.240 booleanas por vista.
+- Cada booleana va en su propio `try`: una cara coincidente no puede tumbar el paño entero.
+  El log cuenta cuántas fallaron.
+- Los retazos por debajo del **área mínima** (input, default 100 cm²) se descartan, para que
+  la vista no se llene de esquirlas donde dos vigas casi se tocan.
+
+#### ⚠️ Las tiras angostas se consumen enteras
+
+La separación de 35 mm se suma a **medio ancho de ala a cada lado**. En un `C20` eso son
+100 mm de semiala, así que cada obstáculo se come 135 mm por lado: **270 mm de ancho útil**.
+Medido sobre los 48 paños de ES-1003, cinco no llegan a eso con holgura:
+
+| Id | Medida crítica |
+|---|---|
+| `5482636`, `5482644` | 299 mm de ancho |
+| `5482866` | 314 mm de ancho |
+| `5482626` | 415 mm de alto |
+| `5482804` | 577 mm de alto |
+
+Una tira de 299 mm deja 29 mm después de la resta, muy por debajo del área mínima, y el paño
+desaparece. **Ningún paño puede desaparecer en silencio**: si no deja ninguna región, el log
+dice su id y su medida, y el resumen cuenta `panos SIN region`. Si aparece uno, hay que bajar
+la separación o el área mínima — o aceptar que ese paño no se dibuja.
+- Si el proyecto no tiene ningún `FilledRegionType`, el log lo dice y no se crea nada. El log
+  siempre lista los tipos disponibles — es la forma de descubrir el nombre exacto. En este
+  modelo el que corresponde es **`HATCH GRATING`**, que es el default del input.
+
+#### ⚠️ Revit valida el contorno recién al comitear
+
+Medido el 2026-08-03: el log decía `Regiones de trama creadas: 40 | panos SIN region: 0`, y
+sin embargo faltaba un paño en el dibujo. El motivo estaba al final:
+
+```
+ERROR: Can't draw Detail Filled Region. (x1)
+```
+
+Las 40 se crearon, pero Revit **valida el contorno al confirmar la transacción**, no al
+crear, y el manejador de fallas borró la que rechazó. El resumen contaba una región que ya
+no existía. Es el mismo problema que 03 tuvo con las cadenas de cotas, y la solución es la
+misma: **verificar después del commit** cuáles sobrevivieron y descontarlas, diciendo qué
+paño era.
+
+Sobre la causa, los huecos minúsculos que deja la resta booleana son suficientes para que
+Revit rechace la región **entera**. Por eso ahora:
+
+1. Los contornos se ordenan por área — el mayor es el exterior, el resto son huecos.
+2. Los huecos por debajo del área mínima se descartan antes de crear nada.
+3. Si aun así la rechaza, se reintenta con el **contorno exterior solo**, y el log avisa que
+   esa región se dibujó sin sus huecos.
+
+#### Grating que no es miembro de su assembly
+
+`ES-1001` y `ES-1002` reportan `ningun miembro coincide con el filtro de familia`. No es del
+script: hay geometría de grating en la zona de ES-1002 (nivel `RLO_T.A. ES-1002`) pero
+**ninguna instancia tiene `Assembly Name`**. De las 102 del modelo, solo 48 pertenecen a un
+assembly, y las 48 son de ES-1003. Si esas plantas tienen que llevar trama, hay que agregar
+el grating al ensamble en Revit.
+
+---
+
 ## Convenciones (contrato entre graphs)
 
 - **Nombres internos de vista** (no renombrar a mano — 01 y 02 los buscan por nombre):
@@ -782,9 +928,9 @@ nuevas.
 
 ## Pendientes / próximos pasos
 
-1. **Decidir qué hacer con 04.** Hoy acota el eje de cada *elemento* usando los planos de
-   referencia centrales de la familia (lógica de fundaciones). En acero puede que no haga
-   falta, o que deba pasar a acotar vigas/columnas contra los ejes estructurales.
+1. **Probar 04 en Revit.** Está escrito contra mediciones del modelo real pero ninguna
+   booleana se ejecutó todavía. Además hay que arreglar en 00 que `Structural Connections`
+   se enciende en las T.A., donde no corresponde.
 2. **Adaptar 06 (tabla).** Hoy **excluye** `Structural Framing` y `Generic Models` — justo
    la categoría que manda en acero. Además debe pasar de «una tabla por sheet» a **una
    tabla única por assembly, en su primera lámina** (regla del brief).

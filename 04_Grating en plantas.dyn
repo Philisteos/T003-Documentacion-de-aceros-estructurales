@@ -1,0 +1,583 @@
+{
+    "Uuid":  "8f4c1a2e-0a11-4b6e-9c01-aa0000000006",
+    "IsCustomNode":  false,
+    "Description":  "Por assembly: dibuja el grating de las plantas T.A. como Filled Regions, recortadas alrededor de las vigas para que la trama se lea por debajo del acero.",
+    "Name":  "04_Grating en plantas",
+    "ElementResolver":  {
+                            "ResolutionMap":  {
+
+                                              }
+                        },
+    "Inputs":  [
+                   {
+                       "Id":  "b5010000000000000000000000000001",
+                       "Name":  "01. Procesar TODOS los assemblies",
+                       "Type":  "boolean",
+                       "Type2":  "boolean",
+                       "Value":  "true",
+                       "Description":  "Enables selection between True and False"
+                   },
+                   {
+                       "Id":  "b5020000000000000000000000000001",
+                       "Name":  "02. Filtro por nombre (si TODOS = False)",
+                       "Type":  "string",
+                       "Type2":  "string",
+                       "Value":  "",
+                       "Description":  "Creates a string."
+                   },
+                   {
+                       "Id":  "b5030000000000000000000000000001",
+                       "Name":  "03. Familia del grating (parcial, comas)",
+                       "Type":  "string",
+                       "Type2":  "string",
+                       "Value":  "GRATING",
+                       "Description":  "Creates a string."
+                   },
+                   {
+                       "Id":  "b5040000000000000000000000000001",
+                       "Name":  "04. Tipo de Filled Region",
+                       "Type":  "string",
+                       "Type2":  "string",
+                       "Value":  "HATCH GRATING",
+                       "Description":  "Creates a string."
+                   },
+                   {
+                       "Id":  "b5050000000000000000000000000001",
+                       "Name":  "05. Separacion de la trama a las vigas (mm de modelo)",
+                       "Type":  "number",
+                       "Type2":  "number",
+                       "Value":  "35",
+                       "MaximumValue":  200,
+                       "MinimumValue":  0,
+                       "StepValue":  1,
+                       "NumberType":  "Integer",
+                       "Description":  "Produces integer values"
+                   },
+                   {
+                       "Id":  "b5060000000000000000000000000001",
+                       "Name":  "06. Area minima de un retazo (cm2)",
+                       "Type":  "number",
+                       "Type2":  "number",
+                       "Value":  "100",
+                       "MaximumValue":  2000,
+                       "MinimumValue":  0,
+                       "StepValue":  1,
+                       "NumberType":  "Integer",
+                       "Description":  "Produces integer values"
+                   },
+                   {
+                       "Id":  "b5070000000000000000000000000001",
+                       "Name":  "07. Rehacer las regiones existentes",
+                       "Type":  "boolean",
+                       "Type2":  "boolean",
+                       "Value":  "false",
+                       "Description":  "Enables selection between True and False"
+                   }
+               ],
+    "Outputs":  [
+                    {
+                        "Id":  "c5010000000000000000000000000001",
+                        "Name":  "Log",
+                        "Type":  "unknown",
+                        "InitialValue":  "",
+                        "Description":  "Visualizes a node\u0027s output"
+                    }
+                ],
+    "Nodes":  [
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+                      "Id":  "b5010000000000000000000000000001",
+                      "NodeType":  "BooleanInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b5010000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Boolean",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Enables selection between True and False",
+                      "InputValue":  true
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.StringInput, CoreNodeModels",
+                      "SerializedWidth":  0,
+                      "SerializedHeight":  0,
+                      "Id":  "b5020000000000000000000000000001",
+                      "NodeType":  "StringInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b5020000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "String",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Creates a string.",
+                      "InputValue":  ""
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.StringInput, CoreNodeModels",
+                      "SerializedWidth":  0,
+                      "SerializedHeight":  0,
+                      "Id":  "b5030000000000000000000000000001",
+                      "NodeType":  "StringInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b5030000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "String",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Creates a string.",
+                      "InputValue":  "GRATING"
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.StringInput, CoreNodeModels",
+                      "SerializedWidth":  0,
+                      "SerializedHeight":  0,
+                      "Id":  "b5040000000000000000000000000001",
+                      "NodeType":  "StringInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b5040000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "String",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Creates a string.",
+                      "InputValue":  "HATCH GRATING"
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+                      "NumberType":  "Integer",
+                      "MaximumValue":  200,
+                      "MinimumValue":  0,
+                      "StepValue":  1,
+                      "Id":  "b5050000000000000000000000000001",
+                      "NodeType":  "NumberInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b5050000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Int64",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Produces integer values",
+                      "InputValue":  35
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
+                      "NumberType":  "Integer",
+                      "MaximumValue":  2000,
+                      "MinimumValue":  0,
+                      "StepValue":  1,
+                      "Id":  "b5060000000000000000000000000001",
+                      "NodeType":  "NumberInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b5060000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Int64",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Produces integer values",
+                      "InputValue":  100
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+                      "Id":  "b5070000000000000000000000000001",
+                      "NodeType":  "BooleanInputNode",
+                      "Inputs":  [
+
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "b5070000000000000000000000000002",
+                                          "Name":  "",
+                                          "Description":  "Boolean",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Enables selection between True and False",
+                      "InputValue":  false
+                  },
+                  {
+                      "ConcreteType":  "PythonNodeModels.PythonNode, PythonNodeModels",
+                      "Code":  "# 04_Grating en plantas - ACERO\n#\n# Representa el grating de acero en las plantas T.A. con Filled Regions, imitando lo\n# que los modeladores hacen a mano.\n#\n# EL PROBLEMA. El grating esta modelado (familia C-GRATING ARRIGONI ARS-5, categoria\n# Structural Framing) pero no se ve en la planta. Y aunque se encendiera no serviria:\n# el T.A. es TOPE DE ACERO, o sea que el grating se apoya ENCIMA de las vigas\n# (medido: vigas hasta 3,300 m y grating de 3,300 a 3,332), asi que taparia la\n# estructura, que es justo lo que hay que mostrar.\n#\n# LO QUE HACEN LOS MODELADORES. Dibujan una Filled Region con trama de rejilla y la\n# recortan alrededor de cada elemento que la cruza, para que el grating se lea POR\n# DEBAJO del acero. No es una oclusion real - el grating esta arriba -, es una\n# convencion de dibujo. Ademas separan la trama 35 mm de cada viga para que no quede\n# sucia contra el ala.\n#\n# COMO SE AUTOMATIZA. Es una resta booleana 2D, y Revit no las tiene. Se hace en 3D:\n# se saca la sombra en planta de cada solido (ExtrusionAnalyzer), se engorda la de los\n# obstaculos, se extruyen ambas a prismas, se restan (BooleanOperationsUtils) y se\n# recuperan los contornos de la cara superior del resultado.\n#\n# Revit 2027 / Dynamo 4 / CPython3\n# IN[0] = procesar todos los assemblies (bool)\n# IN[1] = filtro por nombre si IN[0] es False (parcial, comas)\n# IN[2] = filtro de familia del grating (parcial, comas)\n# IN[3] = nombre del tipo de Filled Region (el log lista los que hay en el proyecto)\n# IN[4] = separacion de la trama a las vigas, en mm de MODELO\n# IN[5] = area minima de un retazo de trama, en cm2 (por debajo se descarta)\n# IN[6] = rehacer las regiones que ya existan (bool)\n\nimport clr\nclr.AddReference('RevitAPI')\nclr.AddReference('RevitServices')\nfrom Autodesk.Revit.DB import (FilteredElementCollector, AssemblyInstance, View, ViewPlan,\n                               XYZ, ElementId, BuiltInCategory, Options, ViewDetailLevel, Line,\n                               Solid, GeometryInstance, FamilyInstance, Element,\n                               FailureProcessingResult, FailureSeverity,\n                               FilledRegion, FilledRegionType, CurveLoop, Plane,\n                               PlanarFace, PlanViewPlane, Transform,\n                               ExtrusionAnalyzer, GeometryCreationUtilities,\n                               BooleanOperationsUtils, BooleanOperationsType)\nfrom System.Collections.Generic import List\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\n\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nprocess_all = bool(IN[0])\nfilter_text = (IN[1] or '').strip()\nfam_grating = [t.strip().lower() for t in (IN[2] or 'GRATING').split(',') if t.strip()]\ntipo_pedido = (IN[3] or '').strip()\nsep_mm = float(IN[4])\narea_min_cm2 = float(IN[5])\nrehacer = bool(IN[6])\n\nlog = []\n\nSUF_TA = ' - T.A. '\nPIE = 304.8                 # mm por pie\nALTO = 1.0                  # pies: altura arbitraria de los prismas de trabajo\nZ0 = 0.0                    # cota del plano de trabajo de las huellas\nsep = sep_mm / PIE\narea_min = area_min_cm2 / (30.48 * 30.48)    # cm2 -> pies2\n\n# los obstaculos son lo que se DIBUJA de la estructura. Las conexiones (sillas, placas,\n# pernos) quedan fuera a proposito: no corresponden a una planta de T.A.\nCATS_OBSTACULO = [BuiltInCategory.OST_StructuralFraming,\n                  BuiltInCategory.OST_StructuralColumns]\n\n\ndef elem_name(e):\n    try:\n        return e.Name\n    except Exception:\n        return Element.Name.__get__(e)\n\n\ndef nombre_familia(el):\n    try:\n        return el.Symbol.FamilyName\n    except Exception:\n        return ''\n\n\ndef es_grating(el):\n    n = (nombre_familia(el) + ' ' + elem_name(el)).lower()\n    return any(t in n for t in fam_grating)\n\n\ndef solidos(el):\n    # GetInstanceGeometry (y no GetSymbolGeometry) porque hace falta la geometria ya\n    # colocada en el mundo: lo que se va a proyectar es la posicion real de la pieza.\n    opt = Options()\n    opt.DetailLevel = ViewDetailLevel.Fine\n    res = []\n    try:\n        geo = el.get_Geometry(opt)\n    except Exception:\n        return res\n    if geo is None:\n        return res\n    for g in geo:\n        try:\n            if isinstance(g, Solid):\n                if g.Volume > 1e-9:\n                    res.append(g)\n            elif isinstance(g, GeometryInstance):\n                for sg in g.GetInstanceGeometry():\n                    if isinstance(sg, Solid) and sg.Volume > 1e-9:\n                        res.append(sg)\n        except Exception:\n            pass\n    return res\n\n\ndef huellas(solid):\n    # sombra del solido sobre el plano XY: exactamente lo que la pieza ocupa en planta,\n    # con el ancho real del ala y no su eje.\n    try:\n        plano = Plane.CreateByNormalAndOrigin(XYZ.BasisZ, XYZ(0.0, 0.0, Z0))\n        ea = ExtrusionAnalyzer.Create(solid, plano, XYZ.BasisZ)\n        return list(ea.GetExtrusionBase().GetEdgesAsCurveLoops())\n    except Exception:\n        return []\n\n\ndef puntos_loop(loop):\n    pts = []\n    for c in loop:\n        try:\n            t = list(c.Tessellate())\n            pts.extend(t[:-1] if len(t) > 1 else t)\n        except Exception:\n            pass\n    return pts\n\n\ndef area_loop(loop):\n    # formula del zapatero sobre la poligonal; sirve para comparar tamanos y para\n    # decidir hacia que lado engordo un contorno.\n    pts = puntos_loop(loop)\n    if len(pts) < 3:\n        return 0.0\n    a = 0.0\n    for i in range(len(pts)):\n        p = pts[i]\n        q = pts[(i + 1) % len(pts)]\n        a += p.X * q.Y - q.X * p.Y\n    return abs(a) / 2.0\n\n\ndef huella_exterior(solid):\n    # de todos los contornos de la sombra interesa solo el exterior: los huecos de un\n    # perfil no cambian lo que tapa en el dibujo.\n    mejor = None\n    mejor_a = 0.0\n    for lp in huellas(solid):\n        a = area_loop(lp)\n        if a > mejor_a:\n            mejor_a = a\n            mejor = lp\n    return mejor, mejor_a\n\n\ndef rect2d(loop):\n    pts = puntos_loop(loop)\n    if not pts:\n        return None\n    return (min(p.X for p in pts), min(p.Y for p in pts),\n            max(p.X for p in pts), max(p.Y for p in pts))\n\n\ndef solapan(a, b, tol=0.0):\n    return not (a[2] + tol < b[0] or b[2] + tol < a[0] or\n                a[3] + tol < b[1] or b[3] + tol < a[1])\n\n\ndef engordar(loop, d):\n    # CreateViaOffset no dice hacia que lado desplaza: depende de la orientacion del\n    # contorno, que no se controla. Se prueban los dos signos y gana el que AUMENTA\n    # el area, que es el que separa la trama de la viga.\n    if d <= 0:\n        return loop\n    base = area_loop(loop)\n    for signo in (1.0, -1.0):\n        try:\n            cand = CurveLoop.CreateViaOffset(loop, signo * d, XYZ.BasisZ)\n        except Exception:\n            continue\n        if area_loop(cand) > base:\n            return cand\n    return loop\n\n\ndef prisma(loops, alto):\n    try:\n        return GeometryCreationUtilities.CreateExtrusionGeometry(\n            List[CurveLoop](loops), XYZ.BasisZ, alto)\n    except Exception:\n        return None\n\n\ndef rect_del_pano(el):\n    # El grating NO es una plancha: la familia modela las 31 barras rectangulares y las\n    # 25 circulares, asi que su sombra real es un peine y no sirve como contorno. Lo que\n    # se dibuja es el pano completo, asi que se toma el rectangulo que envuelve todas\n    # las barras EN EL SISTEMA LOCAL de la instancia - asi tambien vale para panos\n    # girados, cosa que el bounding box del mundo no daria.\n    pts = []\n    for s in solidos(el):\n        for lp in huellas(s):\n            pts.extend(puntos_loop(lp))\n    if len(pts) < 3:\n        return None\n    try:\n        tr = el.GetTransform()\n        inv = tr.Inverse\n    except Exception:\n        tr = None\n        inv = None\n    if inv is not None:\n        loc = [inv.OfPoint(p) for p in pts]\n    else:\n        loc = pts\n    x0 = min(p.X for p in loc)\n    x1 = max(p.X for p in loc)\n    y0 = min(p.Y for p in loc)\n    y1 = max(p.Y for p in loc)\n    esquinas = [XYZ(x0, y0, 0.0), XYZ(x1, y0, 0.0), XYZ(x1, y1, 0.0), XYZ(x0, y1, 0.0)]\n    if tr is not None:\n        esquinas = [tr.OfPoint(p) for p in esquinas]\n    esquinas = [XYZ(p.X, p.Y, Z0) for p in esquinas]\n    try:\n        lp = CurveLoop()\n        for i in range(4):\n            lp.Append(Line.CreateBound(esquinas[i], esquinas[(i + 1) % 4]))\n        return lp\n    except Exception:\n        return None\n\n\ndef ventana_z(v):\n    # franja de altura que la vista muestra de verdad. Es el mismo criterio con el que\n    # Revit decide que se ve, asi que el grating que cae aca dentro es exactamente el\n    # que le toca a esta planta - y hace falta calcularlo a mano porque el grating NO\n    # aparece en el colector por vista (su subcategoria esta apagada).\n    try:\n        vr = v.GetViewRange()\n\n        def z(plano):\n            lid = vr.GetLevelId(plano)\n            base = 0.0\n            if lid is not None and lid != ElementId.InvalidElementId:\n                lv = doc.GetElement(lid)\n                if lv is not None:\n                    base = lv.ProjectElevation\n            return base + vr.GetOffset(plano)\n\n        return z(PlanViewPlane.ViewDepthPlane), z(PlanViewPlane.TopClipPlane)\n    except Exception:\n        return None\n\n\ndef miembros_recursivos(ai):\n    res = []\n    pila = [doc.GetElement(mid) for mid in ai.GetMemberIds()]\n    vistos = set()\n    while pila:\n        el = pila.pop()\n        if el is None:\n            continue\n        try:\n            eid = el.Id.Value\n        except Exception:\n            eid = None\n        if eid is not None:\n            if eid in vistos:\n                continue\n            vistos.add(eid)\n        res.append(el)\n        if isinstance(el, FamilyInstance):\n            try:\n                for sid in el.GetSubComponentIds():\n                    pila.append(doc.GetElement(sid))\n            except Exception:\n                pass\n    return res\n\n\ndef tipo_de_region():\n    tipos = list(FilteredElementCollector(doc).OfClass(FilledRegionType))\n    if not tipos:\n        log.append('ERROR: el proyecto no tiene ningun tipo de Filled Region cargado.')\n        return None\n    nombres = sorted(elem_name(t) for t in tipos)\n    log.append('Tipos de Filled Region en el proyecto: ' + ', '.join(nombres))\n    if tipo_pedido:\n        for t in tipos:\n            if elem_name(t).strip().lower() == tipo_pedido.strip().lower():\n                return t\n        log.append('AVISO: no existe el tipo de Filled Region \"{}\"; se usa \"{}\".'.format(\n            tipo_pedido, elem_name(tipos[0])))\n    return tipos[0]\n\n\ndef regiones_previas(v, tipo_id):\n    prev = []\n    for fr in FilteredElementCollector(doc, v.Id).OfClass(FilledRegion):\n        try:\n            if fr.GetTypeId() == tipo_id:\n                prev.append(fr.Id)\n        except Exception:\n            pass\n    return prev\n\n\ndef z_de_vista(v):\n    zs = [v.Origin.Z]\n    try:\n        lv = v.GenLevel\n        if lv is not None and abs(lv.ProjectElevation - zs[0]) > 1e-9:\n            zs.append(lv.ProjectElevation)\n    except Exception:\n        pass\n    return zs\n\n\n# ------------------------------------------------------------------ main\n\nby_type = {}\nfor ai in FilteredElementCollector(doc).OfClass(AssemblyInstance):\n    by_type.setdefault(ai.AssemblyTypeName, []).append(ai)\n\nif not by_type:\n    log.append('AVISO: no hay ningun Assembly en el modelo; nada que hacer.')\n\nif process_all:\n    targets = sorted(by_type.keys())\nelse:\n    tokens = [t.strip().lower() for t in filter_text.split(',') if t.strip()]\n    if tokens:\n        targets = [n for n in sorted(by_type.keys())\n                   if any(tok in n.lower() for tok in tokens)]\n    else:\n        targets = []\n        log.append('ERROR: \"Todos\" esta en False y el filtro esta vacio.')\n\nviews = {}\nfor v in FilteredElementCollector(doc).OfClass(View):\n    if not v.IsTemplate:\n        views[elem_name(v)] = v\n\nregiones = 0\npanos = 0\nconsumidos = 0\nfallos_bool = 0\ncreadas_fr = []   # (assembly, planta, id del pano, id de la region) para el post-commit\n\n\ndef _resolver_fallas(sender, args):\n    try:\n        fa = args.GetFailuresAccessor()\n        resultado = FailureProcessingResult.Continue\n        for f in fa.GetFailureMessages():\n            try:\n                try:\n                    desc = f.GetDescriptionText()\n                except Exception:\n                    desc = '(sin descripcion)'\n                es_aviso = f.GetSeverity() == FailureSeverity.Warning\n                clave = '{}: {}'.format('AVISO' if es_aviso else 'ERROR', desc)\n                fallas[clave] = fallas.get(clave, 0) + 1\n                if es_aviso:\n                    fa.DeleteWarning(f)\n                    continue\n                ids = list(f.GetFailingElementIds())\n                if ids:\n                    fa.DeleteElements(List[ElementId](ids))\n                    resultado = FailureProcessingResult.ProceedWithCommit\n                elif f.HasResolutions():\n                    fa.ResolveFailure(f)\n                    resultado = FailureProcessingResult.ProceedWithCommit\n            except Exception:\n                pass\n        args.SetProcessingResult(resultado)\n    except Exception:\n        pass\n\n\nfallas = {}\napp = doc.Application\napp.FailuresProcessing += _resolver_fallas\nTransactionManager.Instance.EnsureInTransaction(doc)\ntry:\n    tipo = tipo_de_region() if targets else None\n    for tname in targets:\n        if tipo is None:\n            break\n        ai = by_type[tname][0]\n        try:\n            miembros = miembros_recursivos(ai)\n            ids_miembros = set()\n            for el in miembros:\n                try:\n                    ids_miembros.add(el.Id.Value)\n                except Exception:\n                    pass\n            gratings = [el for el in miembros if es_grating(el)]\n            if not gratings:\n                log.append('AVISO {}: ningun miembro coincide con el filtro de familia \"{}\".'.format(\n                    tname, ', '.join(fam_grating)))\n                continue\n\n            plantas = [(views[n], n[len(tname) + 3:])\n                       for n in sorted(k for k in views if k.startswith(tname + SUF_TA))]\n            if not plantas:\n                log.append('AVISO {}: no existen las plantas T.A. (corre 00_Vistas de assembly).'.format(tname))\n                continue\n\n            for v, label in plantas:\n                prev = regiones_previas(v, tipo.Id)\n                if prev:\n                    if not rehacer:\n                        log.append('{}: {} ya tiene {} region(es) de grating, se salta.'.format(\n                            tname, label, len(prev)))\n                        continue\n                    try:\n                        doc.Delete(List[ElementId](prev))\n                    except Exception as e:\n                        log.append('AVISO {}: no se pudieron borrar las regiones previas de {}: {}'.format(\n                            tname, label, e))\n\n                franja = ventana_z(v)\n                if franja is None:\n                    log.append('ERROR {}: no se pudo leer el View Range de {}; se omite.'.format(tname, label))\n                    continue\n                z_lo, z_hi = franja\n\n                # que panos de grating le tocan a esta planta\n                mios = []\n                for g in gratings:\n                    try:\n                        bb = g.get_BoundingBox(None)\n                        if bb is None:\n                            continue\n                        if bb.Max.Z < z_lo or bb.Min.Z > z_hi:\n                            continue\n                        mios.append(g)\n                    except Exception:\n                        pass\n                if not mios:\n                    log.append('{}: {} no tiene grating en su franja de altura.'.format(tname, label))\n                    continue\n\n                # obstaculos: lo que la vista DIBUJA de la estructura del assembly\n                obstaculos = []\n                for cat in CATS_OBSTACULO:\n                    try:\n                        col = (FilteredElementCollector(doc, v.Id).OfCategory(cat)\n                               .WhereElementIsNotElementType())\n                    except Exception:\n                        continue\n                    for el in col:\n                        try:\n                            if el.Id.Value not in ids_miembros or es_grating(el):\n                                continue\n                        except Exception:\n                            continue\n                        for s in solidos(el):\n                            lp, a = huella_exterior(s)\n                            if lp is None or a < 1e-6:\n                                continue\n                            lp = engordar(lp, sep)\n                            pr = prisma([lp], ALTO)\n                            r = rect2d(lp)\n                            if pr is not None and r is not None:\n                                obstaculos.append((r, pr))\n\n                log.append('DIAG {} / {}: {} pano(s) de grating, {} obstaculo(s) a restar.'.format(\n                    tname, label, len(mios), len(obstaculos)))\n\n                zs = z_de_vista(v)\n                hechas_vista = 0\n                for g in mios:\n                    panos += 1\n                    base = rect_del_pano(g)\n                    if base is None:\n                        log.append('AVISO {}: sin geometria util en un pano de grating de {}.'.format(tname, label))\n                        continue\n                    rg = rect2d(base)\n                    medidas = '{:.2f} x {:.2f} m'.format(\n                        (rg[2] - rg[0]) * 0.3048, (rg[3] - rg[1]) * 0.3048) if rg else '?'\n                    try:\n                        gid = g.Id.Value\n                    except Exception:\n                        gid = '?'\n                    sol = prisma([base], ALTO)\n                    if sol is None:\n                        log.append('AVISO {}: no se pudo extruir el pano id {} ({}) en {}.'.format(\n                            tname, gid, medidas, label))\n                        consumidos += 1\n                        continue\n                    hechas_pano = 0\n                    for r, pr in obstaculos:\n                        if not solapan(r, rg):\n                            continue\n                        try:\n                            nuevo = BooleanOperationsUtils.ExecuteBooleanOperation(\n                                sol, pr, BooleanOperationsType.Difference)\n                            if nuevo is not None:\n                                sol = nuevo\n                        except Exception:\n                            fallos_bool += 1\n                            if fallos_bool <= 5:\n                                log.append('AVISO {}: una resta fallo en el pano id {} de {} (caras coincidentes); ese obstaculo no se recorto.'.format(\n                                    tname, gid, label))\n                    if sol is None or sol.Volume < area_min * ALTO:\n                        # los obstaculos engordados se comieron el pano entero. Pasa en\n                        # las tiras angostas: 300 mm de ancho contra 35 mm de separacion\n                        # MAS medio ancho de ala a cada lado no dejan nada en pie.\n                        log.append('AVISO {}: el pano id {} ({}) quedo consumido por los obstaculos en {}; baj\u00e1 la separacion o el area minima.'.format(\n                            tname, gid, medidas, label))\n                        consumidos += 1\n                        continue\n\n                    # los retazos que sobreviven son las caras de arriba del resultado\n                    for f in sol.Faces:\n                        try:\n                            if not isinstance(f, PlanarFace):\n                                continue\n                            if f.FaceNormal.DotProduct(XYZ.BasisZ) < 0.99:\n                                continue\n                            loops = list(f.GetEdgesAsCurveLoops())\n                            if not loops:\n                                continue\n                            loops.sort(key=area_loop, reverse=True)   # el mayor es el exterior\n                            if area_loop(loops[0]) < area_min:\n                                continue\n                            # Los huecos minusculos son esquirlas de la resta booleana, y a\n                            # Revit le alcanza uno para rechazar la region ENTERA con\n                            # \"Can't draw Detail Filled Region\". Se filtran por area, y si\n                            # aun asi la rechaza se reintenta con el contorno exterior solo.\n                            utiles = [loops[0]] + [lp for lp in loops[1:] if area_loop(lp) >= area_min]\n                            intentos = [utiles]\n                            if len(utiles) > 1:\n                                intentos.append([loops[0]])\n                            creada = False\n                            ultimo = None\n                            for i_int, cand in enumerate(intentos):\n                                for z in zs:\n                                    tr = Transform.CreateTranslation(XYZ(0.0, 0.0, z - f.Origin.Z))\n                                    lv = [CurveLoop.CreateViaTransform(lp, tr) for lp in cand]\n                                    try:\n                                        fr = FilledRegion.Create(doc, tipo.Id, v.Id, List[CurveLoop](lv))\n                                        creadas_fr.append((tname, label, gid, fr.Id))\n                                        creada = True\n                                        if i_int > 0:\n                                            log.append('AVISO {}: la region del pano id {} en {} se dibujo sin sus huecos; Revit rechazaba el contorno completo.'.format(\n                                                tname, gid, label))\n                                        break\n                                    except Exception as e:\n                                        ultimo = e\n                                if creada:\n                                    break\n                            if creada:\n                                regiones += 1\n                                hechas_vista += 1\n                                hechas_pano += 1\n                            else:\n                                log.append('ERROR {}: no se pudo crear una region del pano id {} en {}: {}'.format(\n                                    tname, gid, label, ultimo))\n                        except Exception:\n                            pass\n                    if hechas_pano == 0:\n                        # ningun pano puede desaparecer en silencio: si no dejo region,\n                        # tiene que quedar dicho cual y de que tamano era.\n                        log.append('AVISO {}: el pano id {} ({}) no dejo ninguna region en {}.'.format(\n                            tname, gid, medidas, label))\n                        consumidos += 1\n                log.append('OK {}: {} region(es) de trama en {}.'.format(tname, hechas_vista, label))\n        except Exception as e:\n            log.append('ERROR {}: {}'.format(tname, e))\nfinally:\n    try:\n        TransactionManager.Instance.TransactionTaskDone()\n        TransactionManager.Instance.ForceCloseTransaction()\n    finally:\n        app.FailuresProcessing -= _resolver_fallas\n\n# Que regiones sobrevivieron al commit. Sin esto un pa\u00f1o puede figurar como creado en el\n# resumen y no estar en el dibujo: Revit valida el contorno recien al confirmar, y el\n# manejador de fallas borra lo que rechaza.\nmuertas = []\nfor tname_c, label_c, gid_c, fid in creadas_fr:\n    try:\n        if doc.GetElement(fid) is None:\n            muertas.append('{} / {} (pano id {})'.format(tname_c, label_c, gid_c))\n    except Exception:\n        pass\nif muertas:\n    regiones -= len(muertas)\n    consumidos += len(muertas)\n    log.append('AVISO: Revit rechazo {} region(es) al comitear: {}'.format(\n        len(muertas), ', '.join(muertas)))\n    log.append('Causa habitual: el contorno que dejo la resta booleana tiene esquirlas o')\n    log.append('huecos degenerados. Subi el area minima para que se filtren antes.')\n\nif fallos_bool:\n    log.append('AVISO: {} resta(s) booleana(s) fallaron y se ignoraron (caras coincidentes).'.format(fallos_bool))\nif fallas:\n    log.append('--- mensajes de Revit al comitear ---')\n    for clave in sorted(fallas.keys()):\n        log.append('{} (x{})'.format(clave, fallas[clave]))\n\nlog.insert(0, 'Regiones de trama creadas: {} | panos procesados: {} | panos SIN region: {} | assemblies: {}'.format(\n    regiones, panos, consumidos, len(targets)))\nOUT = log\n",
+                      "Engine":  "PythonNet3",
+                      "VariableInputPorts":  true,
+                      "Id":  "a5010000000000000000000000000001",
+                      "NodeType":  "PythonScriptNode",
+                      "Inputs":  [
+                                     {
+                                         "Id":  "a5010000000000000000000000000010",
+                                         "Name":  "IN[0]",
+                                         "Description":  "Input #0",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a5010000000000000000000000000011",
+                                         "Name":  "IN[1]",
+                                         "Description":  "Input #1",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a5010000000000000000000000000012",
+                                         "Name":  "IN[2]",
+                                         "Description":  "Input #2",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a5010000000000000000000000000013",
+                                         "Name":  "IN[3]",
+                                         "Description":  "Input #3",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a5010000000000000000000000000014",
+                                         "Name":  "IN[4]",
+                                         "Description":  "Input #4",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a5010000000000000000000000000015",
+                                         "Name":  "IN[5]",
+                                         "Description":  "Input #5",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     },
+                                     {
+                                         "Id":  "a5010000000000000000000000000016",
+                                         "Name":  "IN[6]",
+                                         "Description":  "Input #6",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     }
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "a5010000000000000000000000000005",
+                                          "Name":  "OUT",
+                                          "Description":  "Result of the python script",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Runs an embedded Python script."
+                  },
+                  {
+                      "ConcreteType":  "CoreNodeModels.Watch, CoreNodeModels",
+                      "WatchWidth":  620,
+                      "WatchHeight":  400,
+                      "Id":  "c5010000000000000000000000000001",
+                      "NodeType":  "ExtensionNode",
+                      "Inputs":  [
+                                     {
+                                         "Id":  "c5010000000000000000000000000002",
+                                         "Name":  "",
+                                         "Description":  "Node to show output from",
+                                         "UsingDefaultValue":  false,
+                                         "Level":  2,
+                                         "UseLevels":  false,
+                                         "KeepListStructure":  false
+                                     }
+                                 ],
+                      "Outputs":  [
+                                      {
+                                          "Id":  "c5010000000000000000000000000003",
+                                          "Name":  "",
+                                          "Description":  "Node output",
+                                          "UsingDefaultValue":  false,
+                                          "Level":  2,
+                                          "UseLevels":  false,
+                                          "KeepListStructure":  false
+                                      }
+                                  ],
+                      "Replication":  "Disabled",
+                      "Description":  "Visualizes a node\u0027s output"
+                  }
+              ],
+    "Connectors":  [
+                       {
+                           "Start":  "b5010000000000000000000000000002",
+                           "End":  "a5010000000000000000000000000010",
+                           "Id":  "d5010000000000000000000000000010",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b5020000000000000000000000000002",
+                           "End":  "a5010000000000000000000000000011",
+                           "Id":  "d5010000000000000000000000000011",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b5030000000000000000000000000002",
+                           "End":  "a5010000000000000000000000000012",
+                           "Id":  "d5010000000000000000000000000012",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b5040000000000000000000000000002",
+                           "End":  "a5010000000000000000000000000013",
+                           "Id":  "d5010000000000000000000000000013",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b5050000000000000000000000000002",
+                           "End":  "a5010000000000000000000000000014",
+                           "Id":  "d5010000000000000000000000000014",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b5060000000000000000000000000002",
+                           "End":  "a5010000000000000000000000000015",
+                           "Id":  "d5010000000000000000000000000015",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "b5070000000000000000000000000002",
+                           "End":  "a5010000000000000000000000000016",
+                           "Id":  "d5010000000000000000000000000016",
+                           "IsHidden":  "False"
+                       },
+                       {
+                           "Start":  "a5010000000000000000000000000005",
+                           "End":  "c5010000000000000000000000000002",
+                           "Id":  "d5010000000000000000000000000005",
+                           "IsHidden":  "False"
+                       }
+                   ],
+    "Dependencies":  [
+
+                     ],
+    "NodeLibraryDependencies":  [
+
+                                ],
+    "EnableLegacyPolyCurveBehavior":  false,
+    "Thumbnail":  "",
+    "GraphDocumentationURL":  null,
+    "ExtensionWorkspaceData":  [
+                                   {
+                                       "ExtensionGuid":  "28992e1d-abb9-417f-8b1b-05e053bee670",
+                                       "Name":  "Properties",
+                                       "Version":  "4.0",
+                                       "Data":  {
+
+                                                }
+                                   },
+                                   {
+                                       "ExtensionGuid":  "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+                                       "Name":  "Generative Design",
+                                       "Version":  "10.3",
+                                       "Data":  {
+
+                                                }
+                                   }
+                               ],
+    "Author":  "",
+    "Linting":  {
+                    "activeLinter":  "None",
+                    "activeLinterId":  "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+                    "warningCount":  0,
+                    "errorCount":  0
+                },
+    "Bindings":  [
+
+                 ],
+    "View":  {
+                 "Dynamo":  {
+                                "ScaleFactor":  1,
+                                "HasRunWithoutCrash":  true,
+                                "IsVisibleInDynamoLibrary":  true,
+                                "Version":  "4.0.2.3852",
+                                "RunType":  "Manual",
+                                "RunPeriod":  "1000"
+                            },
+                 "Camera":  {
+                                "Name":  "_Background Preview",
+                                "EyeX":  -17,
+                                "EyeY":  24,
+                                "EyeZ":  50,
+                                "LookX":  12,
+                                "LookY":  -13,
+                                "LookZ":  -58,
+                                "UpX":  0,
+                                "UpY":  1,
+                                "UpZ":  0
+                            },
+                 "ConnectorPins":  [
+
+                                   ],
+                 "NodeViews":  [
+                                   {
+                                       "Id":  "b5010000000000000000000000000001",
+                                       "Name":  "01. Procesar TODOS los assemblies",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  0
+                                   },
+                                   {
+                                       "Id":  "b5020000000000000000000000000001",
+                                       "Name":  "02. Filtro por nombre (si TODOS = False)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  130
+                                   },
+                                   {
+                                       "Id":  "b5030000000000000000000000000001",
+                                       "Name":  "03. Familia del grating (parcial, comas)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  260
+                                   },
+                                   {
+                                       "Id":  "b5040000000000000000000000000001",
+                                       "Name":  "04. Tipo de Filled Region",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  390
+                                   },
+                                   {
+                                       "Id":  "b5050000000000000000000000000001",
+                                       "Name":  "05. Separacion de la trama a las vigas (mm de modelo)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  520
+                                   },
+                                   {
+                                       "Id":  "b5060000000000000000000000000001",
+                                       "Name":  "06. Area minima de un retazo (cm2)",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  650
+                                   },
+                                   {
+                                       "Id":  "b5070000000000000000000000000001",
+                                       "Name":  "07. Rehacer las regiones existentes",
+                                       "IsSetAsInput":  true,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  0,
+                                       "Y":  780
+                                   },
+                                   {
+                                       "Id":  "a5010000000000000000000000000001",
+                                       "Name":  "PY | Filled Regions de grating en las T.A.",
+                                       "IsSetAsInput":  false,
+                                       "IsSetAsOutput":  false,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  520,
+                                       "Y":  200
+                                   },
+                                   {
+                                       "Id":  "c5010000000000000000000000000001",
+                                       "Name":  "Log",
+                                       "IsSetAsInput":  false,
+                                       "IsSetAsOutput":  true,
+                                       "Excluded":  false,
+                                       "ShowGeometry":  true,
+                                       "X":  860,
+                                       "Y":  200
+                                   }
+                               ],
+                 "Annotations":  [
+
+                                 ],
+                 "X":  0,
+                 "Y":  0,
+                 "Zoom":  0.8
+             }
+}
