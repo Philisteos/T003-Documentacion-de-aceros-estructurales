@@ -32,7 +32,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por eje que lo cruza |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
-| 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes, dibuja el eje de cada viga en planta (L-CENTER) y acota entre ejes |
+| 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes, dibuja el eje de cada viga en planta (L-CENTER) y acota entre ejes y entre ejes de viga |
 | 4 | `04_Cotas de ejes.dyn` | ⚠️ fundaciones | Cadena borde → eje de **elemento** → borde — **sin adaptar** |
 | 5 | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sirve igual en acero |
 | 6 | `06_Tabla de assemblies.dyn` | ⚠️ fundaciones | Tabla por sheet — **sin adaptar** (ver *Pendientes*) |
@@ -494,8 +494,31 @@ Detalles:
   está acotado a las líneas **de ese estilo** en esa vista, así que no toca otro dibujo.
 - El grafismo de un `L-CENTER` que **ya exista** en el proyecto no se toca: es un estándar
   del modelo, no de este script. El log imprime su RGB para poder verificarlo de un vistazo.
+- Estas líneas son además las **referencias de la cadena de cotas entre ejes de viga** (más
+  abajo). Borrarlas de una vista se lleva por delante esa cadena.
 
-### Cadena de cotas entre ejes (solo en planta)
+### Las dos familias de cadenas
+
+Cada planta lleva **dos familias de cadenas de cotas**, y ninguna va por debajo:
+
+```
+              [ cadena ENTRE EJES horizontal ]        <- off       (20 mm)
+              [ cadena de VIGAS horizontal   ]        <- off_viga  (12 mm)
+   [E]  [V]   +-------------------------------+  [V]
+    |    |    |                               |   |
+    |    |    |            PLANTA             |   |
+    |    |    |                               |   |
+    |    |    +-------------------------------+   |
+    ^    ^                                        ^
+   off  off_viga                               off_viga
+                        (nada abajo)
+```
+
+`off_viga = off − separación entre cadenas` (inputs en mm de papel, defaults 20 y 8). Si la
+separación entre cadenas fuese mayor que la del borde, la de vigas se pone a media distancia
+y se avisa. La cadena de ejes **no se movió**: la de vigas se mete por dentro.
+
+### Cadena de cotas entre ejes estructurales (solo en planta)
 
 Por cada planta se arman hasta dos cadenas, **por fuera del borde del assembly** (input de
 separación en mm de papel, default 20, escalado por la escala de la vista):
@@ -516,6 +539,136 @@ quedan fuera de la cadena y se avisan en el log. El conjunto de ejes es exactame
 mismo que usa 00 para decidir qué elevaciones crear (mismo test Liang-Barsky), así que
 cadena y elevaciones nunca se contradicen.
 
+### Cadena de cotas entre ejes de viga (solo en planta)
+
+Por dentro de la anterior, tres cadenas que miden la distancia **entre los ejes de las
+vigas**: una horizontal arriba y una vertical a **cada lado**.
+
+**Qué se referencia**: las propias detail lines `L-CENTER` que dibuja el paso anterior.
+Son literalmente el eje de la viga, viven en la misma vista y son referencias limpias — al
+revés que las caras del acero, que Revit rechaza al comitear. Consecuencia: sin líneas de
+eje no hay cadena de vigas. Si el dibujo está apagado pero la cadena encendida, se acota
+contra las líneas que hubiera de una corrida anterior; si no hay ninguna, el log lo dice.
+
+#### ⚠️ Las verticales se reparten por mitades
+
+Una planta de vigas es extensa y tiene muchas más vigas que ejes. Acotarlas todas hacia un
+solo lado amontona el texto hasta volverlo ilegible. Por eso cada viga paralela al *derecha*
+de la vista va a la cadena del lado en cuya **mitad** cae su punto medio: mitad izquierda →
+cadena izquierda, mitad derecha → cadena derecha. Cada cadena queda con la mitad de las
+cotas.
+
+Consecuencia esperable: cada cadena lateral abarca solo el tramo donde viven **sus** vigas,
+no toda la altura de la planta. Si un lado tiene pocas vigas, su cadena sale corta — no es
+un fallo, es el reparto.
+
+Las vigas paralelas al *arriba* de la vista van todas a la cadena horizontal de arriba: no
+hay cadena abajo donde repartirlas.
+
+#### ⚠️ El paralelismo se mide contra las vigas entre sí, no contra los ejes de la vista
+
+Revit exige que **todas** las referencias de una cadena sean paralelas **entre sí**; una
+sola viga fuera de escuadra hace que rechace la cadena **entera** al comitear.
+
+La primera versión comparaba cada viga contra el eje de la vista con una tolerancia fija
+(`0.9999`, ~0,8°). Ese criterio falla por los dos lados a la vez, y el log del 2026-08-03
+lo mostró:
+
+```
+DIAG ES-1003 / T.A. 01: ... | fuera (oblicuos): 46 | total dibujados: 149
+AVISO: cadenas eliminadas por referencias invalidas: ES-1003 (T.A. 01 vigas arriba)
+```
+
+**46 de 149 vigas descartadas** (cada una es una cota que falta) y, aun así, la cadena de
+32 referencias que sí se creó fue **rechazada por Revit**: entre las que pasaron el umbral
+había alguna no paralela a las otras. Comparar contra el eje de la vista no responde la
+pregunta que importa.
+
+Ahora el reparto es en dos pasos:
+
+1. **Grueso, sin umbral**: cada eje de viga va al grupo del eje de la vista al que más se
+   parece (`|d·arriba|` contra `|d·derecha|`). No se descarta nada todavía.
+2. **Fino, contra la dirección dominante del grupo**: la dirección que acumula **más metros
+   de línea** —mismo criterio de «votar por metros, no por piezas» que usa 00 para el nivel
+   dominante de una planta T.A., y por el mismo motivo: dos piezas cortas torcidas no pueden
+   decidir por el grupo— y se conservan solo las vigas paralelas a ella dentro de
+   `TOL_PARALELO / 2`.
+
+Lo que queda fuera son diagonales de verdad (arriostramientos) o vigas mal modeladas, y se
+cuenta en el log con su desvío máximo en grados. La línea de cota se dibuja **perpendicular
+a la dirección dominante**, no a los ejes de la vista, así que la cadena también funciona si
+la trama del edificio está girada respecto al norte de proyecto.
+
+#### ⚠️ `Application.AngularTolerance` es 12 veces más permisiva de lo que las cotas toleran
+
+`TOL_PARALELO` vale **1·10⁻⁵ rad**, no `Application.AngularTolerance` (1,75·10⁻³ rad = 0,1°),
+que es lo que parecería el número correcto. Medido en `ES-1003 - T.A. 01` el 2026-08-03:
+
+| Elemento | Desvío de la vertical |
+|---|---|
+| Los 64 ejes de viga bien modelados | ~1·10⁻¹⁵ rad (exactos) |
+| Detail lines `7647576` y `7647577` (450 mm) | **1,45·10⁻⁴ rad = 0,0083°** |
+
+Esas dos, que pasaban el umbral de 0,1° sin problema, bastaron para que Revit borrara la
+cadena entera de 16 referencias al comitear:
+
+```
+ERROR: The References of the highlighted Dimension are no longer parallel.
+```
+
+Con las vigas sanas coincidiendo a 10⁻¹⁵ rad y la torcida a 10⁻⁴, hay diez órdenes de
+magnitud de margen: cortar en 10⁻⁵ rad (0,1 mm sobre 10 m) deja fuera la mala sin rozar
+ninguna buena.
+
+Dos detalles de implementación que no son opcionales:
+
+- **El corte es a `TOL_PARALELO / 2`, no a `TOL_PARALELO`.** La condición que le importa a
+  Revit es entre **cada par** de referencias, no contra un promedio: dos vigas a `+tol` y
+  `−tol` de la dominante pasan las dos y están `2·tol` una de otra. Con medio umbral,
+  cualquier par queda dentro.
+- **El ángulo se mide con el producto cruz, no con el escalar.** Cerca del paralelismo el
+  coseno pierde toda la precisión —`cos(1e-5)` y `1.0` son el mismo `double`— mientras que
+  el seno vale directamente el ángulo.
+
+> Cómo llegó a colarse una referencia torcida existiendo una vertical exacta a 100 mm: la
+> fusión por cercanía conserva **la primera en orden** sobre el eje de medición, y la
+> torcida tenía la coordenada menor. Con el umbral nuevo se descarta antes de llegar ahí.
+
+> La cadena entre **ejes estructurales** no pasa por este filtro (solo clasifica por
+> `PARALELO = 0.99`). Los ejes del modelo son ortogonales exactos y esa cadena nunca falló;
+> si algún día un modelo trae ejes casi-paralelos, fallará igual y el log lo dirá.
+
+#### ⚠️ Separación mínima entre cotas: en mm de **papel**, no de modelo
+
+Una fila de vigas colineales (tramo A-B, tramo B-C) da **una** referencia, no tres. Pero
+con un umbral de 5 mm de **modelo** eso no alcanza ni de lejos. Medido sobre `ES-1003 -
+T.A. 01` el 2026-08-03, la cadena lateral salió así:
+
+```
+731  144  601  268   ...   835  293  27  808
+```
+
+A 1:75, una cota de 27 mm ocupa **0,36 mm de papel** y una de 144 mm ocupa 1,9 mm: el texto
+se encima y la cadena no se puede leer. Y probablemente es también lo que hacía que Revit
+rechazara la cadena de 32 referencias de esa misma planta — un segmento de milímetros
+invalida la cadena **entera**.
+
+Por eso el umbral de la cadena de vigas es un input **en mm de papel** (`Eje de vigas:
+separación mínima entre cotas`, default **5**), escalado por la escala de la vista: a 1:75
+son 375 mm de modelo. Dos ejes más juntos que eso se fusionan en una sola referencia y la
+cota pasa a medir el salto completo. `0` = sin fusión (vuelve al mínimo de 5 mm de modelo).
+
+El log dice cuántas se fusionaron y cuál fue el **menor segmento** de cada cadena, que es
+el número a mirar cuando una cadena sale ilegible o Revit la rechaza:
+
+```
+OK ES-1003: cadena T.A. 01 vigas izquierda con 8 referencias, largo 6.97 m,
+            menor segmento 601 mm, 5 fusionadas por cercania
+```
+
+> La cadena entre **ejes estructurales** no usa este umbral: los ejes están lo bastante
+> separados y esa cadena ya se veía bien.
+
 ### Manejo de fallas
 
 Igual que 04: se engancha un handler a `FailuresProcessing` y se fuerza el commit **dentro
@@ -524,8 +677,19 @@ que el script terminó y el handler ya se des-suscribió. Las cotas que Revit re
 referencias inválidas se borran solas en vez de abrir un diálogo bloqueante, y el script
 verifica después del commit cuáles sobrevivieron.
 
-**Idempotencia**: si una planta ya tiene una cota de más de un segmento, se salta entera
-(las dos cadenas). Para rehacerlas hay que borrar las cotas a mano.
+**Idempotencia**: se mira **a qué referencia** la primera cota de cada cadena que ya existe
+en la vista — un eje estructural es la cadena entre ejes, una línea `L-CENTER` es la de
+vigas. Así se le puede agregar la cadena de vigas a una planta que ya tenía la de ejes, sin
+duplicar ni rehacer esa. Para rehacer una cadena hay que borrarla a mano.
+
+> Antes bastaba con que existiera *cualquier* cota de más de un segmento para saltarse la
+> planta entera. Con eso, agregar la cadena de vigas a las plantas ya acotadas habría
+> exigido borrar a mano todas las cadenas de ejes.
+
+Si se redibujan los ejes de viga (`Eje de vigas: redibujar los existentes`), Revit se lleva
+por delante la cadena de vigas que los referenciaba; por eso el chequeo de qué cadenas
+existen se hace **después** de dibujarlos, y la cadena se vuelve a crear sobre las líneas
+nuevas.
 
 ---
 
