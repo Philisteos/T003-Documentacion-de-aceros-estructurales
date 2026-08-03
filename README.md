@@ -32,7 +32,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por eje que lo cruza |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
-| 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes en plantas y elevaciones, y acota entre ejes en planta |
+| 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes, dibuja el eje de cada viga en planta (L-CENTER) y acota entre ejes |
 | 4 | `04_Cotas de ejes.dyn` | ⚠️ fundaciones | Cadena borde → eje de **elemento** → borde — **sin adaptar** |
 | 5 | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sirve igual en acero |
 | 6 | `06_Tabla de assemblies.dyn` | ⚠️ fundaciones | Tabla por sheet — **sin adaptar** (ver *Pendientes*) |
@@ -177,19 +177,41 @@ declarados por los modeladores no son fiables.
 
 Cantidad **variable** por assembly. El criterio es puramente geométrico:
 
-1. Se extrae la elevación Z de la **cara superior** de cada viga (`Structural Framing`,
-   recursivo a cualquier profundidad de anidamiento) del assembly.
-2. Se ordenan ascendente y se agrupan con **tolerancia de ±1.00 m** (input, en cm).
-3. Por grupo se calcula el **nivel dominante**: la elevación con más vigas (moda en
-   cubetas de 5 mm). Empate → gana la cubeta más alta.
-4. Se genera una planta por grupo, con el plano de corte **+1.00 m** (input) por encima
-   del nivel dominante, para capturar las vigas desfasadas dentro del rango.
-5. La profundidad la fija el View Range (ver más abajo).
+1. De cada viga (`Structural Framing`, recursivo a cualquier profundidad) se extrae un par
+   **(Z de la cara superior, largo en planta)**. El largo es el **peso** con el que esa
+   viga vota; se mide como la diagonal en planta de su bounding box.
+2. **Detección de niveles por picos de densidad** (*mode seeking*): la cubeta de 5 mm que
+   concentra **más metros de viga** es el primer nivel, y absorbe todas las vigas a
+   **±tolerancia/2** de ese pico. Se repite con las que sobran hasta que no queda ninguna.
+3. Se **descartan los niveles minoritarios**: los que no llegan al **40 %** de los metros
+   de viga del **nivel más grande** (input `11.`) son ruido, no niveles. Ver abajo.
+4. El **nivel dominante** de cada grupo es la cubeta de 5 mm con más metros de viga (no más
+   piezas). Empate → gana la cubeta más alta. Ver abajo.
+5. Una planta por nivel, con el plano de corte **+1.00 m** (input `12.`) sobre el nivel
+   dominante, **recortado** para que nunca alcance el nivel de arriba. Ver abajo.
+6. La profundidad la fija el View Range (ver más abajo).
 
-**Detalle importante del agrupamiento**: la amplitud se mide contra el **inicio** del
-grupo, no contra la viga anterior. Encadenar por la viga anterior permitiría que una
-escalera de vigas separadas 0.9 m cada una terminara en un solo grupo de decenas de
-metros; con este criterio cada grupo mide como máximo la tolerancia.
+#### ⚠️ Por qué picos de densidad y no encadenamiento
+
+La primera versión recorría las vigas de abajo hacia arriba y cerraba el grupo cuando una
+se alejaba más de la tolerancia del **inicio** del grupo. Con una escalera continua de
+vigas esa ventana se cierra en un punto **arbitrario** — el que caiga a `tol` del inicio —
+y puede **partir al medio el racimo denso que es el T.A. real**. Evidencia en el log de
+ES-1003 (2026-07-29):
+
+```
+T.A. 02: 112 viga(s) / 151.1 m de viga, dominante EL. 3,30, amplitud 1.00 m
+T.A. 03: 106 viga(s) / 179.5 m de viga, dominante EL. 3,30, amplitud 0.13 m
+```
+
+**Dos plantas para el mismo nivel 3,30**, porque la ventana se cerró justo en medio de ese
+racimo. La `amplitud 1.00 m` — exactamente la tolerancia — es la firma del bug: el corte lo
+decidió la ventana, no la geometría.
+
+Buscando el pico primero, el nivel nace **centrado en la densidad** y ningún racimo se
+puede partir: o entra entero en el radio, o no entra. La tolerancia deja de ser «el ancho
+que se permite acumular» y pasa a ser «qué tan lejos del pico puede estar una viga para
+seguir siendo del mismo nivel».
 
 - Nombre interno: `{assembly} - T.A. 01`, `02`… (correlativo **ascendente por altura**)
 - Título en lámina: `{assembly} - PLANTA T.A. (EL. 2.303,37)` — cota real en metros, con
@@ -200,11 +222,112 @@ El correlativo es el nombre estable que usan los pasos siguientes; la cota va so
 título mostrado, porque si un modelador mueve una viga y el cluster se desplaza, un
 nombre basado en la cota rompería las búsquedas por nombre.
 
+#### ⚠️ El nivel dominante se vota por metros de viga, no por cantidad de piezas
+
+Medido en **ES-1002** el **2026-07-29**. El modelador confirma que ese assembly tiene
+**dos** T.A., a **+150** y **+1200** del nivel `RLO_T.A. ES-1003` — que está en **EL. 6,000 m
+exacta** de proyecto (verificado con el *Project Base Point*: `Elev = 7547,900 ft`, el offset
+de cota compartida). O sea: T.A. en **EL. 6,150** y **EL. 7,200**.
+
+Contando **piezas**, la moda elegía el nivel equivocado en los dos grupos:
+
+| Grupo | Racimo que ganaba por cantidad | Racimo correcto | Piezas | Metros de viga |
+|---|---|---|---|---|
+| 1 | EL. 6,550 (8 × `C20x13,1` de 5,5 m) | **EL. 6,150** | 8 vs **7** ❌ | 41,1 vs **63,7** ✅ |
+| 2 | EL. 7,070 (6 angulares `L6,5`) | **EL. 7,200** | 6 vs 3 ❌ | 25 vs **38,7** ✅ |
+
+El grupo 1 perdía **por una sola pieza**, aunque el racimo correcto incluye dos vigas
+`IN25x46,6` de **17,8 m**. Consecuencia: la planta salía cortada y **rotulada 400 mm por
+encima** del T.A. verdadero (`PLANTA T.A. (EL. 6,55)`).
+
+Por eso el voto es el **largo de la viga**, tomado como la diagonal en planta de su bounding
+box — contrastado contra el parámetro `Length` del modelo (`IN25x46,6` de 17,811 → 17,826
+medidos; `C20x13,1` de 5,479 → 5,484). No se lee `Length` directamente para no depender de
+que cada familia lo publique. Si ninguna viga reporta largo útil, se cae al criterio anterior
+por cantidad.
+
+> **La tolerancia se queda en 1 m.** Bajarla a 50 cm no reduce vistas, las **aumenta**:
+> partiría el grupo 1 de ES-1002 en dos y daría **3 plantas** donde hay 2. Lo que reduce
+> vistas es el filtro por proporción de acá abajo, no la tolerancia.
+
+#### ⚠️ `Structural Framing` es un cajón de sastre: filtro por proporción
+
+Medido en el modelo real el **2026-07-29** (assembly **ES-1003**, 240 miembros): el graph
+generaba **5 plantas T.A. cuando el T.A. real es uno solo**. La causa no es la subcategoría
+(*Girder* vs *Other*) — los 240 miembros reportan la misma categoría `OST_StructuralFraming`
+y el filtro los toma a todos por igual. La causa es **qué vive dentro de esa categoría**:
+
+| Familia | Tope (`Max.Z`) | Qué es |
+|---|---|---|
+| `ESCALERA METÁLICA1` | 4,393 m | una **escalera completa**, una sola pieza que abarca 1,06 → 4,39 m |
+| `PELDAÑO METALICO` ×4 | 3,136 / 2,936 / 2,736 / 2,536 m | **peldaños**, separados exactamente 20 cm |
+| `OR100x14,4`, `L-Viga` | 5,667 m | 2 piezas sueltas |
+| `C10x7,20` | 4,690 / 2,540 / 1,940 m | piezas sueltas |
+| `GRATING ARRIGONI` ×5 | 3,332 m | rejilla (cae en el grupo bueno, inofensiva) |
+| **vigas reales** ×~218 | **3,300 m** | el T.A. verdadero, todas al mismo Z exacto |
+
+Los peldaños son los peores: forman una **escalera de topes separados 20 cm** y, como el
+agrupamiento encadena por cercanía, van sembrando niveles falsos.
+
+La señal que los separa limpiamente es la **proporción de acero**. El filtro es un
+porcentaje de **metros de viga medidos contra el nivel más grande** del assembly (input
+`11. Mínimo de un nivel T.A. (% del nivel más grande)`, default **40**), no una lista de
+nombres de familia a excluir, que dependería de cómo bautice sus familias cada modelador.
+
+Se mide contra el nivel más grande y **no contra el total** a propósito: así el umbral no
+depende de cuántos niveles tenga el assembly. Un assembly con 4 niveles legítimos y
+parecidos los conserva los 4 (cada uno ~100 % del mayor), cosa que un umbral sobre el total
+haría imposible.
+
+- `0` = sin filtro.
+- Si **ningún** nivel alcanza el umbral, se conserva el mayor: un assembly nunca se queda
+  sin planta T.A.
+- Cada nivel descartado se **reporta en el log** con su cota, sus vigas y su porcentaje, así
+  que si el filtro se come uno legítimo se ve de inmediato y basta bajar el número.
+
+Resultado con el default de 40 % sobre el modelo real, contrastado contra lo que declara el
+modelador:
+
+| Assembly | Niveles detectados | Sobreviven | Cotas |
+|---|---|---|---|
+| ES-1001 | 2 | **1** | EL. 4,650 (el de EL. 3,450 queda en 29 %) |
+| ES-1002 | 3 | **2** | EL. 6,150 y EL. 7,200 |
+| ES-1003 | 5 | **1** | EL. 3,300 (los otros, entre 0 % y 1 %) |
+
+#### ⚠️ El corte se recorta contra el nivel de arriba
+
+El offset del corte es fijo (1,00 m) pero la separación entre niveles no. En **ES-1002** los
+dos T.A. están a **1,05 m**, así que el corte de la planta 01 caía en EL. 7,15 — **por
+encima** de las vigas secundarias del T.A. 02, que están en EL. 7,07 — y esa planta dibujaba
+los dos niveles superpuestos.
+
+Ahora el corte nunca alcanza al vecino: se queda **20 cm** por debajo del nivel de arriba
+(`SEP_NIVEL`), y el fondo, 20 cm por encima del de abajo. Ambos recortes se avisan en el log.
+
 > Validación con el modelo real: los niveles nativos del proyecto van de 7545.3 a 7579.8
 > pies (≈ 2300.4 a 2310.9 m — el sitio está en el salar, a 2300 m). Varios están a menos
 > de 0.5 m entre sí (`AMT_T.A. COLUMNAS` 2303.37 m, `AMT_T.A. PLATAFORMA` 2303.59 m,
 > `RLO_T.A.2 ES-1001` 2303.71 m, `RLO_T.A. ES-1002` 2303.86 m): con tolerancia de 1 m
 > colapsan en **una sola** planta T.A., que es exactamente el comportamiento buscado.
+
+#### ⚠️ Las sillas de anclaje son `Structural Connections`, no `Structural Framing`
+
+Las **sillas de anclaje, placas base y pernos** viven en la categoría
+`OST_StructConnections`. El template de disposición general las apaga —a 1:150 serían
+ruido— y sin ellas **la NIPB queda vacía**.
+
+Medido el **2026-07-29** consultando la vista `ES-1001 - NIPB` ya creada: contenía 4
+columnas, 2 vigas y 5 ejes, y **cero conexiones**, con las 95 sillas/placas/pernos del
+assembly invisibles. El *View Range* estaba correcto (esos 6 elementos son exactamente lo
+que vive entre EL. 0,67 y EL. 2,17); lo que fallaba era la **visibilidad por categoría**.
+
+El síntoma engaña: se reporta como «la NIPB sale muy arriba y sin profundidad», porque lo
+que queda son columnas flotando sin su base. No es el corte ni la profundidad.
+
+Por eso 00 **enciende explícitamente** `Structural Connections` en todas las plantas,
+después de aplicar el template (que es a quien hay que ganarle). Si el template controla
+*V/G Overrides*, la API no deja sobrescribirlo y el log lo avisa: en ese caso hay que darle
+a las plantas un template que muestre esa categoría.
 
 ### C. Elevaciones de eje
 
@@ -236,17 +359,22 @@ recuperarlo encendiendo la categoría.
 Plantas y elevaciones tienen **inputs separados**, porque son dos clases de vista con dos
 mecanismos y dos necesidades distintas:
 
-- **Plantas** (`ViewPlan`) → *View Range*, input **«Profundidad de las PLANTAS bajo el
-  nivel (cm)»**, default **100 cm**. Los cuatro planos se anclan al mismo nivel (por
+- **Plantas** (`ViewPlan`) → *View Range*, input `13. Profundidad de las plantas bajo el
+  nivel (cm)`, default **50 cm**. Los cuatro planos se anclan al mismo nivel (por
   `ProjectElevation`, ver arriba) y se expresan como offset:
-  - `Top = Cut` = nivel definido **+** su offset (1,00 m) → no se ve nada por encima.
-  - `Bottom = View Depth` = nivel definido **−** 1,00 m.
+  - `Top` = `Cut` + 10 cm (`HOLGURA_TOP`, ver más abajo — nunca puede ser cero).
+  - `Cut` = nivel definido **+** su offset (input `12.`, default 1,00 m).
+  - `Bottom = View Depth` = nivel definido **− 0,50 m**.
 
   El fondo se mide **desde el nivel definido** (la cara más baja en la NIPB, el nivel
   dominante en las T.A.), **no** desde el plano de corte: el corte va un offset por encima
   del nivel y no tiene por qué arrastrar la profundidad. Así cada planta T.A. muestra su
   nivel y no los de abajo — con los niveles del modelo separados 1,0–2,3 m, una profundidad
   mayor haría que cada planta arrastrara 2 o 3 niveles inferiores.
+
+  > Este input **solo afecta a las plantas**: `prof_planta` se usa únicamente dentro de
+  > `fijar_view_range()`, que se llama nada más que para las `ViewPlan`. Las elevaciones de
+  > eje no tienen View Range; su profundidad la fija el *Far Clip Offset* de acá abajo.
 
 - **Elevaciones de eje** (`ViewSection`) → *Far Clip Offset*, input **«Far Clip Offset de
   las ELEVACIONES (mm)»**, default **5500 mm**. Se escribe después del view template, así
@@ -259,13 +387,21 @@ mecanismos y dos necesidades distintas:
 **Una sola escala para todo** (input, default **1:75**), plantas y elevaciones. Reemplaza
 la escala automática 1:25/1:50 de fundaciones, que no aplica a estructuras de este tamaño.
 
-El input de view template va **vacío por defecto**: 00 no fuerza ningún template y cada
-vista se queda con el que traiga por defecto su *ViewFamilyType* (así es como las vistas
-creadas con el tipo `02_ESTRUCTURAS` reciben `ESTRUCTURAS_1/50`). Si se escribe un nombre,
-ese template se aplica a todas las vistas y la escala se **re-escribe después**, así que
-aunque el template fije una escala gana el input. Con el campo vacío el log lista todos los
-templates cargados — es la forma de descubrir el nombre exacto, porque sin paquetes no hay
-dropdown nativo de view templates en Dynamo.
+Hay **dos campos de view template independientes**, uno por familia de vista (una planta y
+una elevación de eje nunca comparten template real en Revit):
+
+- **`06. View template - PLANTAS`**, default `DISP.GRAL_1/150_PLAN`. Se aplica a la NIPB y a
+  todas las T.A.
+- **`07. View template - ELEVACIONES DE EJE`**, default `ESTRUCTURAS_1/50`. Se aplica a las
+  elevaciones por eje.
+
+Ambos vienen pre-seteados así que el modelador no tiene que tocar nada para el caso normal,
+pero siguen siendo **campos de texto editables** por si hace falta otro template puntual. Si
+alguno queda vacío, esa familia de vistas se queda con el default de su *ViewFamilyType* y no
+se fuerza ningún template. En cualquier caso la escala se **re-escribe después** del template
+(input único de escala, ver más abajo), así que aunque el template fije una escala gana el
+input. El log siempre lista los templates cargados en el proyecto — es la forma de descubrir
+el nombre exacto, porque sin paquetes no hay dropdown nativo de view templates en Dynamo.
 
 ---
 
@@ -323,6 +459,41 @@ leyenda compartida, 07 pisaría la suma de una lámina con la de otra.
 Enciende la categoría *Grids* (`SetCategoryHidden(..., False)`) en las plantas NIPB y T.A.
 y —si el input lo pide— también en las elevaciones de eje. Es idempotente: si la categoría
 ya estaba encendida, no hace nada.
+
+### Eje de cada viga en planta (línea roja `L-CENTER`)
+
+En **cada planta** (NIPB y T.A.) se dibuja, sobre el eje de cada viga, una **detail line**
+con el estilo de línea `L-CENTER` (input; si el estilo no existe en el proyecto se crea
+**rojo** y con el primer patrón de línea de eje que encuentre). Solo en plantas: las
+elevaciones de eje no reciben nada.
+
+**Qué se dibuja**: la *curva de ubicación* (`Location.Curve`) de cada `Structural Framing`,
+proyectada al plano de la vista. Es el eje real de la viga, no el centro de su bounding box.
+Las vigas curvas se teselan en una poligonal.
+
+**Qué vigas entran en cada planta**: las que devuelve `FilteredElementCollector(doc,
+view.Id)` **filtradas contra los miembros recursivos del assembly**. El colector por vista
+respeta el *View Range* y el aislamiento permanente que dejó 00, así que cada planta recibe
+exactamente los ejes de las vigas de **su** nivel — la NIPB normalmente no dibuja ninguno
+(a esa cota hay placas base y pernos, no vigas) y cada T.A. dibuja solo las suyas. El filtro
+por miembros es el cinturón de seguridad por si el aislamiento de una vista se perdiera.
+
+**Por qué detail lines y no model lines**: una *model line* aparecería en las tres plantas
+del assembly y en las elevaciones, y ensuciaría el modelo para todo el resto del proyecto.
+La detail line vive solo en la vista donde se creó.
+
+Detalles:
+
+- Las vigas **verticales** (riostras, montantes) se saltan: en planta su eje es un punto.
+  Se cuentan en el log.
+- Se enciende la categoría *Lines* en la vista si el view template la tenía apagada — si no,
+  las líneas se crean pero no se ven (el mismo mecanismo que con *Structural Connections*
+  en 00).
+- **Idempotencia**: si la planta ya tiene líneas de ese estilo, se salta y lo dice en el log.
+  Con `Eje de vigas: redibujar los existentes` = True las borra y las rehace. El borrado
+  está acotado a las líneas **de ese estilo** en esa vista, así que no toca otro dibujo.
+- El grafismo de un `L-CENTER` que **ya exista** en el proyecto no se toca: es un estándar
+  del modelo, no de este script. El log imprime su RGB para poder verificarlo de un vistazo.
 
 ### Cadena de cotas entre ejes (solo en planta)
 
