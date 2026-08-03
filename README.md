@@ -32,7 +32,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por eje que lo cruza |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
-| 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes, dibuja el eje de cada viga en las T.A. (L-CENTER) y acota entre ejes y entre ejes de viga |
+| 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes (una burbuja por eje), dibuja el eje de cada viga en las T.A. (L-CENTER) y acota entre ejes y entre ejes de viga |
 | 4 | `04_Cotas de ejes.dyn` | ⚠️ fundaciones | Cadena borde → eje de **elemento** → borde — **sin adaptar** |
 | 5 | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sirve igual en acero |
 | 6 | `06_Tabla de assemblies.dyn` | ⚠️ fundaciones | Tabla por sheet — **sin adaptar** (ver *Pendientes*) |
@@ -459,6 +459,33 @@ leyenda compartida, 07 pisaría la suma de una lámina con la de otra.
 Enciende la categoría *Grids* (`SetCategoryHidden(..., False)`) en las plantas NIPB y T.A.
 y —si el input lo pide— también en las elevaciones de eje. Es idempotente: si la categoría
 ya estaba encendida, no hace nada.
+
+### Una sola burbuja por eje: arriba y a la izquierda
+
+Por defecto Revit dibuja las dos burbujas de cada eje, así que una planta queda con
+burbujas arriba **y** abajo, a la izquierda **y** a la derecha. En las plantas se deja
+**una sola** (input `Burbujas de eje: solo arriba y a la izquierda`, default True):
+
+```
+        (13a) (13b) (13c)          <- se conservan
+   (Ea)   |     |     |    (Ea)
+     +----+-----+-----+----+       <- la columna derecha se oculta
+   (E)|   |     |     |    |(E)
+     +----+-----+-----+----+
+          |     |     |
+        (13a) (13b) (13c)          <- la fila de abajo se oculta
+```
+
+Se usa `ShowBubbleInView` / `HideBubbleInView`, que son **específicos de la vista**: el
+resto del proyecto sigue viendo sus ejes como siempre.
+
+Qué extremo se conserva lo decide el eje de la vista que **más separa** a los dos extremos:
+en un eje casi vertical manda la altura (se queda el de más arriba) y en uno casi horizontal
+manda el ancho (el de más a la izquierda). Así también funciona con ejes oblicuos y con
+vistas rotadas, sin depender de que `End0`/`End1` estén dibujados en un orden concreto —
+que es cosa del modelador, no de Revit.
+
+> Solo se aplica a las **plantas**. Las elevaciones de eje no se tocan.
 
 ### Eje de cada viga en las plantas T.A. (línea roja `L-CENTER`)
 
