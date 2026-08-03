@@ -783,6 +783,33 @@ todo lo que pisa el paño, sin importar quién está encima de quién.
 De la sombra de cada obstáculo se toma **solo el contorno exterior**: los huecos de un
 perfil no cambian lo que tapa en el dibujo.
 
+#### ⚠️ Una pieza de acero tiene dos largos, y el sólido es el corto
+
+El **eje** (`LocationCurve`) va de nudo a nudo: es el largo teórico, el que traza el
+modelador. El **sólido** viene recortado en las puntas para dejar lugar a la unión — el
+gusset, la plancha, los pernos. Revit lo expone en parámetros propios: `Start Extension`,
+`End Extension`, `Join Cutback`.
+
+Medido en la diagonal `5482395` (`L-Viga / L6,5x4,780`) el 2026-08-03:
+
+| Parámetro | Valor |
+|---|---|
+| `System Length` (eje) | 1.185,6 mm |
+| `Cut Length` (sólido) | 883,4 mm |
+| `Start Extension` / `End Extension` | **−178,5** / **−216,5 mm** |
+
+**302 mm de diferencia**, repartidos en las dos puntas; en otra diagonal la diferencia llega
+a 411 mm. Restando la sombra del sólido, ese hueco de cada nudo —justo donde va la unión— no
+se resta nunca, y la trama del grating se mete ahí. En pantalla se ve como un triángulo de
+trama en el vértice de cada arriostramiento; y se confirma a ojo porque las líneas rojas
+`L-CENTER` (que salen del eje) llegan al vértice mientras el hueco blanco (que sale del
+sólido) se queda corto.
+
+Por eso el obstáculo se reconstruye como un rectángulo con el **ancho de la sombra real** y
+el **largo del eje completo**. Si el sólido sobresale del eje (ménsulas, placas de punta) se
+respeta lo más largo de los dos. Las piezas sin eje recto —columnas, piezas curvas— caen a la
+sombra del sólido tal cual, y el log dice cuántos obstáculos se reconstruyeron desde el eje.
+
 #### ⚠️ El grating no es una plancha, son barras
 
 `NUM BARRAS RECT LONG = 31`, `NUM BARRAS CIRCULARES = 25`: la familia modela las barras una
