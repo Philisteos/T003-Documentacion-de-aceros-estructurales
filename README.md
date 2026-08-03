@@ -32,7 +32,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por eje que lo cruza |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
-| 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes, dibuja el eje de cada viga en planta (L-CENTER) y acota entre ejes y entre ejes de viga |
+| 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes, dibuja el eje de cada viga en las T.A. (L-CENTER) y acota entre ejes y entre ejes de viga |
 | 4 | `04_Cotas de ejes.dyn` | ⚠️ fundaciones | Cadena borde → eje de **elemento** → borde — **sin adaptar** |
 | 5 | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sirve igual en acero |
 | 6 | `06_Tabla de assemblies.dyn` | ⚠️ fundaciones | Tabla por sheet — **sin adaptar** (ver *Pendientes*) |
@@ -460,12 +460,16 @@ Enciende la categoría *Grids* (`SetCategoryHidden(..., False)`) en las plantas 
 y —si el input lo pide— también en las elevaciones de eje. Es idempotente: si la categoría
 ya estaba encendida, no hace nada.
 
-### Eje de cada viga en planta (línea roja `L-CENTER`)
+### Eje de cada viga en las plantas T.A. (línea roja `L-CENTER`)
 
-En **cada planta** (NIPB y T.A.) se dibuja, sobre el eje de cada viga, una **detail line**
-con el estilo de línea `L-CENTER` (input; si el estilo no existe en el proyecto se crea
-**rojo** y con el primer patrón de línea de eje que encuentre). Solo en plantas: las
-elevaciones de eje no reciben nada.
+En cada planta **T.A.** se dibuja, sobre el eje de cada viga, una **detail line** con el
+estilo de línea `L-CENTER` (input; si el estilo no existe en el proyecto se crea **rojo** y
+con el primer patrón de línea de eje que encuentre).
+
+**Ni en la NIPB ni en las elevaciones de eje.** A la cota de la NIPB hay placas base,
+pernos y sillas de anclaje —no vigas—, así que ahí el eje de viga no dice nada. Si una
+corrida anterior las dibujó, 03 las **borra** al pasar por esa vista (y Revit se lleva de
+paso la cadena que las referenciaba); queda registrado en el log.
 
 **Qué se dibuja**: la *curva de ubicación* (`Location.Curve`) de cada `Structural Framing`,
 proyectada al plano de la vista. Es el eje real de la viga, no el centro de su bounding box.
@@ -473,10 +477,9 @@ Las vigas curvas se teselan en una poligonal.
 
 **Qué vigas entran en cada planta**: las que devuelve `FilteredElementCollector(doc,
 view.Id)` **filtradas contra los miembros recursivos del assembly**. El colector por vista
-respeta el *View Range* y el aislamiento permanente que dejó 00, así que cada planta recibe
-exactamente los ejes de las vigas de **su** nivel — la NIPB normalmente no dibuja ninguno
-(a esa cota hay placas base y pernos, no vigas) y cada T.A. dibuja solo las suyas. El filtro
-por miembros es el cinturón de seguridad por si el aislamiento de una vista se perdiera.
+respeta el *View Range* y el aislamiento permanente que dejó 00, así que cada T.A. recibe
+exactamente los ejes de las vigas de **su** nivel. El filtro por miembros es el cinturón de
+seguridad por si el aislamiento de una vista se perdiera.
 
 **Por qué detail lines y no model lines**: una *model line* aparecería en las tres plantas
 del assembly y en las elevaciones, y ensuciaría el modelo para todo el resto del proyecto.
@@ -499,19 +502,27 @@ Detalles:
 
 ### Las dos familias de cadenas
 
-Cada planta lleva **dos familias de cadenas de cotas**, y ninguna va por debajo:
+Hay **dos familias de cadenas de cotas**, ninguna va por debajo, y no aplican a las mismas
+vistas:
+
+| Familia | NIPB | T.A. |
+|---|---|---|
+| Entre **ejes estructurales** (por fuera) | ✅ | ✅ |
+| Entre **ejes de viga** (por dentro) | ➖ | ✅ |
 
 ```
               [ cadena ENTRE EJES horizontal ]        <- off       (20 mm)
               [ cadena de VIGAS horizontal   ]        <- off_viga  (12 mm)
    [E]  [V]   +-------------------------------+  [V]
     |    |    |                               |   |
-    |    |    |            PLANTA             |   |
+    |    |    |          PLANTA T.A.          |   |
     |    |    |                               |   |
     |    |    +-------------------------------+   |
     ^    ^                                        ^
    off  off_viga                               off_viga
                         (nada abajo)
+
+   la NIPB lleva solo [E]: cadena entre ejes, arriba y a la izquierda
 ```
 
 `off_viga = off − separación entre cadenas` (inputs en mm de papel, defaults 20 y 8). Si la
@@ -539,10 +550,11 @@ quedan fuera de la cadena y se avisan en el log. El conjunto de ejes es exactame
 mismo que usa 00 para decidir qué elevaciones crear (mismo test Liang-Barsky), así que
 cadena y elevaciones nunca se contradicen.
 
-### Cadena de cotas entre ejes de viga (solo en planta)
+### Cadena de cotas entre ejes de viga (solo en las plantas T.A.)
 
 Por dentro de la anterior, tres cadenas que miden la distancia **entre los ejes de las
-vigas**: una horizontal arriba y una vertical a **cada lado**.
+vigas**: una horizontal arriba y una vertical a **cada lado**. La NIPB no lleva ninguna,
+porque tampoco lleva los ejes de viga que le servirían de referencia.
 
 **Qué se referencia**: las propias detail lines `L-CENTER` que dibuja el paso anterior.
 Son literalmente el eje de la viga, viven en la misma vista y son referencias limpias — al
