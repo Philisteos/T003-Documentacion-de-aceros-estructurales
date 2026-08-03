@@ -533,6 +533,90 @@ con el recorte anterior.
 > `GetCurvesInView` en vez de darlo por supuesto: si Revit invirtiera la curva, la burbuja
 > iría al pie del eje.
 
+### En las elevaciones: cotas de altura, marcas de nivel y línea de terreno
+
+Todo esto sale de **desarmar la vista del modelador** `ELEVACION EJE A` (id 6154003,
+medida el 2026-08-03), que es exactamente el plano-tipo al que hay que llegar:
+
+| Lo que tiene | Cuánto |
+|---|---|
+| Ejes | **2** (los extremos) |
+| Cotas (`2.5 ROMAND(MILIMETROS)`) | **3**: una cadena de 4 referencias (200/1450/500), una de 2 = 2150, otra de 2 = 1200 |
+| Spot Elevations | **3**, un tipo distinto cada una: `T.A. ELEVACION`, `P.T. ELEVACION`, `nipb ELEVACIÓN inf` |
+| Multi-Category Tags | 10, familia `Item_TBL` (los rótulos de perfil — los pone 05) |
+| Detail Lines | 1 de 13,94 m con estilo `L-CENTER` (la línea de terreno) |
+
+#### Los cinco planos de altura
+
+```
+        tope de baranda   ---+
+                             | 1200
+   T.A. (tope de acero)   ---+---------  <- Spot Elevation "T.A."
+                             | 200
+       fondo de viga      ---+
+                             |            2150
+                             | 1450
+   P.T. (piso terminado)  ---+---------  <- Spot Elevation "P.T."
+                             | 500
+   N.I.P.B.               ---+---------  <- Spot Elevation "N.I.P.B."
+   ============================================  linea de terreno
+```
+
+Se sacan de la **geometría que la elevación muestra**, no de los niveles del modelo:
+de los cinco, solo T.A. y N.I.P.B. tienen nivel, los otros tres son geometría y nada más.
+
+- **tope de baranda** = lo más alto de la vista. Si no sobresale nada del T.A., no se
+  dibuja esa cota.
+- **T.A.** = lo más alto de los `Structural Framing`.
+- **fondo de viga** = la cara inferior más baja de las vigas que llegan al T.A.
+  («llegan» = su tope está a menos de 10 mm del T.A.: el acero se modela con
+  contraflechas y tolerancias de milímetros).
+- **P.T.** = tope de las **sillas de anclaje**. En la vista del modelador no hay
+  hormigón: lo único que hay a 500 mm sobre la placa base son los `Structural
+  Connections` que arrancan en ella, y su tope es el piso terminado. Si la base es
+  placa sola, sin silla, no hay plano P.T. y la cadena queda de dos tramos.
+- **N.I.P.B.** = lo más bajo de la vista (cara inferior de las placas base).
+
+#### ⚠️ Se acota contra caras, y eso obliga a `ComputeReferences`
+
+Una cota necesita un `Reference`, y las caras solo lo traen si la geometría se pide con
+`Options.ComputeReferences = True`. Además hay que entrar a las instancias por
+**`GetInstanceGeometry()`**, no por `GetSymbolGeometry()`: las referencias de la
+geometría de símbolo son del *tipo*, no de la pieza, y Revit rechaza la cota.
+
+De cada elemento candidato se toma la **cara horizontal más grande** a esa cota, con la
+normal hacia el lado correcto (arriba para T.A./P.T., abajo para el fondo de viga y la
+N.I.P.B.). Si el primer candidato no ofrece cara utilizable —una cartela, una plancha de
+conexión o un perfil con corte en ángulo tienen el bbox a esa cota pero no la cara— se
+prueba el siguiente. El log dice qué planos se resolvieron y cuáles quedaron sin cara.
+
+Esto contradice a propósito la regla de «no depender de caras del acero» que rige para
+las cadenas en planta: ahí había una alternativa (los ejes de viga `L-CENTER`), acá no
+existe ninguna. Un plano que no se pueda resolver simplemente no se acota y queda en el
+log; nunca se inventa una cota suelta.
+
+#### Dónde va cada cosa
+
+Se reusan los inputs de separación de las plantas, para no alargar el Player:
+
+- **cadena 200/1450/500 y el tramo de baranda**, a la izquierda, a `separacion al borde
+  − separacion entre cadenas` (12 mm de papel con los defaults). Van en la misma
+  vertical, como en el plano-tipo.
+- **total 2150**, a la izquierda del todo, a `separacion al borde` (20 mm).
+- **marcas de nivel**, a la derecha con directriz horizontal: codo a media separación y
+  texto a una separación y media.
+- **línea de terreno**, a la cota N.I.P.B., sobresaliendo una separación a cada lado.
+  Con los defaults (1:75, 20 mm) da 1,5 m por lado — los mismos ~14 m del plano-tipo.
+
+La **sigla** de cada marca (`T.A.`, `P.T.`, `N.I.P.B.`) la pone el **tipo** de Spot
+Elevation, no el script: son tres familias distintas ya cargadas en el proyecto. El input
+lleva los tres nombres separados por coma **en ese orden**; vacío = no se ponen marcas.
+Si un nombre no existe, el log lista los tipos disponibles y sigue con los otros dos.
+
+> **Idempotencia**: si la elevación ya tiene alguna cota, no se re-cotan las alturas; si
+> ya tiene alguna marca de nivel, no se ponen; si ya tiene una línea del estilo
+> `L-CENTER`, no se redibuja la de terreno.
+
 ### Eje de cada viga en las plantas T.A. (línea roja `L-CENTER`)
 
 En cada planta **T.A.** se dibuja, sobre el eje de cada viga, una **detail line** con el
