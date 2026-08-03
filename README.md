@@ -32,9 +32,9 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por eje que lo cruza |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
-| 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes (una burbuja por eje), dibuja el eje de cada viga en las T.A. (L-CENTER) y acota entre ejes y entre ejes de viga |
+| 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas; en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones sin probar en Revit** |
 | 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
-| 5 | `05_Rotulos de perfil en plantas.dyn` | 🧪 acero | Escribe el nombre de tipo sobre cada viga de las T.A., acortándolo si no entra — **sin probar en Revit** |
+| 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Nombre de tipo sobre cada viga de las T.A. (TextNote truncado) y Multi-Category Tag sobre las piezas del eje en las elevaciones — **sin probar en Revit** |
 | 5b | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sigue sirviendo como herramienta suelta |
 | 6 | `06_Tabla de assemblies.dyn` | ⚠️ fundaciones | Tabla por sheet — **sin adaptar** (ver *Pendientes*) |
 
@@ -1031,15 +1031,18 @@ el grating al ensamble en Revit.
 
 ---
 
-## 05 — Rótulos de perfil en plantas
+## 05 — Rótulos de perfil
 
 > **Estado: escrito pero no probado en Revit.**
 
-Sobre cada viga de las plantas T.A. se escribe el **nombre de su tipo** (`C20x13,1`,
-`IN20x35,2`, `L6,5x4,780`…), alineado con la viga y centrado en su eje. Es lo que el
-modelador hace a mano con el tag `C-Multicat / Modelo`.
+Dos mecanismos distintos según la vista:
 
-### ⚠️ Son TextNotes, no tags
+| Vista | Qué pone | Por qué |
+|---|---|---|
+| Plantas T.A. | **TextNote** con el nombre del tipo, truncado si no cabe | el nombre completo no entra en el largo de la viga |
+| Elevaciones de eje | **Multi-Category Tag** `Item_TBL`, asociativo | en la elevación el nombre va completo: no hay nada que truncar |
+
+### ⚠️ En planta son TextNotes, no tags
 
 Un `IndependentTag` muestra el *Type Name* y **la API no deja sobrescribir su texto por
 instancia**, así que con tags de verdad no se puede truncar. La alternativa era editar la
@@ -1048,6 +1051,32 @@ el script; se descartó para no tocar familias.
 
 Contrapartida asumida: un `TextNote` es texto tonto. No queda asociado a la viga y no se
 actualiza si alguien le cambia el perfil. Hay que re-correr el graph.
+
+### En la elevación sí son tags
+
+Ahí desaparece el motivo para no usarlos —el nombre entra completo— y aparece la ventaja:
+el tag **se actualiza solo** si alguien le cambia el perfil a la pieza. Es además lo que
+usa el modelador en su vista de referencia (`ELEVACION EJE A`, id 6154003: 10 tags de la
+familia `Item_TBL`, los de las columnas con `Angle = π/2`).
+
+- **Qué se rotula**: `Structural Framing` y `Structural Columns` que la elevación muestre
+  y sean miembros del assembly, con el mismo filtro de familias excluidas que las plantas.
+- **⚠️ Solo lo que está sobre el eje.** Una elevación muestra en profundidad todo lo que
+  entre en el *Far Clip* —en la vista del modelador son **87** vigas— y rotularlas todas
+  sería ilegible. Se rotula solo lo que esté a menos de una distancia del plano de la vista
+  (input, default **30 cm**), que es el marco que esa elevación documenta. El log cuenta
+  cuántas piezas quedaron fuera por ese motivo.
+- **Orientación**: `TagOrientation.Horizontal` en las vigas y `Vertical` en las columnas
+  (la pieza es vertical si su dirección se parece más al *arriba* de la vista que a su
+  *derecha*). El rótulo de una viga va por encima de su eje y el de una columna a la
+  izquierda, a una separación en mm de papel (input, default 2).
+- El punto del tag se **proyecta al plano de la elevación** antes de colocarlo.
+- **Idempotencia**: si la elevación ya tiene tags de ese tipo se salta, salvo que
+  `06. Rehacer los rótulos existentes` esté en True (el mismo input que gobierna los
+  TextNotes de las plantas).
+- Si el input de tipo de tag queda **vacío**, no se toca ninguna elevación. Si el nombre
+  no existe en el proyecto, el log lista los tags Multi-Category disponibles y las plantas
+  se rotulan igual.
 
 ### El acortado no es arbitrario: se corta en la `x`
 
@@ -1171,16 +1200,23 @@ parte, pero no todo — es basura del modelo, no del graph.
 
 ## Pendientes / próximos pasos
 
-1. **Probar 05 en Revit** (rótulos de perfil), y decidir qué se hace con el viejo
-   `05_Tags en plantas.dyn`: hoy hay dos graphs numerados 05 y en Player eso confunde.
-   Además hay que arreglar en 00 que `Structural Connections` se enciende en las T.A.,
-   donde no corresponde.
-2. **Adaptar 06 (tabla).** Hoy **excluye** `Structural Framing` y `Generic Models` — justo
+1. **Probar en Revit lo de las elevaciones** (03: ejes recortados, cotas de altura, marcas
+   de nivel y línea de terreno; 05: tags de perfil). Lo más frágil es la **referencia a
+   caras** de 03: si Revit rechaza alguna, el log lo dice con el texto exacto del error y
+   la cota desaparece al comitear. Verificar también contra el plano-tipo si la cadena
+   queda bien repartida entre las dos verticales.
+2. Decidir qué se hace con el viejo `05_Tags en plantas.dyn`: hoy hay dos graphs numerados
+   05 y en Player eso confunde. Además hay que arreglar en 00 que `Structural Connections`
+   se enciende en las T.A., donde no corresponde.
+3. **Tipo de cota**: el modelador usa `2.5 ROMAND(MILIMETROS)` en todas. Hoy ni 03 en
+   planta ni 03 en elevación fijan el `DimensionType`: queda el que traiga el proyecto o
+   el view template. Si en el plano salen con otra fuente, hace falta un input más.
+4. **Adaptar 06 (tabla).** Hoy **excluye** `Structural Framing` y `Generic Models` — justo
    la categoría que manda en acero. Además debe pasar de «una tabla por sheet» a **una
    tabla única por assembly, en su primera lámina** (regla del brief).
-3. **`07_Cantidad en leyendas`** fue borrado del working tree (aparece como `D` en git) —
+5. **`07_Cantidad en leyendas`** fue borrado del working tree (aparece como `D` en git) —
    decidir si se recupera para acero o se descarta.
-4. **Verificar en Revit** todo lo de esta iteración: no se pudo probar porque el modelo no
+6. **Verificar en Revit** todo lo de esta iteración: no se pudo probar porque el modelo no
    tiene assemblies. En particular quedan dos supuestos técnicos sin confirmar:
    - que `AssemblyViewUtils.CreateDetailSection` acepte **varias** `HorizontalDetail` para
      el mismo assembly (00 cae a `Duplicate` de la planta NIPB si falla o si devuelve la
@@ -1196,4 +1232,4 @@ parte, pero no todo — es basura del modelo, no del graph.
    - que el crop ceñido al assembly no deje las **burbujas de los ejes** fuera de la
      vista. El *Annotation Crop* está desactivado, que es la condición necesaria, pero
      habrá que mirarlo en pantalla.
-5. **Orden de colocación configurable** en 02 (hoy alfabético por assembly).
+7. **Orden de colocación configurable** en 02 (hoy alfabético por assembly).
