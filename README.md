@@ -34,12 +34,13 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
 | 3 | `03_Ejes y cotas entre ejes.dyn` | ✅ acero | Enciende los ejes (una burbuja por eje), dibuja el eje de cada viga en las T.A. (L-CENTER) y acota entre ejes y entre ejes de viga |
 | 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
-| 5 | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sirve igual en acero |
+| 5 | `05_Rotulos de perfil en plantas.dyn` | 🧪 acero | Escribe el nombre de tipo sobre cada viga de las T.A., acortándolo si no entra — **sin probar en Revit** |
+| 5b | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sigue sirviendo como herramienta suelta |
 | 6 | `06_Tabla de assemblies.dyn` | ⚠️ fundaciones | Tabla por sheet — **sin adaptar** (ver *Pendientes*) |
 
 **Flujo**: 00 (crear vistas) → 01 (calcular y crear láminas) → 02 (colocar vistas y
-leyendas) → 03 (ejes y cotas entre ejes) → 04 (grating). El paso 06 todavía responde al
-modelo de fundaciones; ver *Pendientes*.
+leyendas) → 03 (ejes y cotas entre ejes) → 04 (grating) → 05 (rótulos de perfil). El paso 06
+todavía responde al modelo de fundaciones; ver *Pendientes*.
 
 > El `04_Cotas de ejes.dyn` de fundaciones (cadena borde → eje de elemento → borde) se
 > descartó y el número quedó libre; el 04 de acero es otra cosa. Si hace falta recuperarlo,
@@ -905,6 +906,96 @@ el grating al ensamble en Revit.
 
 ---
 
+## 05 — Rótulos de perfil en plantas
+
+> **Estado: escrito pero no probado en Revit.**
+
+Sobre cada viga de las plantas T.A. se escribe el **nombre de su tipo** (`C20x13,1`,
+`IN20x35,2`, `L6,5x4,780`…), alineado con la viga y centrado en su eje. Es lo que el
+modelador hace a mano con el tag `C-Multicat / Modelo`.
+
+### ⚠️ Son TextNotes, no tags
+
+Un `IndependentTag` muestra el *Type Name* y **la API no deja sobrescribir su texto por
+instancia**, así que con tags de verdad no se puede truncar. La alternativa era editar la
+familia `C-Multicat` para que su etiqueta leyera un parámetro compartido y escribirlo desde
+el script; se descartó para no tocar familias.
+
+Contrapartida asumida: un `TextNote` es texto tonto. No queda asociado a la viga y no se
+actualiza si alguien le cambia el perfil. Hay que re-correr el graph.
+
+### El acortado no es arbitrario: se corta en la `x`
+
+Medido sobre el modelo el 2026-08-03: **no existe ningún tipo llamado `C20`, `IN20` ni
+`L6,5`**. Los 14 tipos que empiezan así llevan todos el sufijo de peso. O sea que los
+nombres cortos del plano son truncados hechos en la anotación, no perfiles distintos.
+
+La regla que aplica el modelador es mecánica — tira el peso en kg/m y deja la designación:
+
+| Completo | Corto |
+|---|---|
+| `C20x13,1` | `C20` |
+| `IN20x35,2` | `IN20` |
+| `L6,5x4,780` | `L6,5` |
+| `L8x7,07` | `L8` |
+
+> El corte es **insensible a mayúsculas**: en el modelo conviven `L8x7,07` y `L8X7,07`.
+
+### El «¿cabe?» se mide, no se estima
+
+Nada de calcular anchos de fuente. Se crea un `TextNote` de prueba por cada texto distinto
+fuera del crop, se regenera, se lee su *bounding box* y se borra. Con eso el criterio queda
+en un `if`:
+
+```
+disponible = largo de la viga en planta − 2 × margen        (input, default 2 mm de papel)
+si ancho(nombre completo) > disponible  →  se usa el corto
+```
+
+Las mediciones se **cachean por (texto, escala)**, porque los nombres de tipo se repiten
+decenas de veces por vista. Si la medición fallara, se cae a estimar `nº caracteres ×
+altura × 0,6`.
+
+**Si ni el corto entra, se pone igual**: vale más una viga rotulada de más que una sin
+identificar. El log cuenta cuántas quedaron así, por si conviene resolverlas a mano.
+
+### Tipo de texto
+
+Input `03. Tipo de texto del rotulo`, default **`C_TBL_RomanD2.2mm`** (verificado que existe
+en el proyecto, id 504711). Es editable desde Player, así que el modelador puede cambiarlo
+sin abrir Dynamo.
+
+> Si el nombre no coincide con ningún tipo, el graph **no escribe nada** y lo dice en el log
+> junto con la lista de tipos disponibles. Deliberadamente no cae al primero de la lista:
+> con un nombre mal escrito, rotular decenas de vigas en `C_TIT_RomanD5mm` (fuente de
+> títulos) es peor que no rotular.
+
+El proyecto tiene además `C_TBL_RomanD2.2mm_Negrita`, `C_TBL_RomanD3mm`,
+`C_TXT_RomanD2.3mm`, `C_TXT_RomanD2.5mm` y `C_TIT_RomanD5mm`. La vista de referencia del
+modelador usa `C_TXT_RomanD2.5mm` para el texto de "GRATING ARS-5".
+
+### Orientación
+
+El texto se rota con el eje de la viga y el ángulo se normaliza a (−90°, 90°] para que nunca
+se lea de cabeza. Como el origen de un `TextNote` es el **tope** de la línea, se sube media
+altura de texto para que quede centrado sobre el eje.
+
+### Lo que NO hace
+
+- **No evita colisiones** entre rótulos ni contra otras anotaciones. El modelador los acomoda
+  a ojo; replicar eso es un problema aparte.
+- **No rotula columnas**, solo `Structural Framing`.
+- El grating queda fuera por el input `05. Familias a NO rotular` (default `GRATING`).
+
+### ⚠️ Tipos duplicados en el modelo
+
+Hay tipos que son el mismo perfil con nombres distintos: `L8x7,070`, `L8x7,07` y `L8X7,07`
+conviven, igual que `C20x13,1` con `C20x13,10` y `L8x5,960` con `L8x5,96`. Vigas idénticas
+van a salir rotuladas distinto según qué tipo les tocó. El truncado en la `x` disimula buena
+parte, pero no todo — es basura del modelo, no del graph.
+
+---
+
 ## Convenciones (contrato entre graphs)
 
 - **Nombres internos de vista** (no renombrar a mano — 01 y 02 los buscan por nombre):
@@ -955,9 +1046,10 @@ el grating al ensamble en Revit.
 
 ## Pendientes / próximos pasos
 
-1. **Probar 04 en Revit.** Está escrito contra mediciones del modelo real pero ninguna
-   booleana se ejecutó todavía. Además hay que arreglar en 00 que `Structural Connections`
-   se enciende en las T.A., donde no corresponde.
+1. **Probar 05 en Revit** (rótulos de perfil), y decidir qué se hace con el viejo
+   `05_Tags en plantas.dyn`: hoy hay dos graphs numerados 05 y en Player eso confunde.
+   Además hay que arreglar en 00 que `Structural Connections` se enciende en las T.A.,
+   donde no corresponde.
 2. **Adaptar 06 (tabla).** Hoy **excluye** `Structural Framing` y `Generic Models` — justo
    la categoría que manda en acero. Además debe pasar de «una tabla por sheet» a **una
    tabla única por assembly, en su primera lámina** (regla del brief).
