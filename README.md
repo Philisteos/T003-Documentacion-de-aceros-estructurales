@@ -546,7 +546,32 @@ medida el 2026-08-03), que es exactamente el plano-tipo al que hay que llegar:
 | Multi-Category Tags | 10, familia `Item_TBL` (los rótulos de perfil — los pone 05) |
 | Detail Lines | 1 de 13,94 m con estilo `L-CENTER` (la línea de terreno) |
 
-#### Los cinco planos de altura
+#### ⚠️ El T.A. se vota por metros de viga, no por la pieza más alta
+
+Medido en `ES-1003 / EJE E` el **2026-08-04**: la pieza más alta de esa elevación es un
+marco `OR100x14,4` de 100 mm de canto —el apoyo del `SPE-1004`— **2,4 m por encima de la
+plataforma**. Tomando el máximo, el T.A. salía en `EL. 2306,267` en vez de `2303,900`, la
+marca de nivel apuntaba a ese marco y la cadena de cotas entera colgaba de ahí (una cota
+de «100» flotando sobre la estructura).
+
+Los topes de viga se agrupan en cubetas de 10 mm y cada cubeta acumula **metros de viga**
+(el largo en planta de su bbox, así una columna aporta ~0 y no vota). Una cubeta es un
+T.A. si llega al **40 %** de los metros de la cubeta dominante — el mismo criterio y el
+mismo umbral con el que 00 elige el nivel dominante de una planta T.A. El log lista las
+cubetas descartadas con su altura y sus metros.
+
+> **Y no hay un solo T.A.**: si en la elevación hay vigas a alturas distintas que pasan el
+> umbral, **cada altura lleva su propia marca** y entra como una referencia más en la
+> cadena de cotas.
+
+#### ⚠️ El grating es `Structural Framing`, igual que una viga
+
+La familia `C-GRATING ARRIGONI ARS-5` está en la misma categoría que las vigas y su cara
+superior queda **32 mm por encima** del tope de acero. Si entrara en la votación, el T.A.
+saldría en la cara del grating. Se excluye por nombre de familia (input, default
+`GRATING`), igual que en 05.
+
+#### Los planos de altura
 
 ```
         tope de baranda   ---+
@@ -565,17 +590,19 @@ medida el 2026-08-03), que es exactamente el plano-tipo al que hay que llegar:
 Se sacan de la **geometría que la elevación muestra**, no de los niveles del modelo:
 de los cinco, solo T.A. y N.I.P.B. tienen nivel, los otros tres son geometría y nada más.
 
-- **tope de baranda** = lo más alto de la vista. Si no sobresale nada del T.A., no se
-  dibuja esa cota.
-- **T.A.** = lo más alto de los `Structural Framing`.
-- **fondo de viga** = la cara inferior más baja de las vigas que llegan al T.A.
-  («llegan» = su tope está a menos de 10 mm del T.A.: el acero se modela con
+- **T.A.** = tope de las vigas, votado por metros (arriba). Puede haber más de uno.
+- **tope de baranda** = lo más alto de las categorías de barandas (`Railings`). Solo
+  cuenta si sobresale del T.A. Ojo: un pasamanos de tubo redondo **no tiene cara
+  horizontal en el tope**, así que ese plano suele quedar sin resolver y se dice en el log.
+- **fondo de viga** = la cara inferior más baja de las vigas que llegan al T.A. más alto
+  («llegan» = su tope está a menos de 10 mm de ese T.A.: el acero se modela con
   contraflechas y tolerancias de milímetros).
 - **P.T.** = tope de las **sillas de anclaje**. En la vista del modelador no hay
   hormigón: lo único que hay a 500 mm sobre la placa base son los `Structural
   Connections` que arrancan en ella, y su tope es el piso terminado. Si la base es
   placa sola, sin silla, no hay plano P.T. y la cadena queda de dos tramos.
-- **N.I.P.B.** = lo más bajo de la vista (cara inferior de las placas base).
+- **N.I.P.B.** = lo más bajo de la vista, **por debajo de las sillas de anclaje** (cara
+  inferior de las placas base).
 
 #### ⚠️ Se acota contra caras, y eso obliga a `ComputeReferences`
 
@@ -588,7 +615,25 @@ De cada elemento candidato se toma la **cara horizontal más grande** a esa cota
 normal hacia el lado correcto (arriba para T.A./P.T., abajo para el fondo de viga y la
 N.I.P.B.). Si el primer candidato no ofrece cara utilizable —una cartela, una plancha de
 conexión o un perfil con corte en ángulo tienen el bbox a esa cota pero no la cara— se
-prueba el siguiente. El log dice qué planos se resolvieron y cuáles quedaron sin cara.
+prueba el siguiente (hasta 8). El log dice qué planos se resolvieron y cuáles no.
+
+**Qué candidato primero**: el que la elevación *dibuja de verdad*. Se ordenan por capas de
+profundidad de 300 mm respecto del plano de la vista y, dentro de la misma capa, de
+derecha a izquierda. Una pieza 5 m atrás está tapada por todo lo que tiene delante, y
+Revit no deja apoyar una marca de nivel sobre algo que no se ve.
+
+#### ⚠️ Una marca de nivel es mucho más quisquillosa que una cota
+
+Con la misma referencia de cara, las cotas entraban y **casi todas las marcas fallaban**
+con `Spot Dimension does not lie on its reference` (medido el 2026-08-04). El punto que se
+le pasa a `NewSpotElevation` tiene que caer **dentro** de la cara, y el centro del
+*bounding box paramétrico* no sirve: en una plancha con agujeros de pernos o en una cara
+en L cae fuera del contorno.
+
+La solución es tomar el **centroide de un triángulo de la teselación** (`Face.Triangulate`)
+— siempre cae dentro del contorno y, en una cara plana, exactamente en el plano. Se
+prueban los cuatro triángulos más a la derecha (para que la directriz salga corta), luego
+el centro paramétrico, y se repite con hasta 8 piezas antes de darse por vencido.
 
 Esto contradice a propósito la regla de «no depender de caras del acero» que rige para
 las cadenas en planta: ahí había una alternativa (los ejes de viga `L-CENTER`), acá no
@@ -616,6 +661,12 @@ Si un nombre no existe, el log lista los tipos disponibles y sigue con los otros
 > **Idempotencia**: si la elevación ya tiene alguna cota, no se re-cotan las alturas; si
 > ya tiene alguna marca de nivel, no se ponen; si ya tiene una línea del estilo
 > `L-CENTER`, no se redibuja la de terreno.
+>
+> Con `Elevaciones: rehacer la anotacion existente` = True se **borra todo lo anotado en
+> las elevaciones** (cotas, marcas y línea de terreno) y se rehace. Es seguro barrer con
+> todo: 00 crea la vista vacía y lo único que agrega 05 son tags, que no se tocan. Sin
+> este input no se puede iterar — la anotación de una corrida anterior bloquea la
+> siguiente.
 
 ### Eje de cada viga en las plantas T.A. (línea roja `L-CENTER`)
 
