@@ -662,6 +662,22 @@ Elevation, no el script: son tres familias distintas ya cargadas en el proyecto.
 lleva los tres nombres separados por coma **en ese orden**; vacío = no se ponen marcas.
 Si un nombre no existe, el log lista los tipos disponibles y sigue con los otros dos.
 
+#### ⚠️ Una categoría apagada no da error: da una anotación invisible
+
+Medido el 2026-08-04: el log reportaba **54 cotas creadas**, la verificación post-commit
+no encontraba ninguna borrada, y en la lámina no se veía **ninguna**. Estaban todas en el
+documento (ids `765xxxx`, acumulándose corrida tras corrida) pero el view template
+`ESTRUCTURAS` trae la categoría *Dimensions* apagada.
+
+Cuando una categoría está oculta en la vista, la anotación se crea sin error pero **no se
+dibuja y `FilteredElementCollector(doc, view.Id)` tampoco la devuelve** — desde el script
+parece que nunca se creó, así que la idempotencia la vuelve a crear en cada corrida. Es la
+misma trampa que ya estaba resuelta para *Lines* con los ejes de viga en planta.
+
+Antes de anotar una elevación se encienden **Dimensions, Spot Elevations y Lines** si
+estuvieran apagadas. Si el template no lo permite, el log lo dice con todas las letras en
+vez de dejar el misterio.
+
 > **Idempotencia**: si la elevación ya tiene alguna cota, no se re-cotan las alturas; si
 > ya tiene alguna marca de nivel, no se ponen; si ya tiene una línea del estilo
 > `L-CENTER`, no se redibuja la de terreno.
