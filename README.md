@@ -614,8 +614,9 @@ dos alturas caen a menos de 2 mm se funden en una sola referencia.
    ============================================  linea de terreno
 ```
 
-Se sacan de la **geometría que la elevación muestra**, no de los niveles del modelo:
-de los cinco, solo T.A. y N.I.P.B. tienen nivel, los otros tres son geometría y nada más.
+Se sacan de la **geometría que la elevación muestra**, no de los niveles del modelo, y
+solo sirven para saber **a qué altura** poner cada marca — no para anclar la anotación
+(ver más abajo por qué).
 
 - **T.A.** = tope de las vigas, votado por metros (arriba). Puede haber más de uno.
 - **tope de baranda** = lo más alto de las categorías de barandas (`Railings`). Solo
@@ -627,62 +628,51 @@ de los cinco, solo T.A. y N.I.P.B. tienen nivel, los otros tres son geometría y
 - **P.T.** = tope de las **sillas de anclaje**. En la vista del modelador no hay
   hormigón: lo único que hay a 500 mm sobre la placa base son los `Structural
   Connections` que arrancan en ella, y su tope es el piso terminado. Si la base es
-  placa sola, sin silla, no hay plano P.T. y la cadena queda de dos tramos.
+  placa sola, sin silla, no hay plano P.T.
 - **N.I.P.B.** = lo más bajo de la vista, **por debajo de las sillas de anclaje** (cara
   inferior de las placas base).
 
-#### ⚠️ Se acota contra caras, y eso obliga a `ComputeReferences`
+Cada altura se **confirma contra una cara real** antes de aceptarla (`ComputeReferences`
++ `GetInstanceGeometry()`, probando hasta 8 candidatos ordenados por profundidad y
+posición): si nada tiene una cara horizontal genuina ahí, ese plano queda sin resolver y
+consta en el log. Pero esa cara **solo sirve para validar la altura** — la anotación en
+sí no se apoya en ella, por lo que sigue.
 
-Una cota necesita un `Reference`, y las caras solo lo traen si la geometría se pide con
-`Options.ComputeReferences = True`. Además hay que entrar a las instancias por
-**`GetInstanceGeometry()`**, no por `GetSymbolGeometry()`: las referencias de la
-geometría de símbolo son del *tipo*, no de la pieza, y Revit rechaza la cota.
+#### ⚠️ Una marca de nivel va contra detail lines, igual que la cota
 
-De cada elemento candidato se toma la **cara horizontal más grande** a esa cota, con la
-normal hacia el lado correcto (arriba para T.A./P.T., abajo para el fondo de viga y la
-N.I.P.B.). Si el primer candidato no ofrece cara utilizable —una cartela, una plancha de
-conexión o un perfil con corte en ángulo tienen el bbox a esa cota pero no la cara— se
-prueba el siguiente (hasta 8). El log dice qué planos se resolvieron y cuáles no.
+Con la **misma cara**, la cota se dibujaba bien y la marca fallaba con `Spot Dimension
+does not lie on its reference` — incluso sobre vigas simples, probando decenas de
+candidatos y puntos, `Face.Project` incluido (medido el 2026-08-04). Pero el dato que
+resolvió el diagnóstico fue otro: en `ES-1003`, las **7 elevaciones de eje horizontal**
+(`B, Ba, Ca, E, Ea, Va, Vb`) sacaban su marca T.A. sin problema, mientras que de las
+**8 de eje vertical** (`13a…18a`) solo **una** lo lograba.
 
-**Qué candidato primero**: el que la elevación *dibuja de verdad*. Se ordenan por capas de
-profundidad de 300 mm respecto del plano de la vista y, dentro de la misma capa, de
-derecha a izquierda. Una pieza 5 m atrás está tapada por todo lo que tiene delante, y
-Revit no deja apoyar una marca de nivel sobre algo que no se ve.
+La diferencia es la **profundidad de vista**: una elevación de eje vertical mira a lo
+**largo** de la plataforma y ve decenas de vigas repetidas apiladas en profundidad; una
+de eje horizontal mira a lo **ancho** y ve solo una tanda. Más profundidad, más
+candidatos con los que toparse — y el problema de fondo con las referencias de cara
+nunca se resolvió del todo; simplemente con pocos candidatos había más chance de
+acertar por casualidad.
 
-#### ⚠️ Una marca de nivel es mucho más quisquillosa que una cota
+La solución es la misma que ya funcionó para la cota: **la marca se apoya en una detail
+line propia**, no en la cara del acero. Deja de importar cuántas vigas se superpongan en
+profundidad, porque la línea es geometría nuestra, no del modelo.
 
-Con la **misma cara**, las cotas se dibujaban bien y **todas las marcas de nivel
-fallaban** con `Spot Dimension does not lie on its reference` — incluso sobre vigas
-simples, probando decenas de candidatos y puntos (medido el 2026-08-04). La causa: el
-punto que se le pasa a `NewSpotElevation` tiene que caer sobre la referencia con una
-tolerancia mucho más fina de la que da cualquier cálculo manual (centroide de un
-triángulo de la teselación, o centro paramétrico) — `NewDimension`, en cambio, ni
-siquiera exige un punto sobre la referencia, así que nunca expone el problema.
-
-La solución es **`Face.Project(punto)`**: el método nativo de Revit para clavar un punto
-cualquiera exactamente sobre una cara, con la misma precisión que usa el motor interno
-para validar spots. Las semillas (centroides de triángulo, de derecha a izquierda para
-que la directriz salga corta, más el centro paramétrico como último recurso) ya no se
-usan directo — se pasan por `Project()` y se descartan si no cae dentro del contorno. Se
-repite con hasta 8 piezas antes de darse por vencido.
-
-Esto contradice a propósito la regla de «no depender de caras del acero» que rige para
-las cadenas en planta: ahí había una alternativa (los ejes de viga `L-CENTER`), acá no
-existe ninguna. Un plano que no se pueda resolver simplemente no se acota y queda en el
-log; nunca se inventa una cota suelta.
+> Cota y marca **comparten la línea** cuando caen a la misma altura (típico de T.A.): se
+> arma una sola caché `altura → (Reference, punto)` por vista y ambas la consultan, así
+> no se dibuja una línea de más.
 
 #### Dónde va cada cosa
 
 Se reusan los inputs de separación de las plantas, para no alargar el Player:
 
-- **cadena 200/1450/500 y el tramo de baranda**, a la izquierda, a `separacion al borde
-  − separacion entre cadenas` (12 mm de papel con los defaults). Van en la misma
-  vertical, como en el plano-tipo.
-- **total 2150**, a la izquierda del todo, a `separacion al borde` (20 mm).
+- **cota de alturas** (base / T.A. / altura máxima), a la izquierda a `separacion al
+  borde` (20 mm de papel). La línea de la base va de lado a lado —es también la línea de
+  terreno del plano-tipo—, sobresaliendo esa misma separación a cada lado (con los
+  defaults, 1:75 y 20 mm, da 1,5 m por lado, similar a los ~14 m del plano-tipo); las
+  otras dos son líneas cortas a la izquierda, donde corre la cota.
 - **marcas de nivel**, a la derecha con directriz horizontal: codo a media separación y
   texto a una separación y media.
-- **línea de terreno**, a la cota N.I.P.B., sobresaliendo una separación a cada lado.
-  Con los defaults (1:75, 20 mm) da 1,5 m por lado — los mismos ~14 m del plano-tipo.
 
 La **sigla** de cada marca (`T.A.`, `P.T.`, `N.I.P.B.`) la pone el **tipo** de Spot
 Elevation, no el script: son tres familias distintas ya cargadas en el proyecto. El input
@@ -705,9 +695,11 @@ Antes de anotar una elevación se encienden **Dimensions, Spot Elevations y Line
 estuvieran apagadas. Si el template no lo permite, el log lo dice con todas las letras en
 vez de dejar el misterio.
 
-> **Idempotencia**: si la elevación ya tiene alguna cota, no se re-cotan las alturas; si
-> ya tiene alguna marca de nivel, no se ponen; si ya tiene una línea del estilo
-> `L-CENTER`, no se redibuja la de terreno.
+> **Idempotencia**: si la elevación ya tiene alguna cota (`Dimension`), no se re-cotan las
+> alturas ni se redibujan sus líneas de apoyo; si ya tiene alguna marca de nivel
+> (`SpotDimension`), no se ponen ni se redibujan las suyas. Son dos compuertas
+> independientes: una corrida puede completar la cota y dejar pendientes las marcas (o
+> al revés) sin pisar lo que ya está.
 >
 > Con `Elevaciones: rehacer la anotacion existente` = True se **borra todo lo anotado en
 > las elevaciones** (cotas, marcas y línea de terreno) y se rehace. Es seguro barrer con
