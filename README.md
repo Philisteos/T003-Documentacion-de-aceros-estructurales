@@ -36,11 +36,12 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
 | 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Multi-Category Tag `C-MultiCat` sobre cada viga de las T.A. y sobre las piezas del eje en las elevaciones, eligiendo tipo corto o largo según lo que entre en la pieza — **plantas OK, elevaciones sin volver a probar** |
 | 5b | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sigue sirviendo como herramienta suelta |
-| 6 | `06_Tabla de assemblies.dyn` | ⚠️ fundaciones | Tabla por sheet — **sin adaptar** (ver *Pendientes*) |
+| 6 | `06_Tabla de assemblies.dyn` | 🧪 acero | Una *lista de materiales* por assembly, en su primera lámina — **sin probar en Revit** |
 
 **Flujo**: 00 (crear vistas) → 01 (calcular y crear láminas) → 02 (colocar vistas y
-leyendas) → 03 (ejes y cotas entre ejes) → 04 (grating) → 05 (rótulos de perfil). El paso 06
-todavía responde al modelo de fundaciones; ver *Pendientes*.
+leyendas) → 03 (ejes y cotas entre ejes) → 04 (grating) → 05 (rótulos de perfil) → 06
+(tabla). 06 va al final porque necesita las láminas ya armadas para saber cuál es la
+primera de cada assembly.
 
 > El `04_Cotas de ejes.dyn` de fundaciones (cadena borde → eje de elemento → borde) se
 > descartó y el número quedó libre; el 04 de acero es otra cosa. Si hace falta recuperarlo,
@@ -453,6 +454,10 @@ bloques en grilla», que no escala a un assembly con 1 + 4 + 8 vistas.
 La tabla de cantidades va **solo en la primera lámina de cada assembly**, así que la
 reserva del lado derecho (input, default 150 mm) **se descuenta únicamente en esa
 lámina**; las siguientes del mismo assembly aprovechan el ancho completo.
+
+06 deduce esa lámina por su cuenta (la de `SheetNumber` más bajo, en orden natural, que tenga
+alguna vista del assembly) — el usuario no elige láminas. Eso hace que la **reserva tenga que
+coincidir en 01, 02 y 06**, no solo en 01 y 02.
 
 > **Importante**: el input «Reserva para la tabla, lado derecho (mm)» y «Margen y
 > separación (mm)» deben tener **el mismo valor en 01 y en 02**. La función `empaquetar()`
@@ -1403,6 +1408,141 @@ En cualquier caso es basura del modelo, no del graph.
 
 ---
 
+## 06 — Tabla de materiales
+
+Reemplaza a la tabla de fundaciones (que era *una tabla por lámina*, con los assemblies
+documentados en ESA lámina). Ahora es **una tabla por assembly**, y va **solo en su primera
+lámina** — el resto de las láminas del mismo assembly aprovechan el ancho completo. Por eso
+el graph ya **no** tiene input de «sheets destino»: la lámina se deduce sola.
+
+Sigue siendo un **schedule nativo** multi-categoría (no líneas de detalle + textos), colocado
+con `ScheduleSheetInstance` en la esquina superior derecha del área útil, dentro de la franja
+que 01/02 reservan.
+
+### La tabla objetivo
+
+```
++-------------------------------------------------------------------------------+
+|                     LISTA DE MATERIALES TOLVA ES-1004                         |
++-------------+---------+------------+-------------------------------+----------+
+|             |  CANT/  | DIMENSIONES|             PESO              |          |
+| DESCRIPCION | UNIDAD  |  L (m)m2   | KG/M  | UNIT. KG  | TOTAL KG  |OBSERVACION
++-------------+---------+------------+-------+-----------+-----------+----------+
+| ES-1004                                                                       |
+| CANT=1                                                                        |
+| []15x26,4   |   16    |   68,35    |  26,4 | 1.804,42  | 1.804,42  |ASTM A572 |
+| ARS-5       |   53    |   70,21    |    33 | 2.316,88  | 2.316,88  |ASTM A572 |
+|    ...                                                                        |
++-------------+---------+------------+-------+-----------+-----------+----------+
+|                568    |  567,45    |       | 27.539,16 | 27.539,16 |          |
++-------------------------------------------------------------------------------+
+```
+
+| Columna | De dónde sale |
+|---|---|
+| `DESCRIPCION` | nombre del **tipo** de familia (campo `Type`) |
+| `CANT/UNIDAD` | campo nativo `Count`: instancias de ese tipo **en un** assembly |
+| `L (m)m2` | metros de eje, o m² si el tipo cae en los prefijos de m² |
+| `KG/M KG/M2` | parámetro **de tipo** `PESO_TBL` (input) — no se calcula |
+| `UNIT. KG` | `L × PESO`, sumado sobre las instancias del tipo |
+| `TOTAL KG` | `UNIT. KG × CANT` (instancias de ese **tipo de assembly** en el proyecto) |
+| `OBSERVACION` | parámetro compartido `MATERIAL`, tal cual |
+
+Las dos filas de encabezado (`ES-1004` y `CANT=1`) son *group headers* del schedule, igual que
+en la versión de fundaciones. Las filas se ordenan por **familia** y después por **tipo**, para
+que todos los tipos de una familia queden juntos.
+
+### Una fila por tipo, y solo las hojas
+
+Se recorren los miembros del assembly **recursivamente**: familias anidadas dentro de familias
+aparecen como filas propias. Un elemento que a su vez contiene sub-componentes es un
+envoltorio (la familia contenedora, normalmente sin geometría propia) y **no** genera fila;
+solo las hojas cuentan. Se recorre únicamente la **primera instancia** de cada tipo de
+assembly, misma convención que el resto del pipeline.
+
+### ⚠️ Las columnas son numéricas, y eso obliga a 3 parámetros de instancia
+
+La fila de totales del pie solo existe si los campos son **numéricos** con
+`DisplayType = Totals`. La versión de fundaciones escribía los valores como **texto**
+(reusando `Status Vendor`) precisamente porque los campos calculados nativos no eran
+confiables — y por eso no podía tener ni sumas por fila ni total general.
+
+`Totals` hace doble trabajo acá: además del total del pie, es lo que permite escribir el valor
+**por instancia** y que la fila del tipo muestre la **suma** (68,35 m repartidos entre 16
+piezas de largos distintos). Sin eso habría que escribir el total del grupo en cada instancia,
+que es justo lo que se rompe cuando dos piezas del mismo tipo miden distinto.
+
+Hacen falta entonces tres parámetros **de instancia** tipo *Number*: `DIMENSIONES`,
+`UNIT. KG` y `TOTAL KG`. Solo el primero existía en el esquema de la oficina (`RECUENTO_TBL`).
+Los otros dos, si no existen, **los crea el graph** como parámetros de proyecto
+(`PESO_UNIT_TBL`, `PESO_TOTAL_TBL`), instancia, todas las categorías de modelo, con un GUID
+derivado por MD5 del nombre — así son el mismo parámetro en todos los modelos sin depender de
+un archivo de parámetros compartidos versionado. El archivo `.txt` temporal que Revit exige
+para crearlos se escribe en `%TEMP%` y `SharedParametersFilename` se deja como estaba.
+
+> **Si se apunta un input a un parámetro de TIPO, la columna suma mal en silencio**: las N
+> instancias comparten un solo valor, la última escritura pisa a las demás y la fila muestra
+> ese valor multiplicado por N. El graph lo detecta comparando el dueño del parámetro
+> (`Parameter.Element`) contra el elemento, y lo dice en el log como ERROR.
+
+### Qué se mide en metros y qué en m²
+
+Todo es lineal **salvo las pletinas `PL` y el grating `ARS`**, que van en m². La decisión es
+por **prefijo del nombre del tipo** (input `08`, default `PL,ARS`), no por categoría ni por
+geometría: `PL` atrapa también `PLACA DIAMANTADA` y `PLACAS DE CONEXIONADO`, que en el plano
+tipo efectivamente van en m².
+
+- **Lineal**: el largo del **eje** (`LocationCurve`), no el del sólido. Ver *«una pieza de
+  acero tiene dos largos»* en la sección de 04: el sólido viene recortado en las puntas por
+  `Join Cutback` / `Start-End Extension` y en una diagonal medida daba 302 mm menos. Si la
+  pieza no tiene eje (columnas, piezas sin `LocationCurve`) cae a `System Length` → `Length`
+  → `Cut Length` → dimensión mayor del bounding box local. El log dice de dónde salió cada
+  medida y cuántas cayeron a cada fallback.
+- **m²**: las dos dimensiones mayores de la caja que envuelve la geometría **en el sistema
+  local de la instancia**, no el bounding box del mundo — así también vale para pletinas y
+  paños girados. Es el mismo criterio con el que 04 saca el contorno del grating, que no es
+  una plancha sino un peine de barras y por eso no se puede medir cara por cara.
+
+### El filtro es `TAG`, no `Comments`
+
+No existe un campo nativo confiable que diga «a qué assembly pertenezco» (se probó
+*Assembly Name* / *Assembly Description* / *Assembly Code*: ninguno trae un valor real por
+elemento). Tampoco sirve escribir en el esquema `_TBL` de las familias anidadas más profundas:
+ahí esos campos quedan **bloqueados por fórmula de familia**. Se reusa el compartido `TAG`
+(fuera del esquema `_TBL`, sin fórmula, editable tanto en hojas como en contenedores) para el
+nombre del assembly, y `Part Number` para el `CANT=N`.
+
+La versión anterior además escribía el número de sheet en `Comments` y filtraba por ahí. Ya no:
+el filtro es `TAG = {nombre del assembly}`, así que **`Comments` no se toca**. Los valores que
+haya dejado la versión vieja son inocuos.
+
+**Limpieza**: al borrar un assembly sus miembros quedan sueltos en el modelo pero conservan el
+`TAG`, y reaparecerían como filas fantasma. Cada corrida releva el modelo una vez y borra el
+`TAG` de lo que ya no sea miembro legítimo — pero **solo cuando su valor es exactamente el
+nombre de un tipo de assembly**; cualquier otro valor es del modelador y no se pisa.
+
+### ⚠️ Encabezados agrupados: sin verificar
+
+`DIMENSIONES` sobre la columna de largo y `PESO` sobre las tres de peso son la fila de
+*grouped headers* que en la UI de Revit hace el botón *Group*. Por API hay que insertar una
+fila en la sección de encabezado del `TableData` y fusionar celdas (`TableSectionData.InsertRow`
++ `MergeCells`), y **no se pudo comprobar sin Revit abierto**: no está confirmado en qué
+sección (`Header` o `Body`) vive la fila de títulos ni si `InsertRow` es aceptada ahí. El graph
+prueba las dos secciones, busca la fila cuyo primer texto sea `DESCRIPCION`, y deja en el log
+la geometría real de la sección (`DEBUG ...: fila de titulos en ... (sección de NxM)`). Si
+falla, la tabla sale igual pero con los encabezados en **una sola fila** — todo lo demás no
+depende de esto.
+
+Es idempotente: si la fila de grupos ya está, no inserta otra.
+
+### ⚠️ Los tipos duplicados salen como filas duplicadas
+
+Lo mismo que se dijo para los rótulos de 05 (`L8x7,070` / `L8x7,07` / `L8X7,07` conviviendo)
+pega más fuerte acá: cada nombre es una fila distinta con su propio peso y su propio total. La
+tabla no los une — es basura del modelo, y unir por «parecido» sería inventar.
+
+---
+
 ## Convenciones (contrato entre graphs)
 
 - **Nombres internos de vista** (no renombrar a mano — 01 y 02 los buscan por nombre):
@@ -1419,6 +1559,12 @@ En cualquier caso es basura del modelo, no del graph.
   para decidir si un eje merece elevación; 05 usa el input `09` para decidir qué piezas
   rotula en ella. Si 05 sube su tolerancia por encima de la de 00 va a rotular en cortes
   que 00 ya no crea, y si la baja va a dejar cortes vacíos. **Al tocar una, tocar la otra.**
+- **06 se apoya en los nombres de vista de 00** para saber cuál es la primera lámina de cada
+  assembly (`{assembly}` o `{assembly} - ...`). Si alguien renombra vistas a mano, 06 deja
+  ese assembly sin tabla y lo dice en el log.
+- **Parámetros que 06 escribe en los elementos**: `TAG` (nombre del assembly), `Part Number`
+  (`CANT=N`) y los tres numéricos de las columnas. No toca `Comments` ni `UNIDAD_TBL`, que sí
+  usaba la versión de fundaciones.
 - **El título bajo cada vista lo controla el tipo de viewport**, no la vista: plantas →
   input «Tipo de viewport para plantas», elevaciones → «Tipo de viewport para elevaciones
   de eje». Si el tipo no existe, 02 lo crea (duplica uno existente, activa *Show Title* y
@@ -1438,6 +1584,13 @@ En cualquier caso es basura del modelo, no del graph.
   sheet ya usados en el proyecto se saltan.
 - `02`: vistas ya colocadas se omiten; solo se usan láminas **sin ningún viewport** (un
   assembly no puede compartir lámina, así que no se rellenan láminas a medias).
+- `06`: no salta nada — **siempre reconfigura** la tabla de cada assembly (campos,
+  agrupación, filtro, anchos, grafismo y título), así que re-correr también retrofitea las
+  tablas ya colocadas. Si la tabla quedó en una lámina que ya no es la primera del assembly
+  (cambió la cantidad de láminas o el orden), la instancia se borra y se recoloca. El
+  schedule en sí se reusa por nombre (`TBL_{assembly}`); solo se borra y rehace si es de
+  una versión anterior del graph, porque la categoría de un `ViewSchedule` no se puede
+  cambiar una vez creado.
 - `05`: una vista que ya tiene tags de alguno de los dos tipos se salta, salvo con
   `07. Rehacer los rótulos existentes` en True. ⚠️ **La idempotencia depende de que la
   categoría `Multi-Category Tags` esté encendida en la vista**: si estuviera apagada, el
@@ -1465,6 +1618,18 @@ En cualquier caso es basura del modelo, no del graph.
 - `SIN ESPACIO para N vistas` (02) — correr 01 para agregar las láminas que falten.
 - `el tipo seleccionado NO es una viñeta` (01) — elegir del dropdown uno de los tipos que
   el propio log lista.
+- `sin lamina todavia (corre 01 y 02)` (06) — el assembly existe pero ninguna lámina tiene
+  todavía una vista suya, así que no hay dónde poner la tabla.
+- `el parametro compartido TAG (...) no esta cargado en el modelo` (06) — sin `TAG`,
+  `Part Number` o `MATERIAL` la tabla saldría vacía; hay que cargar el esquema de la oficina.
+- `Se creo el parametro de proyecto "PESO_UNIT_TBL"` (06) — **es normal la primera vez** en
+  cada modelo. Ver *Las columnas son numéricas*.
+- `"X" es un parametro de TIPO, no de instancia` (06) — un input de parámetro numérico
+  apunta a un parámetro de tipo; la columna sumaría mal. Cambiarlo o dejar el default.
+- `N tipo(s) sin "PESO_TBL" (peso 0)` (06) — esos tipos salen con 0 en `UNIT. KG` y
+  `TOTAL KG`. Es dato faltante del modelo, no del graph.
+- `no se pudo insertar la fila de encabezado agrupado` (06) — la tabla sale bien pero con
+  los encabezados en una sola fila, sin `DIMENSIONES` / `PESO`. Ver la advertencia de 06.
 
 ## Pendientes / próximos pasos
 
@@ -1479,9 +1644,17 @@ En cualquier caso es basura del modelo, no del graph.
 3. **Tipo de cota**: el modelador usa `2.5 ROMAND(MILIMETROS)` en todas. Hoy ni 03 en
    planta ni 03 en elevación fijan el `DimensionType`: queda el que traiga el proyecto o
    el view template. Si en el plano salen con otra fuente, hace falta un input más.
-4. **Adaptar 06 (tabla).** Hoy **excluye** `Structural Framing` y `Generic Models` — justo
-   la categoría que manda en acero. Además debe pasar de «una tabla por sheet» a **una
-   tabla única por assembly, en su primera lámina** (regla del brief).
+4. **Probar 06 (tabla) en Revit.** Ya está adaptado (una tabla por assembly en su primera
+   lámina, columnas del plano tipo, sin exclusión de categorías). Falta verificar, por orden
+   de riesgo:
+   - los **encabezados agrupados** (`DIMENSIONES` / `PESO`): es lo único que no se pudo
+     razonar hasta el final sin Revit. El log trae el `DEBUG` con la geometría real de la
+     sección para corregirlo en una pasada;
+   - que `RECUENTO_TBL` sea de **instancia** y sin unidades (el log lo dice si no);
+   - que la creación de `PESO_UNIT_TBL` / `PESO_TOTAL_TBL` funcione — toca
+     `SharedParametersFilename` y lo restaura, pero eso no se probó;
+   - que los prefijos `PL,ARS` cubran de verdad todo lo que va en m² en el modelo real;
+   - que el ancho de columna calculado quepa en los 150 mm reservados sin cortar texto.
 5. **`07_Cantidad en leyendas`** fue borrado del working tree (aparece como `D` en git) —
    decidir si se recupera para acero o se descarta.
 6. **Verificar en Revit** todo lo de esta iteración: no se pudo probar porque el modelo no
