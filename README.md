@@ -29,7 +29,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 
 | # | Graph | Estado | Qué hace |
 |---|-------|--------|----------|
-| 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por eje que lo cruza |
+| 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por eje que lo cruza **y que tenga marco encima** |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
 | 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas; en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones sin probar en Revit** |
@@ -337,7 +337,27 @@ a las plantas un template que muestre esa categoría.
 ### C. Elevaciones de eje
 
 Tantas como **ejes estructurales crucen la huella en planta** del assembly (test de
-intersección segmento-rectángulo Liang-Barsky contra el bbox sólido del assembly).
+intersección segmento-rectángulo Liang-Barsky contra el bbox sólido del assembly) **y que
+además tengan alguna viga o columna encima** (`ejes_con_marco`).
+
+#### ⚠️ Cruzar la huella no alcanza: tiene que haber marco
+
+El test Liang-Barsky mide contra el **rectángulo** del bounding box, y ese rectángulo es
+bastante más grande que la huella real: un assembly en L, o uno alargado en diagonal, deja
+ejes que lo cruzan **sin tocar ninguna pieza**. Esas elevaciones nacían sin nada que
+documentar y salían en la lámina en blanco.
+
+Medido el **2026-08-04**: 10 de las 24 elevaciones quedaban vacías, y en ellas la pieza más
+cercana al eje estaba entre **1,7 y 4,9 m**. O sea que no era falta de tolerancia sino ejes
+sin marco — subirla a 1 m no rescató ninguna de las diez y de paso arruinó las que sí
+andaban (`ES-1002 EJE E` pasó de 8 tags a **51 sobre 66** piezas, ilegible).
+
+Por eso 00 filtra: se hace la elevación solo si hay al menos una `Structural Framing` o
+`Structural Column` del assembly a menos de **30 cm** del eje.
+
+> ⚠️ **El filtro se aplica solo a qué ejes llevan elevación.** La lista completa de ejes que
+> cruzan sigue yendo entera al aislamiento — ver el párrafo de abajo: un eje que no entre
+> ahí queda oculto para siempre.
 
 Estas **no** son vistas de assembly: `AssemblyViewUtils.CreateDetailSection` solo admite
 orientaciones fijas (`HorizontalDetail`, `DetailSection A`–`D`), que no pueden dar «una
@@ -1127,10 +1147,10 @@ el grating al ensamble en Revit.
 > 24 que no entran ni cortos, 13 vigas sin curva recta); elevaciones **110** tags, ya
 > visibles.
 >
-> Costó tres corridas y cada una falló por una causa distinta, todas documentadas abajo:
+> Costó cuatro corridas y cada una falló por una causa distinta, todas documentadas abajo:
 > el plano de referencia (`View.Origin` no está sobre el eje), la categoría apagada por el
-> view template, y los cortes que quedan vacíos con razón. Queda pendiente confirmar con las
-> líneas `DIAG` cuáles de las elevaciones vacías sobran de verdad.
+> view template, y los cortes que quedaban vacíos — que resultaron ser ejes sin marco y se
+> arreglaron en **00**, no acá.
 >
 > ⚠️ **Al re-correr, `07. Rehacer los rótulos existentes` en True.** Si no, las vistas ya
 > rotuladas se saltan.
@@ -1282,6 +1302,11 @@ síntoma**, así que 05 no adivina: cuando una elevación queda en cero escribe 
 |---|---|
 | «la pieza más cercana está a **metros**» | el eje no toca el assembly → la elevación está vacía con razón; el que sobra es el corte, y eso se arregla en 00 |
 | «a **decenas de cm**» | falta tolerancia → subir el input `09` |
+
+**Resuelto el 2026-08-04 en 00, no en 05.** El `DIAG` sobre las 10 elevaciones vacías dio
+entre 1,7 y 4,9 m en todas: eran ejes sin marco, no falta de tolerancia. Ahora
+`ejes_con_marco()` no las crea (ver [00 § C](#c-elevaciones-de-eje)), así que 05 no debería
+volver a escribir esta línea. Si aparece, es que 00 y 05 se desincronizaron en los 30 cm.
 - **Orientación**: `TagOrientation.Horizontal` en las vigas y `Vertical` en las columnas
   (la pieza es vertical si su dirección se parece más al *arriba* de la vista que a su
   *derecha*). El rótulo de una viga va por encima de su eje y el de una columna a la
@@ -1390,6 +1415,10 @@ En cualquier caso es basura del modelo, no del graph.
 - Distancias de anotación y márgenes se ingresan en **mm de papel** y se convierten con la
   escala de cada vista.
 - Offsets y tolerancias geométricas se ingresan en **cm**.
+- **«Estar sobre el eje» son 30 cm, y 00 y 05 tienen que coincidir.** 00 usa `TOL_MARCO`
+  para decidir si un eje merece elevación; 05 usa el input `09` para decidir qué piezas
+  rotula en ella. Si 05 sube su tolerancia por encima de la de 00 va a rotular en cortes
+  que 00 ya no crea, y si la baja va a dejar cortes vacíos. **Al tocar una, tocar la otra.**
 - **El título bajo cada vista lo controla el tipo de viewport**, no la vista: plantas →
   input «Tipo de viewport para plantas», elevaciones → «Tipo de viewport para elevaciones
   de eje». Si el tipo no existe, 02 lo crea (duplica uno existente, activa *Show Title* y
@@ -1424,6 +1453,12 @@ En cualquier caso es basura del modelo, no del graph.
   identificables; se genera la NIPB y las elevaciones, pero ninguna planta T.A.
 - `ningun eje cruza la huella del assembly` (00) — revisar que los ejes estén dibujados
   con extensión suficiente sobre la zona del assembly.
+- `N eje(s) cruzan la huella sin ninguna pieza encima; no llevan elevacion` (00) — **es
+  normal**, no un error. El bounding box es un rectángulo más grande que la huella real y
+  esos ejes lo atraviesan por el aire. Siguen visibles como ejes transversales en las demás
+  vistas; sólo no se les hace un corte que saldría en blanco.
+- `nada a menos de N cm del eje` (05) — la elevación existe y quedó sin tags. No debería
+  pasar desde que 00 filtra: si aparece, 00 y 05 tienen tolerancias distintas.
 - `el eje X no es una linea recta` (00) — los ejes en arco no se soportan para elevaciones.
 - `sin geometria solida valida en ningun miembro` (00) — geometría rota en el modelo
   (elemento con `Volume = 0`); hay que arreglarlo en Revit, no en el script.
