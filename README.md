@@ -571,7 +571,34 @@ superior queda **32 mm por encima** del tope de acero. Si entrara en la votació
 saldría en la cara del grating. Se excluye por nombre de familia (input, default
 `GRATING`), igual que en 05.
 
-#### Los planos de altura
+#### ⚠️ La cota va contra detail lines, no contra las caras del acero
+
+Una cota contra cara **se crea sin error y después desaparece**. `NewDimension` devuelve
+el objeto, el log dice OK y la verificación post-commit la encuentra viva — pero Revit la
+descarta cuando Dynamo cierra su propia transacción, con el manejador de fallas ya
+desuscrito: ni cota ni mensaje de error. Medido el 2026-08-04: **54 cotas «OK» en el log y
+cero en el modelo**, mientras las 5 cadenas de cada planta —que referencian ejes y detail
+lines— sobrevivían todas.
+
+Por eso la elevación se acota igual que las plantas: se dibuja una **detail line
+`L-CENTER` en cada altura** y la cota referencia esas líneas. La de la base va de lado a
+lado (es la línea de terreno del plano-tipo); las otras dos son marcas cortas a la
+izquierda, donde corre la cota.
+
+#### Las tres alturas que se acotan
+
+```
+   altura maxima  ---+          <- la pieza mas alta que muestra la vista
+                     |
+   T.A.           ---+          <- tope de acero (votado por metros de viga)
+                     |
+   base           ===+========  <- lo mas bajo del assembly (= linea de terreno)
+```
+
+Salen del **bbox de lo que la vista muestra**, sin depender de encontrar ninguna cara. Si
+dos alturas caen a menos de 2 mm se funden en una sola referencia.
+
+#### Los planos de altura (para las marcas de nivel)
 
 ```
         tope de baranda   ---+
