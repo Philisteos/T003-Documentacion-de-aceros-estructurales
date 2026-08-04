@@ -34,7 +34,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
 | 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas; en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones sin probar en Revit** |
 | 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
-| 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Nombre de tipo sobre cada viga de las T.A. (TextNote truncado) y Multi-Category Tag sobre las piezas del eje en las elevaciones — **sin probar en Revit** |
+| 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Multi-Category Tag `C-MultiCat` sobre cada viga de las T.A. y sobre las piezas del eje en las elevaciones, eligiendo tipo corto o largo según lo que entre en la pieza — **plantas OK, elevaciones sin volver a probar** |
 | 5b | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sigue sirviendo como herramienta suelta |
 | 6 | `06_Tabla de assemblies.dyn` | ⚠️ fundaciones | Tabla por sheet — **sin adaptar** (ver *Pendientes*) |
 
@@ -543,7 +543,7 @@ medida el 2026-08-03), que es exactamente el plano-tipo al que hay que llegar:
 | Ejes | **2** (los extremos) |
 | Cotas (`2.5 ROMAND(MILIMETROS)`) | **3**: una cadena de 4 referencias (200/1450/500), una de 2 = 2150, otra de 2 = 1200 |
 | Spot Elevations | **3**, un tipo distinto cada una: `T.A. ELEVACION`, `P.T. ELEVACION`, `nipb ELEVACIÓN inf` |
-| Multi-Category Tags | 10, familia `Item_TBL` (los rótulos de perfil — los pone 05) |
+| Multi-Category Tags | 10, de `C-MultiCat : Item_TBL` (los rótulos de perfil — los pone 05) |
 | Detail Lines | 1 de 13,94 m con estilo `L-CENTER` (la línea de terreno) |
 
 #### ⚠️ El T.A. se vota por metros de viga, no por la pieza más alta
@@ -1123,120 +1123,258 @@ el grating al ensamble en Revit.
 
 ## 05 — Rótulos de perfil
 
-> **Estado: escrito pero no probado en Revit.**
+> **Estado (2026-08-04): funcionando en Revit.** Plantas **233** tags (110 con el tipo corto,
+> 24 que no entran ni cortos, 13 vigas sin curva recta); elevaciones **110** tags, ya
+> visibles.
+>
+> Costó tres corridas y cada una falló por una causa distinta, todas documentadas abajo:
+> el plano de referencia (`View.Origin` no está sobre el eje), la categoría apagada por el
+> view template, y los cortes que quedan vacíos con razón. Queda pendiente confirmar con las
+> líneas `DIAG` cuáles de las elevaciones vacías sobran de verdad.
+>
+> ⚠️ **Al re-correr, `07. Rehacer los rótulos existentes` en True.** Si no, las vistas ya
+> rotuladas se saltan.
 
-Dos mecanismos distintos según la vista:
+**Todo son Multi-Category Tags de la familia `C-MultiCat`**, en dos sitios, y en los dos se
+elige entre el mismo par de tipos según lo que entre en la pieza:
 
-| Vista | Qué pone | Por qué |
+| Vista | Qué pone | Cómo se orienta |
 |---|---|---|
-| Plantas T.A. | **TextNote** con el nombre del tipo, truncado si no cabe | el nombre completo no entra en el largo de la viga |
-| Elevaciones de eje | **Multi-Category Tag** `Item_TBL`, asociativo | en la elevación el nombre va completo: no hay nada que truncar |
+| Plantas T.A. | un tag por viga | girado con la viga, centrado en su eje |
+| Elevaciones de eje | un tag por pieza que esté sobre el eje | horizontal encima de las vigas, girado 90° a la izquierda de las columnas |
 
-### ⚠️ En planta son TextNotes, no tags
+En ambos casos: **`Item_TBL` si entra, `Modelo` si no**.
 
-Un `IndependentTag` muestra el *Type Name* y **la API no deja sobrescribir su texto por
-instancia**, así que con tags de verdad no se puede truncar. La alternativa era editar la
-familia `C-Multicat` para que su etiqueta leyera un parámetro compartido y escribirlo desde
-el script; se descartó para no tocar familias.
+### ⚠️ Cambio 2026-08-04: en planta ya no son TextNotes
 
-Contrapartida asumida: un `TextNote` es texto tonto. No queda asociado a la viga y no se
-actualiza si alguien le cambia el perfil. Hay que re-correr el graph.
+Hasta esta versión las plantas se rotulaban con `TextNote`. El motivo era que un
+`IndependentTag` muestra lo que dice su etiqueta y **la API no deja sobrescribir ese texto
+por instancia**, así que con tags no se podía truncar — y en planta truncar es obligatorio,
+porque el nombre completo no entra en el largo de la viga.
 
-### En la elevación sí son tags
+**La familia `C-MultiCat` resuelve eso desde el otro lado**: trae un tipo corto y uno largo
+(parámetros `TagCorto` / `TagLargo` del propio tipo), así que «acortar» dejó de ser cortar
+un string y pasó a ser **elegir el otro tipo de tag**. Con eso desaparece la contrapartida
+que se había asumido: los rótulos de planta ahora son tags de verdad, asociativos, que se
+actualizan solos si alguien le cambia el perfil a la pieza.
 
-Ahí desaparece el motivo para no usarlos —el nombre entra completo— y aparece la ventaja:
-el tag **se actualiza solo** si alguien le cambia el perfil a la pieza. Es además lo que
-usa el modelador en su vista de referencia (`ELEVACION EJE A`, id 6154003: 10 tags de la
-familia `Item_TBL`, los de las columnas con `Angle = π/2`).
+> Verificado en el modelo el 2026-08-04: los **11** tipos de Multi-Category Tag cargados
+> son todos de la familia `C-MultiCat`, e incluyen `Modelo` (con `TagCorto = 1`) e
+> `Item_TBL` (con `TagLargo = 1`). Como no hay otra familia Multi-Category en el proyecto,
+> el script busca el tipo **por nombre de tipo** y no necesita desambiguar por familia; si
+> no lo encuentra, el log lista los disponibles como `Familia : Tipo`.
+
+Consecuencia: **el truncado en la `x` ya no se escribe en ningún lado**. La función
+`acortar()` sigue en el script, pero solo para reconocer los rótulos de texto de la versión
+anterior y barrerlos (ver más abajo).
+
+### En la elevación ya eran tags — pero ahora también eligen
+
+Es lo que usa el modelador en su vista de referencia (`ELEVACION EJE A`, id 6154003: 10 tags
+de `C-MultiCat : Item_TBL`, los de las columnas con `Angle = π/2`).
+
+Lo que sí cambió: antes la elevación ponía **siempre** el tipo largo, con el argumento de
+que ahí el nombre entraba completo y no había nada que decidir. **Eso era falso**: el tag se
+dibuja a lo ancho de la pieza igual que en planta —horizontal sobre la viga, girado sobre la
+columna— así que una viga corta o una columna baja desbordan lo mismo. Ahora aplica el mismo
+criterio, medido contra la dimensión que la pieza ocupa **en la dirección en que se lee el
+tag**:
+
+| Pieza | Orientación del tag | Contra qué se mide |
+|---|---|---|
+| Viga | horizontal, encima | largo proyectado sobre el `RightDirection` de la vista |
+| Columna | girada 90°, a la izquierda | altura proyectada sobre el `UpDirection` de la vista |
+
+Con eso los tres inputs de tipo de tag se consolidaron en dos: **el mismo par corto/largo
+sirve para plantas y elevaciones**, y el input que antes elegía el tag de elevación pasó a
+ser un booleano `08. Rotular también las elevaciones de eje`.
+
+> ⚠️ **Bug corregido de paso.** La medición leía `Max.X − Min.X` del *bounding box*, lo que
+> da el ancho del tag solo si el «a lo ancho» de la vista coincide con el eje X del modelo.
+> En plantas suele valer; en una elevación de eje **no**, porque el `RightDirection` apunta
+> según el eje del edificio. Ahora se proyecta la diagonal del bbox sobre `RightDirection`,
+> que para un tag plano y sin girar da el ancho exacto sea cual sea la orientación de la
+> vista.
 
 - **Qué se rotula**: `Structural Framing` y `Structural Columns` que la elevación muestre
   y sean miembros del assembly, con el mismo filtro de familias excluidas que las plantas.
 - **⚠️ Solo lo que está sobre el eje.** Una elevación muestra en profundidad todo lo que
   entre en el *Far Clip* —en la vista del modelador son **87** vigas— y rotularlas todas
-  sería ilegible. Se rotula solo lo que esté a menos de una distancia del plano de la vista
-  (input, default **30 cm**), que es el marco que esa elevación documenta. El log cuenta
-  cuántas piezas quedaron fuera por ese motivo.
+  sería ilegible. Se rotula solo lo que esté a menos de una distancia **de la línea del
+  eje** (input, default **30 cm**), que es el marco que esa elevación documenta. El log
+  cuenta cuántas piezas quedaron fuera por ese motivo.
+
+#### ⚠️ El plano de referencia es el eje, no `View.Origin`
+
+Corrido el **2026-08-04**, el filtro descartaba **1762 de 1762** piezas: cero tags en las 24
+elevaciones. Un filtro que descarta el 100% no es un filtro.
+
+La causa está en cómo 00 crea la vista. El crop box abarca **todo el ancho del assembly en
+profundidad** (de `lzmin` a `lzmax` respecto del plano del eje) y `ViewSection.CreateSection`
+deja el plano de la vista en la **cara frontal** de esa caja:
+
+```python
+caja.Min = XYZ(lxmin - m, lymin - m, lzmin - m)
+caja.Max = XYZ(lxmax + m, lymax + m, lzmax + m)
+v = ViewSection.CreateSection(doc, sec_vft.Id, caja)
+```
+
+O sea que **`v.Origin` no está sobre el eje**: está a medio ancho del assembly de distancia
+—metros, no centímetros— así que ninguna pieza entraba nunca en los 30 cm de tolerancia.
+
+Ahora la referencia es **la línea del `Grid`** que la elevación documenta, que sale del
+propio nombre de la vista (`ES-1001 - EJE B` → grid `B`, verificado: los 16 ejes que aparecen
+en el log existen con ese nombre). Si el eje no existe en el modelo, la vista **no se
+rotula** y el log lo dice — rotular 87 piezas es peor que no rotular.
+
+> `v.Origin` **sí** se sigue usando para proyectar el punto del tag al plano de la vista.
+> Son dos planos distintos con dos papeles distintos: el eje contesta *«¿está sobre el
+> eje?»*, el plano de la vista decide *dónde se dibuja la anotación*. Si se dibujara en el
+> plano del eje, éste puede quedar detrás del *near* y el tag se clipearía.
+
+#### ⚠️ Y encima la categoría estaba apagada
+
+Corregido lo anterior, la corrida siguiente puso **110** tags en las elevaciones… y **no se
+veía ninguno**. Es la misma trampa que 03 ya tenía documentada para `Dimensions`, `Spot
+Elevations` y `Lines`: el view template `ESTRUCTURAS_1/50` trae **`Multi-Category Tags`
+apagada**.
+
+Un tag creado en una vista con su categoría apagada **existe en el modelo pero no se dibuja,
+y `FilteredElementCollector(doc, view.Id)` tampoco lo devuelve**. Eso rompe dos cosas a la
+vez:
+
+1. desde el script parece que nunca se creó;
+2. como `tags_previos()` tampoco lo ve, **la idempotencia deja de funcionar** y cada corrida
+   apila tags invisibles encima de los anteriores.
+
+Ahora 05 llama a `encender_tags()` en cada vista —plantas y elevaciones— **antes** de buscar
+los tags previos y antes de medir. El orden importa: si se encendiera después, se borraría
+sobre una lista vacía y se mediría contra un *bounding box* que no existe.
+
+> Si el view template bloqueara el cambio, `SetCategoryHidden` lanza y el log avisa que hay
+> que encenderla a mano en el template. En este modelo no bloquea.
+
+**Por qué 05 nunca lo necesitó antes**: cuando el tag era la única anotación de la elevación,
+el modelador ya tenía la categoría encendida a mano en su vista de referencia (`ELEVACION
+EJE A`), así que el problema no se veía. Las elevaciones que crea 00 nacen con el template
+puesto.
+
+#### Elevaciones que quedan vacías: casi siempre es 00, no 05
+
+Con todo lo anterior corregido siguen apareciendo cortes sin ningún tag. **Suele ser
+correcto.** 00 crea una elevación por cada eje que cruza el **rectángulo del bounding box en
+planta** del assembly:
+
+```python
+if segmento_cruza_rect(p0, p1, bb.Min.X, bb.Min.Y, bb.Max.X, bb.Max.Y):
+```
+
+Ese rectángulo es más grande que la huella real. Un assembly en L, o un marco alargado en
+diagonal, deja ejes que cruzan el rectángulo **sin tocar ninguna pieza**: la elevación se
+crea y no tiene nada que rotular. Por eso se ve «random» — depende de la forma de cada
+assembly, no de nada del rotulado.
+
+La causa alternativa —que los 30 cm de tolerancia se queden cortos— produce **el mismo
+síntoma**, así que 05 no adivina: cuando una elevación queda en cero escribe una línea
+`DIAG` con la distancia de la pieza más cercana al eje.
+
+| Lo que dice el `DIAG` | Qué significa |
+|---|---|
+| «la pieza más cercana está a **metros**» | el eje no toca el assembly → la elevación está vacía con razón; el que sobra es el corte, y eso se arregla en 00 |
+| «a **decenas de cm**» | falta tolerancia → subir el input `09` |
 - **Orientación**: `TagOrientation.Horizontal` en las vigas y `Vertical` en las columnas
   (la pieza es vertical si su dirección se parece más al *arriba* de la vista que a su
   *derecha*). El rótulo de una viga va por encima de su eje y el de una columna a la
   izquierda, a una separación en mm de papel (input, default 2).
 - El punto del tag se **proyecta al plano de la elevación** antes de colocarlo.
-- **Idempotencia**: si la elevación ya tiene tags de ese tipo se salta, salvo que
-  `06. Rehacer los rótulos existentes` esté en True (el mismo input que gobierna los
-  TextNotes de las plantas).
-- Si el input de tipo de tag queda **vacío**, no se toca ninguna elevación. Si el nombre
-  no existe en el proyecto, el log lista los tags Multi-Category disponibles y las plantas
-  se rotulan igual.
-
-### El acortado no es arbitrario: se corta en la `x`
-
-Medido sobre el modelo el 2026-08-03: **no existe ningún tipo llamado `C20`, `IN20` ni
-`L6,5`**. Los 14 tipos que empiezan así llevan todos el sufijo de peso. O sea que los
-nombres cortos del plano son truncados hechos en la anotación, no perfiles distintos.
-
-La regla que aplica el modelador es mecánica — tira el peso en kg/m y deja la designación:
-
-| Completo | Corto |
-|---|---|
-| `C20x13,1` | `C20` |
-| `IN20x35,2` | `IN20` |
-| `L6,5x4,780` | `L6,5` |
-| `L8x7,07` | `L8` |
-
-> El corte es **insensible a mayúsculas**: en el modelo conviven `L8x7,07` y `L8X7,07`.
+- **Idempotencia**: si la elevación ya tiene tags de cualquiera de los dos tipos se salta,
+  salvo que `07. Rehacer los rótulos existentes` esté en True (el mismo input que gobierna
+  las plantas).
+- Con `08. Rotular también las elevaciones de eje` en False no se toca ninguna elevación y
+  las plantas se rotulan igual.
 
 ### El «¿cabe?» se mide, no se estima
 
-Nada de calcular anchos de fuente. Se crea un `TextNote` de prueba por cada texto distinto
-fuera del crop, se regenera, se lee su *bounding box* y se borra. Con eso el criterio queda
-en un `if`:
+Nada de calcular anchos de fuente ni contar caracteres: **se mide el tag**. Por cada tipo de
+pieza se crea un tag de prueba largo, horizontal y fuera del crop; se regenera **una sola
+vez por vista** (lo caro es el `Regenerate`, no el tag) y se lee su *bounding box*. Con eso
+el criterio queda en un `if`:
 
 ```
-disponible = largo de la viga en planta − 2 × margen        (input, default 2 mm de papel)
-si ancho(nombre completo) > disponible  →  se usa el corto
+disponible = dimensión de la pieza en la dirección de lectura − 2 × margen
+                                                            (input, default 2 mm de papel)
+si ancho(tag largo) > disponible  →  se coloca el tipo corto
 ```
 
-Las mediciones se **cachean por (texto, escala)**, porque los nombres de tipo se repiten
-decenas de veces por vista. Si la medición fallara, se cae a estimar `nº caracteres ×
-altura × 0,6`.
+La «dirección de lectura» es el largo de la viga en planta, el `RightDirection` de la vista
+para una viga en elevación y el `UpDirection` para una columna. **El margen es el mismo
+input para los tres casos.**
 
-**Si ni el corto entra, se pone igual**: vale más una viga rotulada de más que una sin
-identificar. El log cuenta cuántas quedaron así, por si conviene resolverlas a mano.
+Las mediciones se **cachean por (tipo de tag, tipo de pieza, escala)**, porque los perfiles
+se repiten decenas de veces por vista.
 
-### Tipo de texto
+> Esto mide el **tag renderizado**, no el string. Es más fiel que la versión anterior, que
+> medía el texto que iba a escribir: ahora entran en la cuenta el recuadro, el relleno y
+> cualquier prefijo que traiga la etiqueta de la familia.
 
-Input `03. Tipo de texto del rotulo`, default **`C_TBL_RomanD2.2mm`** (verificado que existe
-en el proyecto, id 504711). Es editable desde Player, así que el modelador puede cambiarlo
-sin abrir Dynamo.
+Si la medición fallara (bounding box nulo), se deja el **tipo largo**: es el rótulo
+completo. **Si ni el corto entra, se pone igual**: vale más una pieza rotulada de más que
+una sin identificar. El log cuenta ambos casos por separado para plantas y elevaciones, por
+si conviene resolverlos a mano.
 
-> Si el nombre no coincide con ningún tipo, el graph **no escribe nada** y lo dice en el log
-> junto con la lista de tipos disponibles. Deliberadamente no cae al primero de la lista:
-> con un nombre mal escrito, rotular decenas de vigas en `C_TIT_RomanD5mm` (fuente de
-> títulos) es peor que no rotular.
+### ⚠️ Migración de los rótulos de texto viejos
 
-El proyecto tiene además `C_TBL_RomanD2.2mm_Negrita`, `C_TBL_RomanD3mm`,
-`C_TXT_RomanD2.3mm`, `C_TXT_RomanD2.5mm` y `C_TIT_RomanD5mm`. La vista de referencia del
-modelador usa `C_TXT_RomanD2.5mm` para el texto de "GRATING ARS-5".
+Las plantas que ya se rotularon con la versión anterior tienen `TextNote` que el nuevo graph
+no reconocería como suyos, y los tags nuevos quedarían encima. Al pasar por cada planta se
+borran, pero **solo los `TextNote` cuyo texto coincide exactamente con un nombre de perfil
+de esa misma vista** — entero o cortado en la `x`, que es como acortaba antes. Un `TextNote`
+con cualquier otro texto es una nota que puso alguien a mano y no se toca.
 
-### Orientación
+Por eso el script ya no necesita un input de tipo de texto: identifica los rótulos viejos
+por su contenido, no por su tipo. El log dice cuántos barrió en cada vista.
 
-El texto se rota con el eje de la viga y el ángulo se normaliza a (−90°, 90°] para que nunca
-se lea de cabeza. Como el origen de un `TextNote` es el **tope** de la línea, se sube media
-altura de texto para que quede centrado sobre el eje.
+> El truncado en la `x` era mecánico —tirar el peso en kg/m y dejar la designación:
+> `C20x13,1` → `C20`, `L6,5x4,780` → `L6,5`— e insensible a mayúsculas, porque en el modelo
+> conviven `L8x7,07` y `L8X7,07`. Esa regla sobrevive solo dentro de este barrido.
+
+### Orientación en planta
+
+El tag se crea `TagOrientation.Horizontal` en el **punto medio de la viga** y después se
+gira con `ElementTransformUtils.RotateElement` sobre su propia cabeza, alrededor del eje Z.
+Como la cabeza del tag es su centro, queda centrado sobre el eje de la viga sin el ajuste de
+media altura que necesitaba el `TextNote` (cuyo origen era el tope de la línea).
+
+El ángulo sale del eje en planta y se normaliza a (−90°, 90°] para que nunca se lea de
+cabeza — misma regla que antes.
+
+### Los dos tipos de tag son inputs
+
+| Input | Default |
+|---|---|
+| `03. Tipo de C-MultiCat del rotulo CORTO` | `Modelo` |
+| `04. Tipo de C-MultiCat del rotulo LARGO` | `Item_TBL` |
+
+Son editables desde Player y valen para plantas **y** elevaciones. **Se exigen los dos**: si
+falta cualquiera de ellos no se rotula nada y el log lo dice, junto con la lista de tags
+disponibles como `Familia : Tipo`. Deliberadamente no cae a un tipo cualquiera — con un
+nombre mal escrito, rotular decenas de piezas con el tag equivocado es peor que no rotular.
 
 ### Lo que NO hace
 
 - **No evita colisiones** entre rótulos ni contra otras anotaciones. El modelador los acomoda
   a ojo; replicar eso es un problema aparte.
-- **No rotula columnas**, solo `Structural Framing`.
-- El grating queda fuera por el input `05. Familias a NO rotular` (default `GRATING`).
+- **En planta no rotula columnas**, solo `Structural Framing` (en elevación sí, ambas).
+- El grating queda fuera por el input `06. Familias a NO rotular` (default `GRATING`).
+- **No controla qué texto muestra cada tipo de tag.** Eso lo define la etiqueta de la
+  familia `C-MultiCat`; el script solo elige entre el tipo corto y el largo.
 
 ### ⚠️ Tipos duplicados en el modelo
 
 Hay tipos que son el mismo perfil con nombres distintos: `L8x7,070`, `L8x7,07` y `L8X7,07`
 conviven, igual que `C20x13,1` con `C20x13,10` y `L8x5,960` con `L8x5,96`. Vigas idénticas
-van a salir rotuladas distinto según qué tipo les tocó. El truncado en la `x` disimula buena
-parte, pero no todo — es basura del modelo, no del graph.
+van a salir rotuladas distinto según qué tipo les tocó. Antes el truncado en la `x`
+disimulaba buena parte; ahora depende de qué lea la etiqueta de cada tipo de `C-MultiCat`.
+En cualquier caso es basura del modelo, no del graph.
 
 ---
 
@@ -1271,6 +1409,11 @@ parte, pero no todo — es basura del modelo, no del graph.
   sheet ya usados en el proyecto se saltan.
 - `02`: vistas ya colocadas se omiten; solo se usan láminas **sin ningún viewport** (un
   assembly no puede compartir lámina, así que no se rellenan láminas a medias).
+- `05`: una vista que ya tiene tags de alguno de los dos tipos se salta, salvo con
+  `07. Rehacer los rótulos existentes` en True. ⚠️ **La idempotencia depende de que la
+  categoría `Multi-Category Tags` esté encendida en la vista**: si estuviera apagada, el
+  collector no ve los tags previos y cada corrida los apila invisibles. Por eso 05 la
+  enciende antes de contarlos — la misma precaución que 03 toma con `Dimensions`.
 
 ## Mensajes de log frecuentes
 
