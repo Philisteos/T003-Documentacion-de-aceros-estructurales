@@ -624,16 +624,20 @@ Revit no deja apoyar una marca de nivel sobre algo que no se ve.
 
 #### ⚠️ Una marca de nivel es mucho más quisquillosa que una cota
 
-Con la misma referencia de cara, las cotas entraban y **casi todas las marcas fallaban**
-con `Spot Dimension does not lie on its reference` (medido el 2026-08-04). El punto que se
-le pasa a `NewSpotElevation` tiene que caer **dentro** de la cara, y el centro del
-*bounding box paramétrico* no sirve: en una plancha con agujeros de pernos o en una cara
-en L cae fuera del contorno.
+Con la **misma cara**, las cotas se dibujaban bien y **todas las marcas de nivel
+fallaban** con `Spot Dimension does not lie on its reference` — incluso sobre vigas
+simples, probando decenas de candidatos y puntos (medido el 2026-08-04). La causa: el
+punto que se le pasa a `NewSpotElevation` tiene que caer sobre la referencia con una
+tolerancia mucho más fina de la que da cualquier cálculo manual (centroide de un
+triángulo de la teselación, o centro paramétrico) — `NewDimension`, en cambio, ni
+siquiera exige un punto sobre la referencia, así que nunca expone el problema.
 
-La solución es tomar el **centroide de un triángulo de la teselación** (`Face.Triangulate`)
-— siempre cae dentro del contorno y, en una cara plana, exactamente en el plano. Se
-prueban los cuatro triángulos más a la derecha (para que la directriz salga corta), luego
-el centro paramétrico, y se repite con hasta 8 piezas antes de darse por vencido.
+La solución es **`Face.Project(punto)`**: el método nativo de Revit para clavar un punto
+cualquiera exactamente sobre una cara, con la misma precisión que usa el motor interno
+para validar spots. Las semillas (centroides de triángulo, de derecha a izquierda para
+que la directriz salga corta, más el centro paramétrico como último recurso) ya no se
+usan directo — se pasan por `Project()` y se descartan si no cae dentro del contorno. Se
+repite con hasta 8 piezas antes de darse por vencido.
 
 Esto contradice a propósito la regla de «no depender de caras del acero» que rige para
 las cadenas en planta: ahí había una alternativa (los ejes de viga `L-CENTER`), acá no
