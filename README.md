@@ -35,7 +35,6 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas; en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones sin probar en Revit** |
 | 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
 | 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Multi-Category Tag `C-MultiCat` sobre cada viga de las T.A. y sobre las piezas del eje en las elevaciones, eligiendo tipo corto o largo según lo que entre en la pieza — **plantas OK, elevaciones sin volver a probar** |
-| 5b | `05_Tags en plantas.dyn` | ➖ neutro | Multi-Category Tag por selección manual; sigue sirviendo como herramienta suelta |
 | 6 | `06_Tabla de assemblies.dyn` | 🧪 acero | Una *lista de materiales* por assembly, en su primera lámina — **sin probar en Revit** |
 
 **Flujo**: 00 (crear vistas) → 01 (calcular y crear láminas) → 02 (colocar vistas y
@@ -1638,9 +1637,8 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
    caras** de 03: si Revit rechaza alguna, el log lo dice con el texto exacto del error y
    la cota desaparece al comitear. Verificar también contra el plano-tipo si la cadena
    queda bien repartida entre las dos verticales.
-2. Decidir qué se hace con el viejo `05_Tags en plantas.dyn`: hoy hay dos graphs numerados
-   05 y en Player eso confunde. Además hay que arreglar en 00 que `Structural Connections`
-   se enciende en las T.A., donde no corresponde.
+2. Arreglar en 00 que `Structural Connections` se enciende en las T.A., donde no
+   corresponde.
 3. **Tipo de cota**: el modelador usa `2.5 ROMAND(MILIMETROS)` en todas. Hoy ni 03 en
    planta ni 03 en elevación fijan el `DimensionType`: queda el que traiga el proyecto o
    el view template. Si en el plano salen con otra fuente, hace falta un input más.
