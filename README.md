@@ -32,7 +32,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por eje que lo cruza **y que tenga marco encima** |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
-| 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas; en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones sin probar en Revit** |
+| 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas, más un tag `ELEMENTO_TBL` por conexión en la NIPB; en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones y los rótulos de la NIPB, sin probar en Revit** |
 | 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
 | 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Multi-Category Tag `C-MultiCat` sobre cada viga de las T.A. y sobre las piezas del eje en las elevaciones, eligiendo tipo corto o largo según lo que entre en la pieza — **plantas OK, elevaciones sin volver a probar** |
 | 6 | `06_Tabla de assemblies.dyn` | 🧪 acero | Una *lista de materiales* por assembly, en su primera lámina — **sin probar en Revit** |
@@ -116,7 +116,7 @@ separado. Antes eran dos campos y era fácil confundirlos entre sí y con el de 
 ### Orden de los campos en Dynamo Player
 
 Player ordena los inputs **alfabéticamente por etiqueta**, no por su posición en el canvas.
-Por eso las etiquetas van numeradas con dos dígitos (`01.`, `02.`, … `13.`): sin el cero a
+Por eso las etiquetas van numeradas con dos dígitos (`01.`, `02.`, … `16.`): sin el cero a
 la izquierda, `10.` se ordenaría antes que `02.`. El orden resultante va de lo que se toca
 siempre (qué procesar, carpeta, tipo de vista) a lo que casi nunca se toca (márgenes y
 far clip).
@@ -412,15 +412,17 @@ mecanismos y dos necesidades distintas:
 **Una sola escala para todo** (input, default **1:75**), plantas y elevaciones. Reemplaza
 la escala automática 1:25/1:50 de fundaciones, que no aplica a estructuras de este tamaño.
 
-Hay **dos campos de view template independientes**, uno por familia de vista (una planta y
-una elevación de eje nunca comparten template real en Revit):
+Hay **tres campos de view template independientes** (dos vistas de familias distintas nunca
+comparten template real en Revit, y la NIPB necesita uno propio):
 
-- **`06. View template - PLANTAS`**, default `DISP.GRAL_1/150_PLAN`. Se aplica a la NIPB y a
-  todas las T.A.
-- **`07. View template - ELEVACIONES DE EJE`**, default `ESTRUCTURAS_1/50`. Se aplica a las
+- **`06. View template - PLANTAS T.A.`**, default `DISP.GRAL_1/150_PLAN`.
+- **`07. View template - NIPB (debe mostrar conexiones)`**, default `ESTRUCTURAS_1/50`. Va
+  aparte de las T.A. porque a esa cota lo que hay que ver son las sillas y placas base, que
+  son `Structural Connections` — la categoría que el template de disposición general apaga.
+- **`08. View template - ELEVACIONES DE EJE`**, default `ESTRUCTURAS_1/50`. Se aplica a las
   elevaciones por eje.
 
-Ambos vienen pre-seteados así que el modelador no tiene que tocar nada para el caso normal,
+Los tres vienen pre-seteados así que el modelador no tiene que tocar nada para el caso normal,
 pero siguen siendo **campos de texto editables** por si hace falta otro template puntual. Si
 alguno queda vacío, esa familia de vistas se queda con el default de su *ViewFamilyType* y no
 se fuerza ningún template. En cualquier caso la escala se **re-escribe después** del template
@@ -730,6 +732,62 @@ vez de dejar el misterio.
 > todo: 00 crea la vista vacía y lo único que agrega 05 son tags, que no se tocan. Sin
 > este input no se puede iterar — la anotación de una corrida anterior bloquea la
 > siguiente.
+
+### Rótulos de las conexiones en la planta NIPB
+
+**Solo en la NIPB**, un Multi-Category Tag por cada `Structural Connection` del assembly
+que la vista muestre: placas base, sillas de anclaje, atiesadores y pernos. Lo gobiernan
+tres inputs: `NIPB: rotular las conexiones (placas base, sillas)` (default True),
+`NIPB: tipo de C-MultiCat del rotulo` (default **`ELEMENTO_TBL`**, el tipo que lee el
+parámetro compartido del mismo nombre) y `NIPB: rehacer los rotulos existentes`.
+
+Es lo único que se rotula a esa cota, y a propósito:
+
+| Vista | Quién rotula | Qué |
+|---|---|---|
+| NIPB | **03** | `Structural Connections` |
+| Plantas T.A. | 05 | vigas |
+| Elevaciones de eje | 05 | vigas y columnas |
+
+Las columnas y las dos vigas que la NIPB muestra quedan fuera: ya salen rotuladas en las
+T.A. y en las elevaciones, y a la cota de la placa base no dicen nada.
+
+Medido en `ES-1001 - NIPB` el **2026-08-05**: 53 elementos del assembly visibles — **47
+conexiones**, 4 columnas y 2 vigas.
+
+> ⚠️ **Los rótulos de una misma placa base salen encimados.** Esas 47 conexiones viven
+> sobre **4 placas**, o sea ~12 piezas apiladas en el mismo punto en planta. El tag va al
+> centro en planta de su pieza y sin directriz, así que los de una misma placa nacen unos
+> encima de otros y hay que separarlos a mano. No hay un lugar «correcto» que el script
+> pueda calcular: son piezas superpuestas, no repartidas.
+
+> ⚠️ **Hoy los 53 dirían lo mismo.** En el modelo de referencia `ELEMENTO_TBL` (parámetro
+> compartido `433e7c25-aa15-4380-9474-c6dffa787fa2`) vale **`ES-1001`** en las 53 piezas
+> visibles — es el TAG del assembly, no el identificador de la pieza (`PL-1004`,
+> `PL-1005`, `SILLA ANCLAJE ES-1001` están en el *Type Name*). El script no controla qué
+> texto muestra un tipo de tag —eso lo define la etiqueta de la familia `C-MultiCat`, igual
+> que en 05—, así que esto es dato del modelo. Si hace falta otra cosa, se cambia el input
+> de tipo de tag.
+
+Detalles:
+
+- **Se enciende la categoría `Multi-Category Tags`** antes de nada, por la misma trampa ya
+  documentada para *Dimensions*, *Spot Elevations* y *Lines*: un tag creado en una vista
+  con su categoría apagada existe pero no se dibuja, y `FilteredElementCollector(doc,
+  view.Id)` tampoco lo devuelve — con lo que la idempotencia deja de verlo y cada corrida
+  apila tags invisibles. A quien hay que ganarle es al view template de la NIPB
+  (`07.` en 00, default `ESTRUCTURAS_1/50`).
+- **Qué piezas entran**: las que devuelve el colector por vista (respeta el View Range y el
+  aislamiento permanente de 00) **filtradas contra los miembros recursivos del assembly**.
+  Si la vista no muestra ninguna conexión, el log lo dice y apunta a la categoría
+  `Structural Connections`, que el template apaga y 00 vuelve a encender.
+- El tipo de tag se busca **por nombre de tipo** y se activa si hacía falta. Si no existe,
+  no se rotula nada y el log lista los disponibles como `Familia : Tipo` — mismo criterio
+  que 05: rotular decenas de piezas con el tag equivocado es peor que no rotular.
+- **Idempotencia**: si la NIPB ya tiene tags de ese tipo se salta, salvo que `NIPB: rehacer
+  los rotulos existentes` esté en True.
+- El punto del tag se prueba contra el `Origin.Z` de la vista y contra la
+  `ProjectElevation` de su nivel, porque con **cota compartida** no coinciden (ver 00).
 
 ### Eje de cada viga en las plantas T.A. (línea roja `L-CENTER`)
 
@@ -1393,6 +1451,8 @@ nombre mal escrito, rotular decenas de piezas con el tag equivocado es peor que 
 - **No evita colisiones** entre rótulos ni contra otras anotaciones. El modelador los acomoda
   a ojo; replicar eso es un problema aparte.
 - **En planta no rotula columnas**, solo `Structural Framing` (en elevación sí, ambas).
+- **No toca la NIPB.** Las conexiones de la placa base las rotula **03**
+  (ver [03 § Rótulos de las conexiones en la planta NIPB](#rótulos-de-las-conexiones-en-la-planta-nipb)).
 - El grating queda fuera por el input `06. Familias a NO rotular` (default `GRATING`).
 - **No controla qué texto muestra cada tipo de tag.** Eso lo define la etiqueta de la
   familia `C-MultiCat`; el script solo elige entre el tipo corto y el largo.
