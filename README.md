@@ -21,6 +21,11 @@ geométrica de vigas, elevaciones por eje, distribución en láminas y tabla de 
 > los assemblies **ES-1001, ES-1002 y ES-1003**, y 00 genera 40 vistas sobre ellos
 > (13 plantas + 27 elevaciones). Sin assemblies ningún graph produce nada: 00 avisa en el
 > log y termina.
+>
+> ⚠️ **Desde el 2026-08-10 esas 27 elevaciones ya no salen solas.** Las elevaciones de eje
+> ahora dependen del parámetro **`ASSEMBLY`** de cada eje (ver [00 § C](#c-elevaciones-de-eje)):
+> hay que crear el parámetro en la categoría *Grids* y escribir en cada eje el assembly al
+> que pertenece. Ejes sin marcar = cero elevaciones.
 
 **Primera vez en una máquina nueva**: abrir cada .dyn en Dynamo (no en Player), correr y
 guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera desde Player.
@@ -29,7 +34,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 
 | # | Graph | Estado | Qué hace |
 |---|-------|--------|----------|
-| 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por eje que lo cruza **y que tenga marco encima** |
+| 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por cada eje **marcado con el parámetro `ASSEMBLY`** |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
 | 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas, más un tag `ELEMENTO_TBL` por conexión en la NIPB; en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones y los rótulos de la NIPB, sin probar en Revit** |
@@ -72,9 +77,9 @@ dibujaba ninguna. El síntoma en el log era `vistas con Grids encendido: 0` — 
 `GetCategoryHidden`, Revit contestaba «no está oculta», y no había nada que encender.
 
 Por eso las plantas son **`ViewPlan` normales**, recortadas al assembly por `CropBox` y
-**aisladas** a sus miembros + los ejes que lo cruzan + los marcadores de sus elevaciones
-(`IsolateElementsTemporary` → `ConvertTemporaryHideIsolateToPermanent`). Es la misma técnica
-que ya funcionaba en las elevaciones de eje.
+**aisladas** a sus miembros + **los ejes marcados con `ASSEMBLY`** + los marcadores de sus
+elevaciones (`IsolateElementsTemporary` → `ConvertTemporaryHideIsolateToPermanent`). Es la
+misma técnica que ya funcionaba en las elevaciones de eje.
 
 **Consecuencias**:
 
@@ -336,28 +341,59 @@ a las plantas un template que muestre esa categoría.
 
 ### C. Elevaciones de eje
 
-Tantas como **ejes estructurales crucen la huella en planta** del assembly (test de
-intersección segmento-rectángulo Liang-Barsky contra el bbox sólido del assembly) **y que
-además tengan alguna viga o columna encima** (`ejes_con_marco`).
+Una por cada eje que traiga escrito el **nombre del assembly en su parámetro `ASSEMBLY`**
+(`ejes_del_assembly`). Ni uno más: es un marcado explícito, no un criterio geométrico.
 
-#### ⚠️ Cruzar la huella no alcanza: tiene que haber marco
+#### El parámetro `ASSEMBLY` de los ejes
 
-El test Liang-Barsky mide contra el **rectángulo** del bounding box, y ese rectángulo es
-bastante más grande que la huella real: un assembly en L, o uno alargado en diagonal, deja
-ejes que lo cruzan **sin tocar ninguna pieza**. Esas elevaciones nacían sin nada que
-documentar y salían en la lámina en blanco.
+Es **el único** criterio de 00 sobre ejes, y contesta **dos** preguntas con la misma lista:
+qué ejes llevan elevación, y qué ejes se ven en las vistas del assembly (los demás se
+ocultan — ver [§ Qué ejes se ven en cada vista](#qué-ejes-se-ven-en-cada-vista)).
 
-Medido el **2026-08-04**: 10 de las 24 elevaciones quedaban vacías, y en ellas la pieza más
-cercana al eje estaba entre **1,7 y 4,9 m**. O sea que no era falta de tolerancia sino ejes
-sin marco — subirla a 1 m no rescató ninguna de las diez y de paso arruinó las que sí
-andaban (`ES-1002 EJE E` pasó de 8 tags a **51 sobre 66** piezas, ilegible).
+- **Dónde**: parámetro de **proyecto**, de tipo **texto**, en la categoría **Grids**
+  (`Structural Grids`). 00 lo busca primero en la instancia y, si no está, en el tipo.
+- **Qué lleva**: el nombre del assembly tal cual (`AssemblyTypeName`, ej. `ES-1001`). **Un
+  solo nombre por eje.** La comparación ignora mayúsculas/minúsculas y espacios sobrantes.
+- **Vacío o sin el parámetro** → ese eje no lleva elevación **y no se ve en ninguna vista**.
+- Un eje que **no sea línea recta** se descarta con aviso: la caja de sección se alinea a la
+  dirección del eje y un arco no tiene una.
 
-Por eso 00 filtra: se hace la elevación solo si hay al menos una `Structural Framing` o
-`Structural Column` del assembly a menos de **30 cm** del eje.
+| Situación | Qué hace 00 |
+|---|---|
+| Hay ejes con `ASSEMBLY` = el assembly | crea esas elevaciones y solo esas, y son los únicos ejes visibles en sus vistas |
+| Ningún eje calza con este assembly | **cero elevaciones y plantas sin ningún eje**, `AVISO` en el log con los valores que sí aparecen en el modelo |
+| El parámetro existe pero está vacío en todos | ídem, `ERROR` en el log |
+| Ningún eje del modelo tiene el parámetro | ídem, `ERROR` en el log explicando cómo crearlo |
 
-> ⚠️ **El filtro se aplica solo a qué ejes llevan elevación.** La lista completa de ejes que
-> cruzan sigue yendo entera al aislamiento — ver el párrafo de abajo: un eje que no entre
-> ahí queda oculto para siempre.
+No hay fallback al criterio geométrico: si nadie marcó ejes, el assembly queda sin
+elevaciones a propósito, y el log lo dice fuerte.
+
+> ⚠️ **Sin marcado, las plantas salen sin ejes** — y sin ejes visibles, las cadenas de cotas
+> de 03 se crean pero no se dibujan (es exactamente el síntoma documentado arriba en
+> [§ Por qué las plantas NO son vistas de assembly](#por-qué-las-plantas-no-son-vistas-de-assembly)).
+> Marcar los ejes **antes** de correr 00 no es opcional.
+
+#### Por qué se reemplazó el criterio geométrico (2026-08-10)
+
+Hasta esta versión la elevación se hacía si el eje cruzaba la huella (Liang-Barsky del
+segmento contra el rectángulo del bbox) **y** tenía una viga o columna a menos de 30 cm
+(`ejes_con_marco`, ahora eliminada). **Salían demasiadas elevaciones** y gerencia lo levantó
+como observación.
+
+El problema era de raíz: el test mide contra el **rectángulo** del bounding box, bastante
+más grande que la huella real — un assembly en L, o uno alargado en diagonal, deja pasar
+ejes que no tocan nada. Y no se arreglaba con tolerancia: medido el **2026-08-04**, 10 de
+las 24 elevaciones quedaban vacías con la pieza más cercana entre **1,7 y 4,9 m**; subir la
+tolerancia a 1 m no rescató ninguna de las diez y arruinó las que sí andaban (`ES-1002 EJE
+E` pasó de 8 tags a **51 sobre 66** piezas, ilegible).
+
+El marcado en el eje es explícito y lo controla quien arma el plano, que es exactamente la
+decisión que el criterio geométrico estaba tratando de adivinar.
+
+> ⚠️ **El marcado decide dos cosas a la vez**: qué ejes llevan elevación **y qué ejes se
+> ven** en las vistas del assembly — el aislamiento de plantas y elevaciones se arma con esa
+> misma lista. Un eje de otro sector no entra al aislamiento, o sea que queda **oculto**. Ver
+> [§ Qué ejes se ven en cada vista](#qué-ejes-se-ven-en-cada-vista).
 
 Estas **no** son vistas de assembly: `AssemblyViewUtils.CreateDetailSection` solo admite
 orientaciones fijas (`HorizontalDetail`, `DetailSection A`–`D`), que no pueden dar «una
@@ -369,10 +405,24 @@ recursivos **más el propio eje** (para que su burbuja siga visible), y luego
 `ConvertTemporaryHideIsolateToPermanent` — el aislamiento temporal no sobrevive al cierre
 de la vista.
 
-El aislamiento incluye **todos los ejes que cruzan el assembly**, no solo el propio: 03
-enciende la categoría *Grids* en estas vistas y los ejes transversales tienen que poder
-verse. Un eje que no entre en el aislamiento queda oculto para siempre y 03 no puede
-recuperarlo encendiendo la categoría.
+#### Qué ejes se ven en cada vista
+
+**Solo los del assembly.** Plantas y elevaciones se aíslan con la **misma lista** que decide
+las elevaciones: los ejes cuyo `ASSEMBLY` calza. Los ejes de otros sectores no entran al
+aislamiento y quedan **ocultos** — que era la segunda parte de la observación de gerencia.
+
+En cada vista entra el eje propio (para que su burbuja siga visible) **más los otros ejes
+marcados para ese mismo assembly**, que son los transversales que 03 necesita para sus
+cadenas de cotas.
+
+> ⚠️ Un eje que no entre en el aislamiento queda oculto **para siempre**: 03 enciende la
+> categoría *Grids* pero eso no revierte un `ConvertTemporaryHideIsolateToPermanent`. Si
+> falta un eje en una planta, es **marcado faltante en el modelo**, no un problema de 03 —
+> se agrega el `ASSEMBLY` al eje y se re-corre 00 con *Recrear*.
+
+Antes del 2026-08-10 el aislamiento usaba un criterio distinto al de las elevaciones (todos
+los ejes que **cruzaban** el bbox, vía `ejes_que_cruzan` + `segmento_cruza_rect`, ambas ya
+eliminadas). Eran dos criterios conviviendo en el mismo graph; ahora hay uno solo.
 
 - Nombre interno: `{assembly} - EJE {nombre del eje}` (ej. `ES-1001 - EJE 13a`)
 - Título en lámina: `{assembly} - ELEVACION EJE 13a`
@@ -1343,32 +1393,24 @@ puesto.
 
 #### Elevaciones que quedan vacías: casi siempre es 00, no 05
 
-Con todo lo anterior corregido siguen apareciendo cortes sin ningún tag. **Suele ser
-correcto.** 00 crea una elevación por cada eje que cruza el **rectángulo del bounding box en
-planta** del assembly:
+Con todo lo anterior corregido pueden seguir apareciendo cortes sin ningún tag. **A veces es
+correcto**: desde el 2026-08-10 quién lleva elevación lo decide el parámetro `ASSEMBLY` del
+eje, así que un eje marcado a mano lejos de toda pieza produce una elevación legítimamente
+vacía. El corte sobra, y eso se arregla **desmarcando el eje**, no en 05.
 
-```python
-if segmento_cruza_rect(p0, p1, bb.Min.X, bb.Min.Y, bb.Max.X, bb.Max.Y):
-```
-
-Ese rectángulo es más grande que la huella real. Un assembly en L, o un marco alargado en
-diagonal, deja ejes que cruzan el rectángulo **sin tocar ninguna pieza**: la elevación se
-crea y no tiene nada que rotular. Por eso se ve «random» — depende de la forma de cada
-assembly, no de nada del rotulado.
-
-La causa alternativa —que los 30 cm de tolerancia se queden cortos— produce **el mismo
-síntoma**, así que 05 no adivina: cuando una elevación queda en cero escribe una línea
-`DIAG` con la distancia de la pieza más cercana al eje.
+Como la otra causa —que los 30 cm de tolerancia se queden cortos— produce **el mismo
+síntoma**, 05 no adivina: cuando una elevación queda en cero escribe una línea `DIAG` con la
+distancia de la pieza más cercana al eje.
 
 | Lo que dice el `DIAG` | Qué significa |
 |---|---|
-| «la pieza más cercana está a **metros**» | el eje no toca el assembly → la elevación está vacía con razón; el que sobra es el corte, y eso se arregla en 00 |
+| «la pieza más cercana está a **metros**» | el eje no toca el assembly → el `ASSEMBLY` de ese eje está mal puesto; se arregla en el modelo, no en 05 |
 | «a **decenas de cm**» | falta tolerancia → subir el input `09` |
 
-**Resuelto el 2026-08-04 en 00, no en 05.** El `DIAG` sobre las 10 elevaciones vacías dio
-entre 1,7 y 4,9 m en todas: eran ejes sin marco, no falta de tolerancia. Ahora
-`ejes_con_marco()` no las crea (ver [00 § C](#c-elevaciones-de-eje)), así que 05 no debería
-volver a escribir esta línea. Si aparece, es que 00 y 05 se desincronizaron en los 30 cm.
+**Historia.** El 2026-08-04 el `DIAG` sobre las 10 elevaciones vacías dio entre 1,7 y 4,9 m
+en todas: eran ejes sin marco, no falta de tolerancia. Se resolvió en 00 con el filtro
+geométrico `ejes_con_marco()`, que el 2026-08-10 quedó reemplazado por el marcado explícito
+(ver [00 § C](#c-elevaciones-de-eje)).
 - **Orientación**: `TagOrientation.Horizontal` en las vigas y `Vertical` en las columnas
   (la pieza es vertical si su dirección se parece más al *arriba* de la vista que a su
   *derecha*). El rótulo de una viga va por encima de su eje y el de una columna a la
@@ -1614,10 +1656,11 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
 - Distancias de anotación y márgenes se ingresan en **mm de papel** y se convierten con la
   escala de cada vista.
 - Offsets y tolerancias geométricas se ingresan en **cm**.
-- **«Estar sobre el eje» son 30 cm, y 00 y 05 tienen que coincidir.** 00 usa `TOL_MARCO`
-  para decidir si un eje merece elevación; 05 usa el input `09` para decidir qué piezas
-  rotula en ella. Si 05 sube su tolerancia por encima de la de 00 va a rotular en cortes
-  que 00 ya no crea, y si la baja va a dejar cortes vacíos. **Al tocar una, tocar la otra.**
+- **Qué ejes llevan elevación lo decide el parámetro `ASSEMBLY` del eje**, no la geometría
+  (desde el 2026-08-10). 00 ya no tiene tolerancia propia para esto: `TOL_MARCO` y
+  `ejes_con_marco()` se eliminaron. 05 conserva su input `09` (30 cm) para decidir **qué
+  piezas rotula dentro** de la elevación, que es otra pregunta. Si una elevación marcada
+  sale sin tags, revisar el marcado del eje antes que la tolerancia de 05.
 - **06 se apoya en los nombres de vista de 00** para saber cuál es la primera lámina de cada
   assembly (`{assembly}` o `{assembly} - ...`). Si alguien renombra vistas a mano, 06 deja
   ese assembly sin tabla y lo dice en el log.
@@ -1663,15 +1706,15 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
 - `no existe la vista ... (corre 00_Vistas de assembly)` (01/02) — falta el paso 0.
 - `no hay vigas (Structural Framing) con geometria` (00) — el assembly no tiene vigas
   identificables; se genera la NIPB y las elevaciones, pero ninguna planta T.A.
-- `ningun eje cruza la huella del assembly` (00) — revisar que los ejes estén dibujados
-  con extensión suficiente sobre la zona del assembly.
-- `N eje(s) cruzan la huella sin ninguna pieza encima; no llevan elevacion` (00) — **es
-  normal**, no un error. El bounding box es un rectángulo más grande que la huella real y
-  esos ejes lo atraviesan por el aire. Siguen visibles como ejes transversales en las demás
-  vistas; sólo no se les hace un corte que saldría en blanco.
-- `nada a menos de N cm del eje` (05) — la elevación existe y quedó sin tags. No debería
-  pasar desde que 00 filtra: si aparece, 00 y 05 tienen tolerancias distintas.
-- `el eje X no es una linea recta` (00) — los ejes en arco no se soportan para elevaciones.
+- `ningun eje del modelo tiene el parametro ASSEMBLY` (00) — hay que crearlo: parámetro de
+  proyecto de texto en la categoría *Grids*. Sin él **no se crea ninguna elevación y las
+  plantas salen sin ejes**.
+- `ningun eje tiene ASSEMBLY = "X"` (00) — nadie marcó ejes para ese assembly. El log lista
+  los valores que sí aparecen en el modelo: casi siempre es un typo o un espacio de más.
+- `el eje X esta marcado con ASSEMBLY = "Y" pero no es una linea recta` (00) — ejes en arco;
+  no se les puede alinear una caja de sección.
+- `nada a menos de N cm del eje` (05) — la elevación existe y quedó sin tags. Con el marcado
+  explícito esto es marcado de más en el eje, no falta de tolerancia en 05.
 - `sin geometria solida valida en ningun miembro` (00) — geometría rota en el modelo
   (elemento con `Volume = 0`); hay que arreglarlo en Revit, no en el script.
 - `SIN ESPACIO para N vistas` (02) — correr 01 para agregar las láminas que falten.
