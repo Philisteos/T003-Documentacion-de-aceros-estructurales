@@ -274,39 +274,64 @@ es todo el punto del cambio.
 - Nombre interno: `{assembly} - NIPB`
 - Título en lámina: `{assembly} - PLANTA N.I.P.B.`
 
-#### ⚠️ Qué se oculta en la NIPB
+#### ⚠️ Qué se oculta en las plantas base (NIPB y P.T.)
 
-A la cota de la placa base lo que se documenta son **las placas y las sillas**
-(`Structural Connections`). Una viga no aporta, y la escalera tampoco — salvo por las
-placas con las que se ancla al piso. Pero **la escalera es una sola familia con todo
-anidado adentro**, así que ocultarla entera se lleva puestas esas placas. Medido el
-**2026-08-11**: el contenedor `ESCALERA METÁLICA` (id 6950307) va de `z 3,08` a `16,60`
-pies y sus dos `VM ANGULO` (6950324 y 6950325) caen **dentro**, en `z 3,30`–`3,83` — o
-sea al pie de la escalera, justo a la cota de la NIPB.
+**La NIPB y la P.T. comparten criterio.** Las dos miran la misma zona de anclaje, así que
+lo que se documenta en ambas son **las placas y las sillas** (`Structural Connections`).
+Una viga no aporta a esas cotas, y la escalera tampoco — salvo por las placas con las que
+se ancla al piso. Pero **la escalera es una sola familia con todo anidado adentro**, así que
+ocultarla entera se lleva puestas esas placas. Medido el **2026-08-11**: el contenedor
+`ESCALERA METÁLICA` (id 6950307) va de `z 3,08` a `16,60` pies y sus dos `VM ANGULO`
+(6950324 y 6950325) caen **dentro**, en `z 3,30`–`3,83` — o sea al pie de la escalera,
+justo a la cota de la NIPB.
 
 Por eso son **tres listas**, en la cabecera del nodo Python de 00 (no son inputs de
 Player):
 
 ```python
-FAMS_OCULTAR_NIPB = ('ESCALERA',)                # familias: esto y todo lo anidado adentro
-CATS_OCULTAR_NIPB = ('OST_StructuralFraming',)   # categorías: enteras
-FAMS_SALVAR_NIPB  = ('VM ANGULO',)               # …salvo esto, que gana sobre las dos
+FAMS_OCULTAR_BASE = ('ESCALERA',)                  # familias: esto y todo lo anidado adentro
+CATS_OCULTAR_BASE = ('OST_StructuralFraming',)     # categorías: enteras
+FAMS_SALVAR_BASE  = ('VM ANGULO', 'PLACA')         # …salvo esto, que gana sobre las dos
 ```
 
-Se oculta una pieza si **matchea cualquiera de las dos primeras**; `FAMS_SALVAR_NIPB` se
+Se oculta una pieza si **matchea cualquiera de las dos primeras**; `FAMS_SALVAR_BASE` se
 evalúa al final y gana sobre ambas.
+
+##### Las placas de trabajo salen siempre
+
+`PLACA` salva las **placas de trabajo** (`S-Placa Vertical` y compañía), que tienen que
+verse siempre en la P.T.
+
+> ⚠️ **Hoy esa línea no hace falta para que se vean — y por eso está.** `S-Placa Vertical`
+> es `Structural Connections`, o sea justo la categoría que estas plantas existen para
+> mostrar, y `CATS_OCULTAR_BASE` sólo tapa framing. La garantía se cumple **por accidente
+> de categoría**. Ponerla en la lista la hace explícita: si mañana alguien agrega
+> `OST_StructConnections` a `CATS_OCULTAR_BASE`, o si una placa termina anidada dentro de
+> una familia que matchee `FAMS_OCULTAR_BASE`, la excepción la sigue salvando en vez de que
+> desaparezca en silencio.
+
+El match suelto por `PLACA` es a propósito —el modelador la nombra `S-Placa Vertical` o
+algo con «placa»— y es **seguro**: medido el **2026-08-11**, las **387** instancias del
+modelo cuya familia contiene `PLACA` son **362 `Structural Connections` + 25
+`Generic Model`**, y **ninguna** es `Structural Framing`. O sea que la excepción no le abre
+la puerta a ninguna viga.
+
+> Las constantes y la función se llamaban `*_NIPB` / `ocultar_en_nipb()` mientras la regla
+> era sólo de esa planta. Al sumarse la P.T. pasaron a `*_BASE` /
+> `ocultar_en_planta_base()`: un nombre que dijera NIPB aplicándose también a la P.T. es
+> exactamente el tipo de mentira que después cuesta cara.
 
 > ⚠️ **Las dos primeras listas están acopladas por la tercera.** `VM ANGULO` es
 > `Structural Framing`, igual que `ESCALERA METÁLICA`, `VM ESCALERAS` y `PILAR ANGULO`.
 > Sin la excepción, la regla por categoría se llevaría puestas justo las placas de anclaje
 > que la regla por familia se ocupa de salvar. Si algún día se saca `VM ANGULO` de
-> `FAMS_SALVAR_NIPB`, desaparecen de la NIPB por **dos** caminos distintos.
+> `FAMS_SALVAR_BASE`, desaparecen por **dos** caminos distintos.
 
 **Las columnas no se tocan**: son `Structural Columns`, otra categoría, así que se siguen
 viendo apoyadas sobre su placa.
 
 Las dos reglas **se componen y ninguna sobra**, aunque casi todo lo que oculta
-`FAMS_OCULTAR_NIPB` sea también framing: la baranda de la escalera es categoría
+`FAMS_OCULTAR_BASE` sea también framing: la baranda de la escalera es categoría
 `Balusters`, y el grating y los detail items tampoco son framing.
 
 Cómo funciona el match por **familia**:
@@ -326,13 +351,14 @@ Cómo funciona el match por **familia**:
 > altura (`z 12,6` pies, muy por encima del corte), pero salvar `ANGULO` a secas lo dejaría
 > entrar por la ventana.
 
-**Solo afecta a la NIPB.** En las T.A. y en las elevaciones de eje la escalera y las vigas
-se siguen viendo enteras.
+**Solo afecta a la NIPB y a la P.T.** En las T.A. y en las elevaciones de eje la escalera y
+las vigas se siguen viendo enteras — ahí la trama de vigas es justamente lo que se
+documenta.
 
 > Nada de esto rompe los pasos siguientes: 03 dibuja los ejes de viga **solo en las T.A.**
 > (en la NIPB los borra a propósito) y en la NIPB rotula únicamente `Structural
 > Connections`, mientras que las cadenas de cotas de esa planta referencian **ejes
-> estructurales**, no vigas.
+> estructurales**, no vigas. La P.T. no recibe anotación de 03.
 
 ##### Por qué `HideElements` y no dejarla fuera del aislamiento
 
@@ -360,6 +386,11 @@ entre la NIPB y las T.A.
 
 Usa el **mismo view template que las T.A.** (input `06.`) y el **mismo offset de corte**
 (input `13.`): es una planta de trabajo, no la de placas base, y no tiene inputs propios.
+
+Pero para **qué se ve** comparte criterio con la NIPB, no con las T.A.: las dos miran la
+zona de anclaje, así que la P.T. también oculta la escalera y el `Structural Framing`,
+salvando las placas. Ver
+[§ Qué se oculta en las plantas base](#️-qué-se-oculta-en-las-plantas-base-nipb-y-pt).
 
 - Nombre interno: `{assembly} - P.T.`
 - Título en lámina: `{assembly} - PLANTA P.T.`
@@ -892,11 +923,10 @@ Los topes de viga se agrupan en cubetas de 10 mm y cada cubeta acumula **metros 
 T.A. si llega al **40 %** de los metros de la cubeta dominante. El log lista las cubetas
 descartadas con su altura y sus metros.
 
-> Este criterio geométrico es **propio de 03** y sobrevive por su cuenta. Era el mismo que
-> usaba 00 para elegir el nivel dominante de una planta T.A., pero 00 lo perdió el
-> 2026-08-10 al pasar a niveles modelados. **Candidato a revisar**: si los niveles
-> `T.A._{assembly}_{NN}` ya declaran las alturas, 03 podría leerlas en vez de re-votarlas, y
-> las marcas de nivel dejarían de poder contradecir a las plantas.
+> Este criterio geométrico es **propio de 03** y sobrevive por su cuenta, pero desde el
+> **2026-08-11 ya no alimenta las marcas de nivel** — sólo la cadena de cotas, donde lo que
+> se acota es lo que la vista realmente muestra. Las marcas pasaron a leer los `Level`
+> modelados (ver abajo), que era el *«candidato a revisar»* que estaba anotado acá.
 
 > **Y no hay un solo T.A.**: si en la elevación hay vigas a alturas distintas que pasan el
 > umbral, **cada altura lleva su propia marca** y entra como una referencia más en la
@@ -952,9 +982,14 @@ dos alturas caen a menos de 2 mm se funden en una sola referencia.
    ============================================  linea de terreno
 ```
 
-Se sacan de la **geometría que la elevación muestra**, no de los niveles del modelo, y
-solo sirven para saber **a qué altura** poner cada marca — no para anclar la anotación
-(ver más abajo por qué).
+> ⚠️ **Desde el 2026-08-11 las tres marcas (`T.A.`, `P.T.`, `N.I.P.B.`) ya no salen de
+> acá**, sino de los `Level` modelados — ver
+> [§ Las marcas de nivel salen de los `Level` modelados](#️-las-marcas-de-nivel-salen-de-los-level-modelados).
+> Lo que sigue describe los planos geométricos, que **siguen vivos** para la cadena de cotas
+> y para el `fondo de viga` y el `tope de baranda`, que no tienen `Level` que los declare.
+
+Se sacan de la **geometría que la elevación muestra** y solo sirven para saber **a qué
+altura** poner cada anotación — no para anclarla (ver más abajo por qué).
 
 - **T.A.** = tope de las vigas, votado por metros (arriba). Puede haber más de uno.
 - **tope de baranda** = lo más alto de las categorías de barandas (`Railings`). Solo
@@ -975,6 +1010,44 @@ Cada altura se **confirma contra una cara real** antes de aceptarla (`ComputeRef
 posición): si nada tiene una cara horizontal genuina ahí, ese plano queda sin resolver y
 consta en el log. Pero esa cara **solo sirve para validar la altura** — la anotación en
 sí no se apoya en ella, por lo que sigue.
+
+#### ⚠️ Las marcas de nivel salen de los `Level` modelados
+
+Desde el **2026-08-11** las tres marcas (`T.A.`, `P.T.`, `N.I.P.B.`) se colocan a la cota
+que declaran los niveles del modelo, **no** a la que vota la geometría:
+
+| Marca | Antes (geométrico) | Ahora |
+|---|---|---|
+| `T.A.` | votación por metros de viga en cubetas de 10 mm | una por cada `T.A._{assembly}_{NN}` |
+| `P.T.` | tope de las sillas de anclaje | `P.T._{assembly}` |
+| `N.I.P.B.` | lo más bajo del assembly | `N.I.P.B._{assembly}` |
+
+**El modelo declara, el pipeline obedece** — el mismo principio que rige a 00. La razón de
+fondo no es de precisión sino de **coherencia**: 00 genera las plantas sobre esos `Level`,
+así que mientras 03 votara su propia altura, la marca de una elevación podía contradecir a
+la planta del mismo nivel. Ahora los dos graphs leen el mismo contrato de nombres —
+`calza_nivel()` está **copiada tal cual de 00**, con el mismo `startswith` y el mismo
+sufijo obligatorio en los T.A.
+
+> ⚠️ **Siempre `ProjectElevation`, nunca `Elevation`**, por la misma trampa de la cota
+> compartida que ya documenta [00 § Cota compartida](#️-cota-compartida-usar-projectelevation-nunca-elevation).
+> Con `Elevation` la marca se iría 2300 m fuera de la vista.
+
+**Sin nivel no hay marca.** No hay fallback geométrico: si falta `P.T._ES-1002`, esa marca
+no se pone en ninguna elevación del assembly y el log lo dice una vez, al resolver los
+niveles.
+
+##### Una marca que la vista no muestra no se dibuja
+
+Una elevación de eje muestra una **tajada** del assembly: un nivel que no llega a *ese* eje
+no tiene estructura ahí, y su marca quedaría flotando en el vacío. Por eso las pendientes se
+acotan al alto de lo que la vista dibuja, con `MARGEN_MARCA` (300 mm, del orden del canto de
+una viga) de holgura para no perder el nivel que coincide justo con el borde. Las que se
+descartan constan en el log con su nombre.
+
+> La **cadena de cotas no cambió**: sigue saliendo de `alturas_para_cotar()` sobre la
+> geometría, porque ahí lo que se acota es lo que la vista realmente muestra. Lo mismo el
+> `fondo de viga` y el `tope de baranda`, que no tienen ningún `Level` que los declare.
 
 #### ⚠️ Una marca de nivel va contra detail lines, igual que la cota
 
@@ -1065,7 +1138,7 @@ Es lo único que se rotula a esa cota, y a propósito:
 Las columnas quedan fuera: ya salen rotuladas en las T.A. y en las elevaciones, y a la
 cota de la placa base no dicen nada. Las vigas ya ni siquiera se ven — desde el
 **2026-08-11** 00 oculta `Structural Framing` en esta planta, ver
-[00 § Qué se oculta en la NIPB](#️-qué-se-oculta-en-la-nipb).
+[00 § Qué se oculta en las plantas base](#️-qué-se-oculta-en-las-plantas-base-nipb-y-pt).
 
 Medido en `ES-1001 - NIPB` el **2026-08-05**, **antes** de ese cambio: 53 elementos del
 assembly visibles — **47 conexiones**, 4 columnas y 2 vigas.
