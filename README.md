@@ -373,6 +373,92 @@ Usa el **mismo view template que las T.A.** (input `06.`) y el **mismo offset de
 Una por cada nivel `T.A._{assembly}_{NN}`, **ordenadas de abajo hacia arriba por su cota
 real** (`ProjectElevation`).
 
+#### ⚠️ Las diagonales se ocultan; la profundidad la decide el log
+
+En una planta T.A. lo que se documenta es la **trama horizontal** de ese nivel. Las
+diagonales que cuelgan por debajo de las vigas —arriostramientos— se dibujan cruzadas
+sobre la planta y la ensucian. Y aparecen **justo cuando se baja la profundidad de la
+vista** para alcanzar las vigas más bajas, que es el problema que las trajo a colación.
+
+Dos constantes en la cabecera del nodo Python de 00:
+
+```python
+OCULTAR_DIAGONALES_TA = True
+ANG_DIAGONAL_GRADOS   = 15.0   # más inclinada que esto respecto de la horizontal
+```
+
+- **El criterio es geométrico**, por la pendiente de la `Location.Curve`, no por nombre de
+  familia. Medido el **2026-08-11**: en este modelo **no existe ninguna familia** llamada
+  `RIOSTRA`, `DIAGONAL` ni `BRACE` — las diagonales son perfiles comunes colocados
+  inclinados, así que no hay ningún nombre al que agarrarse.
+- **Una pieza vertical no es una diagonal.** En planta es un punto, y es información
+  legítima (montantes, columnas cortas). Solo se ocultan las inclinadas.
+- Mismo mecanismo reversible que la NIPB (`HideElements` + un `UnhideElements` previo
+  sobre los miembros del assembly), así que cambiar el ángulo y re-correr recalcula desde
+  cero, sin *Recrear*.
+
+#### ⚠️ El `View Depth` baja más que el `Bottom` (franja `<Beyond>`)
+
+El problema de una planta T.A. no era sólo *cuánto* se ve hacia abajo, sino **con qué peso
+de línea**. Hasta el 2026-08-11 el script pegaba `Bottom` y `View Depth` en el mismo valor,
+así que todo lo que entraba se dibujaba igual. Medido en `ES-1001 - T.A. 01`: la vista
+mezclaba las vigas de `AMT_T.A.-01` (`z 10,74`–`11,73` pies) con las de `AMT_T.A.-02`
+(`z 12,06`–`13,04`) **sin ninguna diferencia gráfica entre los dos pisos**.
+
+Revit dibuja lo que cae **entre `Bottom` y `View Depth`** con el estilo `<Beyond>` — línea
+más fina. Es la diferencia entre *mostrar* y *mostrar como contexto*:
+
+```
+   Top          nivel +1100          ─┐
+   Cut plane    nivel +1000           │  trama del nivel propio,
+   Bottom       nivel  -500          ─┘  grafismo normal
+
+   View Depth   nivel -1000          ─── franja <Beyond>: está, pero no compite
+```
+
+```python
+PROF_BEYOND = 50.0 / 30.48   # cm → pies. Cuánto baja el View Depth por debajo del Bottom.
+```
+
+**Solo aplica a las plantas T.A.** La NIPB y la P.T. siguen con `Bottom == View Depth`: a
+esas cotas no hay un “nivel de abajo asomando” que valga la pena mostrar como contexto.
+
+> El orden estricto que exige Revit (`Top ≥ Cut ≥ Bottom ≥ View Depth`) se mantiene **por
+> construcción**: `PROF_BEYOND` nunca es negativo, así que `View Depth` sólo puede quedar
+> por debajo del `Bottom`, nunca por encima. Ver
+> [§ View Range: `Top` nunca puede igualar al `Cut`](#️-view-range-top-nunca-puede-igualar-al-cut)
+> para el otro extremo del mismo invariante, que sí llegó a romper vistas.
+
+El log lo dice en la misma línea de siempre:
+
+```
+ES-1001: planta T.A. 01 cortada en EL. 4,98, fondo en EL. 3,48 (1,50 m de profundidad,
+top +0,10 m, mas 0,50 m como <Beyond> hasta EL. 2,98).
+```
+
+##### La profundidad no se adivina: 00 la mide
+
+**El input `14.` ya viene en 50 cm** y fija el `Bottom`; `PROF_BEYOND` agrega la franja de
+contexto por debajo. Si una planta T.A. sigue sin mostrar toda su trama, el problema no se
+arregla *poniendo* el input en 50 — hay que **bajarlo más**, y cuánto depende del modelo.
+
+Por eso `ocultar_diagonales_ta()` mide de paso: por cada planta T.A. cuenta las piezas
+**horizontales** que quedan enteras por debajo del **`View Depth`** —el plano de abajo real,
+franja `<Beyond>` incluida, que es hasta donde la vista dibuja— y avisa cuánto haría falta:
+
+```
+ES-1001: OJO, 6 pieza(s) HORIZONTAL(es) de planta T.A. 02 quedan fuera del View Range;
+la mas alta tiene su tope 0,74 m bajo el nivel. Para verlas hay que subir la
+profundidad de las plantas a mas de 74 cm.
+```
+
+La medición está **acotada al hueco entre este nivel y el T.A. de abajo** (`z_piso`), para
+que no reporte la trama entera de los niveles inferiores del assembly — que están fuera de
+la vista a propósito.
+
+> El orden importa: primero se sube la profundidad con ese número, y las diagonales que eso
+> hubiera traído ya están filtradas por la regla de arriba.
+
 - Nombre interno: `{assembly} - T.A. 01`, `02`… (correlativo **ascendente por altura**)
 - Título en lámina: `{assembly} - PLANTA T.A. (EL. 2.303,37)` — cota real en metros, con
   punto de miles y coma decimal, igual que las vistas que ya existen en el modelo
