@@ -65,7 +65,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + 1 planta P.T. + N plantas T.A., **una por nivel modelado**, + 1 elevación por cada eje **marcado con el parámetro `ASSEMBLY`** |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
-| 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas, más un tag `ELEMENTO_TBL` por conexión en la NIPB (una por familia contenedora, sin bajar a sus piezas internas); en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones y los rótulos de la NIPB, sin probar en Revit** |
+| 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas, más un tag `ELEMENTO_TBL` por conexión en la NIPB (una por familia contenedora, sin bajar a sus piezas internas); en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel (desde los `Level` modelados), el eje de cada viga y línea de terreno — **lo de elevaciones y los rótulos de la NIPB, sin probar en Revit** |
 | 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
 | 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Multi-Category Tag `C-MultiCat` sobre cada viga de las T.A. y sobre las piezas del eje en las elevaciones, eligiendo tipo corto o largo según lo que entre en la pieza — **plantas OK, elevaciones sin volver a probar** |
 | 6 | `06_Tabla de assemblies.dyn` | 🧪 acero | Una *lista de materiales* por assembly, en su primera lámina — **sin probar en Revit** |
@@ -1209,26 +1209,59 @@ Detalles:
 - El punto del tag se prueba contra el `Origin.Z` de la vista y contra la
   `ProjectElevation` de su nivel, porque con **cota compartida** no coinciden (ver 00).
 
-### Eje de cada viga en las plantas T.A. (línea roja `L-CENTER`)
+### Eje de cada viga en las plantas T.A. y en los cortes (línea roja `L-CENTER`)
 
-En cada planta **T.A.** se dibuja, sobre el eje de cada viga, una **detail line** con el
-estilo de línea `L-CENTER` (input; si el estilo no existe en el proyecto se crea **rojo** y
-con el primer patrón de línea de eje que encuentre).
+En cada planta **T.A.** y en cada **elevación de eje** se dibuja, sobre el eje de cada
+viga, una **detail line** con el estilo de línea `L-CENTER` (input; si el estilo no existe
+en el proyecto se crea **rojo** y con el primer patrón de línea de eje que encuentre).
 
-**Ni en la NIPB ni en las elevaciones de eje.** A la cota de la NIPB hay placas base,
-pernos y sillas de anclaje —no vigas—, así que ahí el eje de viga no dice nada. Si una
-corrida anterior las dibujó, 03 las **borra** al pasar por esa vista (y Revit se lleva de
-paso la cadena que las referenciaba); queda registrado en el log.
+**En la NIPB no.** A esa cota hay placas base, pernos y sillas de anclaje —no vigas—, así
+que ahí el eje de viga no dice nada. Si una corrida anterior las dibujó, 03 las **borra** al
+pasar por esa vista (y Revit se lleva de paso la cadena que las referenciaba); queda
+registrado en el log.
+
+#### El criterio es uno solo; lo que cambia es el plano
+
+Desde el **2026-08-11** las elevaciones llevan el mismo eje de viga que las plantas. La
+lógica **no se duplicó**: lo único que difiere entre una planta y un corte es cómo se lleva
+un punto del modelo al plano de la vista, y eso vive aislado en `proyectores_de_vista()`.
+
+| Vista | Proyección | Qué se descarta |
+|---|---|---|
+| Planta | fijar la `Z` al plano de trabajo | riostras y montantes **verticales** |
+| Elevación de eje | `(distancia sobre `RightDirection`, `Z`)` | vigas que entran **hacia el fondo del papel** |
+
+En los dos casos la regla es la misma: **el largo se mide sobre el plano de la vista**, y
+una viga que se proyecta en un punto no tiene eje que dibujar. El log lo reporta como
+`N sin largo en el plano de la vista`.
+
+> En las plantas, `proyectores_de_vista()` devuelve **varios** candidatos porque la cota del
+> plano de trabajo no siempre es `view.Origin.Z` y hay que probar el nivel como plan B (si
+> no, Revit rechaza la curva por no estar en el plano de la vista). En una elevación el
+> plano es uno solo.
+
+> ⚠️ **En las elevaciones estas líneas comparten estilo con las de apoyo de las cotas.** Una
+> vez dibujadas no se distinguen, así que la idempotencia **no** puede mirarlas después: se
+> resuelve en `anotar_altura()`, que captura `ya_lineas` **antes** de dibujar nada. Si la
+> elevación ya traía líneas `L-CENTER`, toda su anotación es de una corrida anterior y se
+> respeta; con `Elevaciones: rehacer la anotacion existente` ya se borraron más arriba, la
+> lista queda vacía y se redibuja todo. Por eso el eje de viga de los cortes se dibuja
+> **dentro** del mismo ciclo de anotación y no por su cuenta.
+
+> El interruptor sigue siendo `Eje de vigas` (el mismo de las plantas), y en las elevaciones
+> manda además `Mostrar ejes tambien en las elevaciones`, que es el interruptor general de
+> todo lo que 03 hace ahí.
 
 **Qué se dibuja**: la *curva de ubicación* (`Location.Curve`) de cada `Structural Framing`,
 proyectada al plano de la vista. Es el eje real de la viga, no el centro de su bounding box.
 Las vigas curvas se teselan en una poligonal.
 
-**Qué vigas entran en cada planta**: las que devuelve `FilteredElementCollector(doc,
+**Qué vigas entran en cada vista**: las que devuelve `FilteredElementCollector(doc,
 view.Id)` **filtradas contra los miembros recursivos del assembly**. El colector por vista
 respeta el *View Range* y el aislamiento permanente que dejó 00, así que cada T.A. recibe
 exactamente los ejes de las vigas de **su** nivel. El filtro por miembros es el cinturón de
-seguridad por si el aislamiento de una vista se perdiera.
+seguridad por si el aislamiento de una vista se perdiera. En las elevaciones se reusa
+`ids_vista`, que ya viene filtrado contra los miembros, en vez de recalcularlo.
 
 **Por qué detail lines y no model lines**: una *model line* aparecería en las tres plantas
 del assembly y en las elevaciones, y ensuciaría el modelo para todo el resto del proyecto.
@@ -1236,8 +1269,8 @@ La detail line vive solo en la vista donde se creó.
 
 Detalles:
 
-- Las vigas **verticales** (riostras, montantes) se saltan: en planta su eje es un punto.
-  Se cuentan en el log.
+- Las vigas que se **proyectan en un punto** se saltan: en planta, las verticales (riostras,
+  montantes); en un corte, las que entran hacia el fondo del papel. Se cuentan en el log.
 - Se enciende la categoría *Lines* en la vista si el view template la tenía apagada — si no,
   las líneas se crean pero no se ven (el mismo mecanismo que con *Structural Connections*
   en 00).
