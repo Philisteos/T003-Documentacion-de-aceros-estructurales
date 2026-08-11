@@ -1,8 +1,13 @@
 # Generador de planos de assemblies de ACERO — Revit 2027
 
 Pipeline de graphs de Dynamo (4.0, CPython3, **sin paquetes externos**) para documentar
-assemblies de estructura metálica: planta N.I.P.B., plantas T.A. por agrupación
-geométrica de vigas, elevaciones por eje, distribución en láminas y tabla de cantidades.
+assemblies de estructura metálica: plantas N.I.P.B., P.T. y T.A. sobre niveles que modela el
+proyectista, elevaciones por eje, distribución en láminas y tabla de cantidades.
+
+> **El modelo declara, el pipeline obedece.** Dos convenciones sostienen todo 00: el
+> parámetro **`ASSEMBLY`** de cada eje decide qué elevaciones se hacen y qué ejes se ven, y
+> el **nombre de cada nivel** (`N.I.P.B._`, `P.T._`, `T.A._`) decide qué plantas se hacen y a
+> qué cota. Sin ese marcado, 00 no inventa nada: avisa en el log y no crea la vista.
 
 > **Origen**: este proyecto (T003) es una adaptación de `T001-Generador de planos`
 > (fundaciones). T001 conserva intacta la lógica de fundaciones — aquí se reemplazó,
@@ -22,10 +27,33 @@ geométrica de vigas, elevaciones por eje, distribución en láminas y tabla de 
 > (13 plantas + 27 elevaciones). Sin assemblies ningún graph produce nada: 00 avisa en el
 > log y termina.
 >
-> ⚠️ **Desde el 2026-08-10 esas 27 elevaciones ya no salen solas.** Las elevaciones de eje
-> ahora dependen del parámetro **`ASSEMBLY`** de cada eje (ver [00 § C](#c-elevaciones-de-eje)):
-> hay que crear el parámetro en la categoría *Grids* y escribir en cada eje el assembly al
-> que pertenece. Ejes sin marcar = cero elevaciones.
+> ⚠️ **Desde el 2026-08-10 esas 40 vistas ya no salen solas.** Hay dos preparaciones en el
+> modelo que ahora son requisito, no opcionales:
+>
+> 1. **Parámetro `ASSEMBLY` en los ejes** (proyecto, texto, categoría *Grids*), con el nombre
+>    del assembly. Sin él: cero elevaciones y plantas sin ejes.
+>    Ver [00 § D](#d-elevaciones-de-eje).
+> 2. **Niveles nombrados** `N.I.P.B._{assembly}`, `P.T._{assembly}` y `T.A._{assembly}_{NN}`.
+>    Sin ellos: cero plantas. Ver [§ Los niveles los modela el proyectista](#los-niveles-los-modela-el-proyectista).
+>
+> **Estado del modelo al 2026-08-10**, tras la primera corrida real (4 assemblies, 7 plantas
+> y 25 elevaciones):
+>
+> | Assembly | Ejes marcados | N.I.P.B. | P.T. | T.A. |
+> |---|---|---|---|---|
+> | ES-1001 | 11 | ✅ | ❌ | 5 |
+> | ES-1002 | 2 | ❌ | ❌ | ❌ |
+> | ES-1003 | 8 | ❌ | ❌ | ❌ |
+> | ES-1004 | 4 | ❌ | ❌ | ❌ |
+>
+> El marcado de **ejes está completo** en los cuatro. Los **niveles sólo existen en ES-1001**,
+> y ni siquiera enteros: falta el `P.T._ES-1001`. ES-1002, ES-1003 y ES-1004 salen con
+> elevaciones pero **sin ninguna planta**.
+>
+> Pendiente en ES-1001: los cinco niveles T.A. están nombrados con la cota
+> (`T.A._ES-1001_2.304,175`) y hay que **renumerarlos a `_01`…`_05`**. Además quedó un
+> `T.A._ES-1001` sin sufijo, sobrante de una prueba anterior, que ya no genera vista pero
+> conviene borrar.
 
 **Primera vez en una máquina nueva**: abrir cada .dyn en Dynamo (no en Player), correr y
 guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera desde Player.
@@ -34,10 +62,10 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 
 | # | Graph | Estado | Qué hace |
 |---|-------|--------|----------|
-| 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + N plantas T.A. + 1 elevación por cada eje **marcado con el parámetro `ASSEMBLY`** |
+| 0 | `00_Vistas de assembly.dyn` | ✅ acero | Por assembly: 1 planta NIPB + 1 planta P.T. + N plantas T.A., **una por nivel modelado**, + 1 elevación por cada eje **marcado con el parámetro `ASSEMBLY`** |
 | 1 | `01_Calcular y crear laminas.dyn` | ✅ acero | Calcula cuántas láminas hacen falta (1 assembly por lámina) y las crea |
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
-| 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas, más un tag `ELEMENTO_TBL` por conexión en la NIPB; en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones y los rótulos de la NIPB, sin probar en Revit** |
+| 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas, más un tag `ELEMENTO_TBL` por conexión en la NIPB (una por familia contenedora, sin bajar a sus piezas internas); en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel y línea de terreno — **lo de elevaciones y los rótulos de la NIPB, sin probar en Revit** |
 | 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
 | 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Multi-Category Tag `C-MultiCat` sobre cada viga de las T.A. y sobre las piezas del eje en las elevaciones, eligiendo tipo corto o largo según lo que entre en la pieza — **plantas OK, elevaciones sin volver a probar** |
 | 6 | `06_Tabla de assemblies.dyn` | 🧪 acero | Una *lista de materiales* por assembly, en su primera lámina — **sin probar en Revit** |
@@ -126,6 +154,13 @@ la izquierda, `10.` se ordenaría antes que `02.`. El orden resultante va de lo 
 siempre (qué procesar, carpeta, tipo de vista) a lo que casi nunca se toca (márgenes y
 far clip).
 
+> ⚠️ **Son 14 inputs y la numeración salta de la `10.` a la `13.`.** El 2026-08-10 se
+> eliminaron `11. Tolerancia de agrupación T.A.` y `12. Mínimo de un nivel T.A.` junto con el
+> clustering geométrico. Se dejó el hueco a propósito: renumerar habría invalidado todas las
+> referencias por número que hay en este README. Los índices `IN[]` del código **sí** se
+> corrieron, así que la etiqueta y el `IN[]` no coinciden — el mapeo vive en la cabecera del
+> nodo Python.
+
 ### ⚠️ View Range: `Top` nunca puede igualar al `Cut`
 
 Revit exige el orden estricto `Top ≥ Cut ≥ Bottom ≥ View Depth`. La primera versión ponía
@@ -172,153 +207,238 @@ en coordenadas de proyecto, el mismo sistema en el que se mide la geometría —
 `elev_nivel()` para ordenar niveles, elegir el ancla y calcular los offsets. Si el modelo
 usa cota compartida, 00 lo avisa en el log al arrancar.
 
+### Los niveles los modela el proyectista
+
+Desde el **2026-08-10** las tres clases de planta salen de `Level` reales del modelo, con un
+nombre que declara a qué assembly pertenecen. 00 ya no deduce cotas de la geometría.
+
+| Nivel | Nombre | Cuántos | Planta que genera |
+|---|---|---|---|
+| Nivel inferior placa base | `N.I.P.B._{assembly}` | 1 | `{assembly} - NIPB` |
+| Punto de trabajo | `P.T._{assembly}` | 1 | `{assembly} - P.T.` |
+| Tope de acero | `T.A._{assembly}_{NN}` | N | `{assembly} - T.A. 01`, `02`… |
+
+Ejemplo para `ES-1001`: `N.I.P.B._ES-1001`, `P.T._ES-1001`, `T.A._ES-1001_01`,
+`T.A._ES-1001_02`, `T.A._ES-1001_03`…
+
+**En los T.A. el sufijo es obligatorio**, aunque el assembly tenga uno solo, y es un
+**correlativo** (`01`, `02`, `03`…) que numera los niveles de abajo hacia arriba. **No lleva
+la cota**: eso la duplicaría con el título de la vista (ver abajo).
+
+> ⚠️ El sufijo obligatorio no es capricho. En `ES-1001` quedó un `T.A._ES-1001` pelado de una
+> prueba anterior, y con el sufijo opcional calificaba: **6 plantas sobre 5 niveles reales**.
+> Con el sufijo obligatorio ese sobrante deja de generar vista y aparece en el log como
+> sospechoso, para que alguien decida si se borra o se renombra.
+
+#### La regla es «empieza con», no «contiene»
+
+El nombre del nivel tiene que **empezar** con `{prefijo}{assembly}`. No alcanza con
+mencionarlo. El modelo real está lleno de niveles que hablan de T.A. o N.I.P.B. sin ser de
+esta convención, y **ninguno** de ellos genera planta:
+
+| Nivel del modelo | ¿Genera planta? | Por qué |
+|---|---|---|
+| `N.I.P.B._ES-1001` | ✅ | empieza con `N.I.P.B._ES-1001` |
+| `T.A._ES-1001_01` | ✅ | forma canónica: prefijo + assembly + correlativo |
+| `T.A._ES-1001` | ❌ | **falta el sufijo**, obligatorio en los T.A. |
+| `T.A_ES-1001` | ❌ | le falta el punto: es `T.A_`, no `T.A._` |
+| `RLO_T.A. ES-1002` | ❌ | no empieza con el prefijo |
+| `AMT_T.A.-01_EST. TOLVA` | ❌ | ídem |
+
+Detalles del match:
+
+- **Ignora mayúsculas/minúsculas y espacios sobrantes** en los extremos.
+- Después de `{prefijo}{assembly}` sólo puede venir **`_algo`** — o nada, en `N.I.P.B._` y
+  `P.T._`, que son únicos por assembly. Sin esta regla, el assembly `ES-100` se robaría los
+  niveles de `ES-1001`.
+- Un nivel que **nombra al assembly pero no califica** se lista en el log como sospechoso:
+  puede ser un nivel viejo legítimo, un typo, o un sobrante sin sufijo. 00 no adivina cuál,
+  pero tampoco lo esconde.
+- Si hay **más de un** `N.I.P.B._` o `P.T._` para el mismo assembly, se usa el más bajo y se
+  avisa.
+
+> ⚠️ **Sin nivel no hay planta.** No hay fallback geométrico: si falta `P.T._ES-1002`, ese
+> assembly simplemente no tiene planta P.T., y el log lo dice. Es marcado faltante en el
+> modelo, no un bug del graph.
+
 ### A. Planta N.I.P.B. (Nivel Inferior Placa Base)
 
-Exactamente **1 por assembly**. El plano de corte se sitúa a **+1.00 m** (input, en cm)
-por encima de la **cara sólida más baja de todo el assembly** — sea placa base, pletina o
-lo que resulte ser el punto más bajo. No se usa ningún `Level` nativo: la cota se mide
-sobre geometría real (`Solid.Volume > 0`, incluidas familias anidadas), porque los niveles
-declarados por los modeladores no son fiables.
+Exactamente **1 por assembly**, sobre el nivel `N.I.P.B._{assembly}`. El plano de corte va
+a **+1.00 m** del nivel (input `10.`, en cm) y el fondo, a `14.` cm por debajo.
+
+00 compara el nivel contra la **cara sólida más baja real** del assembly (`Solid.Volume > 0`,
+incluidas familias anidadas) y **avisa si difieren en más de 20 cm** — o el nivel está mal
+puesto, o el assembly no es el que se cree. Avisa y sigue: **manda el nivel modelado**, que
+es todo el punto del cambio.
 
 - Nombre interno: `{assembly} - NIPB`
 - Título en lámina: `{assembly} - PLANTA N.I.P.B.`
 
-### B. Plantas T.A. (Tope de Acero) — agrupación geométrica
+#### ⚠️ Qué se oculta en la NIPB
 
-Cantidad **variable** por assembly. El criterio es puramente geométrico:
+A la cota de la placa base lo que se documenta son **las placas y las sillas**
+(`Structural Connections`). Una viga no aporta, y la escalera tampoco — salvo por las
+placas con las que se ancla al piso. Pero **la escalera es una sola familia con todo
+anidado adentro**, así que ocultarla entera se lleva puestas esas placas. Medido el
+**2026-08-11**: el contenedor `ESCALERA METÁLICA` (id 6950307) va de `z 3,08` a `16,60`
+pies y sus dos `VM ANGULO` (6950324 y 6950325) caen **dentro**, en `z 3,30`–`3,83` — o
+sea al pie de la escalera, justo a la cota de la NIPB.
 
-1. De cada viga (`Structural Framing`, recursivo a cualquier profundidad) se extrae un par
-   **(Z de la cara superior, largo en planta)**. El largo es el **peso** con el que esa
-   viga vota; se mide como la diagonal en planta de su bounding box.
-2. **Detección de niveles por picos de densidad** (*mode seeking*): la cubeta de 5 mm que
-   concentra **más metros de viga** es el primer nivel, y absorbe todas las vigas a
-   **±tolerancia/2** de ese pico. Se repite con las que sobran hasta que no queda ninguna.
-3. Se **descartan los niveles minoritarios**: los que no llegan al **40 %** de los metros
-   de viga del **nivel más grande** (input `11.`) son ruido, no niveles. Ver abajo.
-4. El **nivel dominante** de cada grupo es la cubeta de 5 mm con más metros de viga (no más
-   piezas). Empate → gana la cubeta más alta. Ver abajo.
-5. Una planta por nivel, con el plano de corte **+1.00 m** (input `12.`) sobre el nivel
-   dominante, **recortado** para que nunca alcance el nivel de arriba. Ver abajo.
-6. La profundidad la fija el View Range (ver más abajo).
+Por eso son **tres listas**, en la cabecera del nodo Python de 00 (no son inputs de
+Player):
 
-#### ⚠️ Por qué picos de densidad y no encadenamiento
-
-La primera versión recorría las vigas de abajo hacia arriba y cerraba el grupo cuando una
-se alejaba más de la tolerancia del **inicio** del grupo. Con una escalera continua de
-vigas esa ventana se cierra en un punto **arbitrario** — el que caiga a `tol` del inicio —
-y puede **partir al medio el racimo denso que es el T.A. real**. Evidencia en el log de
-ES-1003 (2026-07-29):
-
-```
-T.A. 02: 112 viga(s) / 151.1 m de viga, dominante EL. 3,30, amplitud 1.00 m
-T.A. 03: 106 viga(s) / 179.5 m de viga, dominante EL. 3,30, amplitud 0.13 m
+```python
+FAMS_OCULTAR_NIPB = ('ESCALERA',)                # familias: esto y todo lo anidado adentro
+CATS_OCULTAR_NIPB = ('OST_StructuralFraming',)   # categorías: enteras
+FAMS_SALVAR_NIPB  = ('VM ANGULO',)               # …salvo esto, que gana sobre las dos
 ```
 
-**Dos plantas para el mismo nivel 3,30**, porque la ventana se cerró justo en medio de ese
-racimo. La `amplitud 1.00 m` — exactamente la tolerancia — es la firma del bug: el corte lo
-decidió la ventana, no la geometría.
+Se oculta una pieza si **matchea cualquiera de las dos primeras**; `FAMS_SALVAR_NIPB` se
+evalúa al final y gana sobre ambas.
 
-Buscando el pico primero, el nivel nace **centrado en la densidad** y ningún racimo se
-puede partir: o entra entero en el radio, o no entra. La tolerancia deja de ser «el ancho
-que se permite acumular» y pasa a ser «qué tan lejos del pico puede estar una viga para
-seguir siendo del mismo nivel».
+> ⚠️ **Las dos primeras listas están acopladas por la tercera.** `VM ANGULO` es
+> `Structural Framing`, igual que `ESCALERA METÁLICA`, `VM ESCALERAS` y `PILAR ANGULO`.
+> Sin la excepción, la regla por categoría se llevaría puestas justo las placas de anclaje
+> que la regla por familia se ocupa de salvar. Si algún día se saca `VM ANGULO` de
+> `FAMS_SALVAR_NIPB`, desaparecen de la NIPB por **dos** caminos distintos.
+
+**Las columnas no se tocan**: son `Structural Columns`, otra categoría, así que se siguen
+viendo apoyadas sobre su placa.
+
+Las dos reglas **se componen y ninguna sobra**, aunque casi todo lo que oculta
+`FAMS_OCULTAR_NIPB` sea también framing: la baranda de la escalera es categoría
+`Balusters`, y el grating y los detail items tampoco son framing.
+
+Cómo funciona el match por **familia**:
+
+- **«Contiene», ignorando tildes y mayúsculas.** No es nombre exacto: en el modelo
+  conviven `ESCALERA METÁLICA`, `ESCALERA METÁLICA_1 ESC` y `ESCALERA METÁLICA1`, las tres
+  con tilde. Con nombre exacto habría que listar las tres y la próxima variante volvería a
+  fallar.
+- **Se hereda del contenedor.** Una pieza anidada (`VM ESCALERAS`, los peldaños) no lleva
+  «ESCALERA» en su propio nombre de familia, así que se sube la cadena de `SuperComponent`
+  hasta la raíz. Basta con que **algún** contenedor matchee.
+- **La excepción se evalúa sobre la familia de la pieza**, no del contenedor: `VM ANGULO`
+  se salva aunque su escalera esté en la lista de ocultar.
+
+> ⚠️ **La excepción es `VM ANGULO` completo, no `ANGULO`.** `PILAR ANGULO` también vive
+> anidado en la escalera y también termina en «ANGULO». Hoy queda fuera de la NIPB por
+> altura (`z 12,6` pies, muy por encima del corte), pero salvar `ANGULO` a secas lo dejaría
+> entrar por la ventana.
+
+**Solo afecta a la NIPB.** En las T.A. y en las elevaciones de eje la escalera y las vigas
+se siguen viendo enteras.
+
+> Nada de esto rompe los pasos siguientes: 03 dibuja los ejes de viga **solo en las T.A.**
+> (en la NIPB los borra a propósito) y en la NIPB rotula únicamente `Structural
+> Connections`, mientras que las cadenas de cotas de esa planta referencian **ejes
+> estructurales**, no vigas.
+
+##### Por qué `HideElements` y no dejarla fuera del aislamiento
+
+El aislamiento de `aislar_assembly()` es **de ida**: `ConvertTemporaryHideIsolateToPermanent`
+no se revierte volviendo a correr con una lista más grande — hay que *Recrear* la vista (es
+lo mismo que ya documenta [§ Qué ejes se ven en cada vista](#qué-ejes-se-ven-en-cada-vista)).
+Estas reglas dependen de **nombres que el modelador va a querer corregir**, así
+que se implementaron con `HideElements`/`UnhideElements`: cada corrida **desoculta primero los
+miembros del assembly** y vuelve a decidir de cero. Cambiar la constante y re-correr
+alcanza, sin recrear nada. Es el mismo patrón que usa 03 con los ejes de las elevaciones.
+
+Desocultar **solo miembros** es lo que hace segura esa pasada: los miembros son justamente
+lo que el aislamiento dejó visible, así que lo único que se revierte es lo que ocultó una
+corrida anterior de esta misma función — nunca algo que haya ocultado el aislamiento.
+
+> El log dice qué se ocultó (desglosado por familia) y cuántas piezas se salvaron. Si dice
+> **«nada que ocultar»**, ningún miembro del assembly cayó en las reglas: si aun así ves la
+> escalera o las vigas, es que **no son miembros de ese assembly** y quien las está dejando
+> ver no es esta regla.
+
+### B. Planta P.T. (Punto de Trabajo)
+
+Exactamente **1 por assembly**, sobre el nivel `P.T._{assembly}`. Va **segunda en la lámina**,
+entre la NIPB y las T.A.
+
+Usa el **mismo view template que las T.A.** (input `06.`) y el **mismo offset de corte**
+(input `13.`): es una planta de trabajo, no la de placas base, y no tiene inputs propios.
+
+- Nombre interno: `{assembly} - P.T.`
+- Título en lámina: `{assembly} - PLANTA P.T.`
+
+> Esta planta obligó a tocar **01 y 02**, no sólo 00: los dos arman la lista de vistas de
+> cada assembly a mano (`vistas_pendientes`), así que una vista nueva no se cuenta ni se
+> coloca hasta que se la nombra explícitamente.
+
+### C. Plantas T.A. (Tope de Acero)
+
+Una por cada nivel `T.A._{assembly}_{NN}`, **ordenadas de abajo hacia arriba por su cota
+real** (`ProjectElevation`).
 
 - Nombre interno: `{assembly} - T.A. 01`, `02`… (correlativo **ascendente por altura**)
 - Título en lámina: `{assembly} - PLANTA T.A. (EL. 2.303,37)` — cota real en metros, con
   punto de miles y coma decimal, igual que las vistas que ya existen en el modelo
   (`PLANTA ESTRUCTURA EL. 2.305,25 T.A.`)
 
-El correlativo es el nombre estable que usan los pasos siguientes; la cota va solo en el
-título mostrado, porque si un modelador mueve una viga y el cluster se desplaza, un
-nombre basado en la cota rompería las búsquedas por nombre.
+#### El número de la vista sale de la altura, nunca del nombre del nivel
 
-#### ⚠️ El nivel dominante se vota por metros de viga, no por cantidad de piezas
+El sufijo del nivel es **informativo**. El número de la vista se asigna por posición en la
+lista ordenada por cota, de modo que 01, 02 y 06 siempre ven una serie `01..NN` **sin huecos
+ni repetidos**, pase lo que pase en el modelo. Ese correlativo es el nombre estable que usan
+los pasos siguientes; la cota va sólo en el título mostrado, porque un nombre basado en la
+cota rompería las búsquedas por nombre en cuanto alguien moviera el nivel.
 
-Medido en **ES-1002** el **2026-07-29**. El modelador confirma que ese assembly tiene
-**dos** T.A., a **+150** y **+1200** del nivel `RLO_T.A. ES-1003` — que está en **EL. 6,000 m
-exacta** de proyecto (verificado con el *Project Base Point*: `Elev = 7547,900 ft`, el offset
-de cota compartida). O sea: T.A. en **EL. 6,150** y **EL. 7,200**.
+#### ⚠️ La cota NO va en el nombre del nivel
 
-Contando **piezas**, la moda elegía el nivel equivocado en los dos grupos:
+El sufijo es **la numeración**, no la altura. La cota ya aparece en el título de la vista
+(`PLANTA T.A. (EL. 2.304,18)`), y ponerla también en el nombre del nivel la duplica: dos
+lugares que hay que mantener sincronizados a mano y que se contradicen en cuanto alguien
+mueva el nivel.
 
-| Grupo | Racimo que ganaba por cantidad | Racimo correcto | Piezas | Metros de viga |
-|---|---|---|---|---|
-| 1 | EL. 6,550 (8 × `C20x13,1` de 5,5 m) | **EL. 6,150** | 8 vs **7** ❌ | 41,1 vs **63,7** ✅ |
-| 2 | EL. 7,070 (6 angulares `L6,5`) | **EL. 7,200** | 6 vs 3 ❌ | 25 vs **38,7** ✅ |
+> Esto se decidió el **2026-08-10** después de probar la alternativa. Durante la primera
+> corrida con niveles, los `T.A.` se habían nombrado con la cota
+> (`T.A._ES-1001_2.304,175`) y 00 llegó a validar ese número contra la `Elevation`
+> compartida real. La validación funcionó —cazó un `T.A._ES-1001_2.308,825` que estaba en
+> realidad a **2.308,393**, 43 cm de error— pero el problema de fondo era la duplicación,
+> no la falta de chequeo. Con la cota fuera del nombre, ese error ya no puede existir.
 
-El grupo 1 perdía **por una sola pieza**, aunque el racimo correcto incluye dos vigas
-`IN25x46,6` de **17,8 m**. Consecuencia: la planta salía cortada y **rotulada 400 mm por
-encima** del T.A. verdadero (`PLANTA T.A. (EL. 6,55)`).
+Lo único que 00 comprueba del sufijo es que **coincida con la posición por altura**:
 
-Por eso el voto es el **largo de la viga**, tomado como la diagonal en planta de su bounding
-box — contrastado contra el parámetro `Length` del modelo (`IN25x46,6` de 17,811 → 17,826
-medidos; `C20x13,1` de 5,479 → 5,484). No se lee `Length` directamente para no depender de
-que cada familia lo publique. Si ninguna viga reporta largo útil, se cae al criterio anterior
-por cantidad.
+```
+ES-1001: el nivel T.A._ES-1001_03 dice "03" pero por altura es el 01; la vista se llama T.A. 01.
+```
 
-> **La tolerancia se queda en 1 m.** Bajarla a 50 cm no reduce vistas, las **aumenta**:
-> partiría el grupo 1 de ES-1002 en dos y daría **3 plantas** donde hay 2. Lo que reduce
-> vistas es el filtro por proporción de acá abajo, no la tolerancia.
+Un sufijo que no sea un número se acepta sin decir nada: es una etiqueta libre.
 
-#### ⚠️ `Structural Framing` es un cajón de sastre: filtro por proporción
-
-Medido en el modelo real el **2026-07-29** (assembly **ES-1003**, 240 miembros): el graph
-generaba **5 plantas T.A. cuando el T.A. real es uno solo**. La causa no es la subcategoría
-(*Girder* vs *Other*) — los 240 miembros reportan la misma categoría `OST_StructuralFraming`
-y el filtro los toma a todos por igual. La causa es **qué vive dentro de esa categoría**:
-
-| Familia | Tope (`Max.Z`) | Qué es |
-|---|---|---|
-| `ESCALERA METÁLICA1` | 4,393 m | una **escalera completa**, una sola pieza que abarca 1,06 → 4,39 m |
-| `PELDAÑO METALICO` ×4 | 3,136 / 2,936 / 2,736 / 2,536 m | **peldaños**, separados exactamente 20 cm |
-| `OR100x14,4`, `L-Viga` | 5,667 m | 2 piezas sueltas |
-| `C10x7,20` | 4,690 / 2,540 / 1,940 m | piezas sueltas |
-| `GRATING ARRIGONI` ×5 | 3,332 m | rejilla (cae en el grupo bueno, inofensiva) |
-| **vigas reales** ×~218 | **3,300 m** | el T.A. verdadero, todas al mismo Z exacto |
-
-Los peldaños son los peores: forman una **escalera de topes separados 20 cm** y, como el
-agrupamiento encadena por cercanía, van sembrando niveles falsos.
-
-La señal que los separa limpiamente es la **proporción de acero**. El filtro es un
-porcentaje de **metros de viga medidos contra el nivel más grande** del assembly (input
-`11. Mínimo de un nivel T.A. (% del nivel más grande)`, default **40**), no una lista de
-nombres de familia a excluir, que dependería de cómo bautice sus familias cada modelador.
-
-Se mide contra el nivel más grande y **no contra el total** a propósito: así el umbral no
-depende de cuántos niveles tenga el assembly. Un assembly con 4 niveles legítimos y
-parecidos los conserva los 4 (cada uno ~100 % del mayor), cosa que un umbral sobre el total
-haría imposible.
-
-- `0` = sin filtro.
-- Si **ningún** nivel alcanza el umbral, se conserva el mayor: un assembly nunca se queda
-  sin planta T.A.
-- Cada nivel descartado se **reporta en el log** con su cota, sus vigas y su porcentaje, así
-  que si el filtro se come uno legítimo se ve de inmediato y basta bajar el número.
-
-Resultado con el default de 40 % sobre el modelo real, contrastado contra lo que declara el
-modelador:
-
-| Assembly | Niveles detectados | Sobreviven | Cotas |
-|---|---|---|---|
-| ES-1001 | 2 | **1** | EL. 4,650 (el de EL. 3,450 queda en 29 %) |
-| ES-1002 | 3 | **2** | EL. 6,150 y EL. 7,200 |
-| ES-1003 | 5 | **1** | EL. 3,300 (los otros, entre 0 % y 1 %) |
-
-#### ⚠️ El corte se recorta contra el nivel de arriba
+#### ⚠️ El corte se recorta contra el nivel vecino
 
 El offset del corte es fijo (1,00 m) pero la separación entre niveles no. En **ES-1002** los
 dos T.A. están a **1,05 m**, así que el corte de la planta 01 caía en EL. 7,15 — **por
 encima** de las vigas secundarias del T.A. 02, que están en EL. 7,07 — y esa planta dibujaba
 los dos niveles superpuestos.
 
-Ahora el corte nunca alcanza al vecino: se queda **20 cm** por debajo del nivel de arriba
+El corte nunca alcanza al vecino: se queda **20 cm** por debajo del nivel de arriba
 (`SEP_NIVEL`), y el fondo, 20 cm por encima del de abajo. Ambos recortes se avisan en el log.
+El recorte mira **sólo los niveles T.A.**; el P.T. no participa.
 
-> Validación con el modelo real: los niveles nativos del proyecto van de 7545.3 a 7579.8
-> pies (≈ 2300.4 a 2310.9 m — el sitio está en el salar, a 2300 m). Varios están a menos
-> de 0.5 m entre sí (`AMT_T.A. COLUMNAS` 2303.37 m, `AMT_T.A. PLATAFORMA` 2303.59 m,
-> `RLO_T.A.2 ES-1001` 2303.71 m, `RLO_T.A. ES-1002` 2303.86 m): con tolerancia de 1 m
-> colapsan en **una sola** planta T.A., que es exactamente el comportamiento buscado.
+#### Qué reemplazó esto (2026-08-10)
+
+Hasta esta versión las plantas T.A. salían de un **clustering geométrico** de los topes de
+viga: se extraía `(Z de la cara superior, largo en planta)` de cada viga, se detectaban picos
+de densidad en cubetas de 5 mm ponderadas por metros de viga, se descartaban los niveles
+minoritarios bajo el 40 % del mayor, y el nivel dominante era la cubeta con más metros.
+
+Funcionaba —resolvía el sub-modelado del grating, el ruido de las barandas, los niveles
+partidos al medio—, pero era **el graph adivinando una decisión de proyecto**. Gerencia
+resolvió que los niveles se modelen explícitamente para tener el modelo ordenado, así que se
+eliminaron `tops_de_vigas()`, `agrupar_por_altura()`, `z_dominante()`,
+`filtrar_grupos_minoritarios()`, `cubeta()` y `nivel_ancla()`, junto con sus dos inputs de
+Dynamo Player (`11. Tolerancia de agrupación T.A.` y `12. Mínimo de un nivel T.A.`).
+
+> Las etiquetas del Player **saltan de la `10.` a la `13.`**: se prefirió dejar el hueco
+> antes que renumerar referencias ya documentadas en este README. Los índices `IN[]` del
+> código sí se corrieron, y quedaron 14 inputs.
+
+Si hace falta recuperar el criterio viejo (por ejemplo para un modelo heredado sin niveles
+nombrados), está en el historial de git, en el commit anterior a este cambio.
 
 #### ⚠️ Las sillas de anclaje son `Structural Connections`, no `Structural Framing`
 
@@ -339,7 +459,7 @@ después de aplicar el template (que es a quien hay que ganarle). Si el template
 *V/G Overrides*, la API no deja sobrescribirlo y el log lo avisa: en ese caso hay que darle
 a las plantas un template que muestre esa categoría.
 
-### C. Elevaciones de eje
+### D. Elevaciones de eje
 
 Una por cada eje que traiga escrito el **nombre del assembly en su parámetro `ASSEMBLY`**
 (`ejes_del_assembly`). Ni uno más: es un marcado explícito, no un criterio geométrico.
@@ -434,16 +554,16 @@ eliminadas). Eran dos criterios conviviendo en el mismo graph; ahora hay uno sol
 Plantas y elevaciones tienen **inputs separados**, porque son dos clases de vista con dos
 mecanismos y dos necesidades distintas:
 
-- **Plantas** (`ViewPlan`) → *View Range*, input `13. Profundidad de las plantas bajo el
-  nivel (cm)`, default **50 cm**. Los cuatro planos se anclan al mismo nivel (por
-  `ProjectElevation`, ver arriba) y se expresan como offset:
+- **Plantas** (`ViewPlan`) → *View Range*, input `14. Profundidad de las plantas bajo el
+  nivel (cm)`, default **50 cm**. Los cuatro planos se anclan al **nivel modelado de esa
+  planta** (por `ProjectElevation`, ver arriba) y se expresan como offset:
   - `Top` = `Cut` + 10 cm (`HOLGURA_TOP`, ver más abajo — nunca puede ser cero).
-  - `Cut` = nivel definido **+** su offset (input `12.`, default 1,00 m).
-  - `Bottom = View Depth` = nivel definido **− 0,50 m**.
+  - `Cut` = nivel **+** su offset (input `10.` para la NIPB, `13.` para P.T. y T.A.,
+    default 1,00 m).
+  - `Bottom = View Depth` = nivel **− 0,50 m**.
 
-  El fondo se mide **desde el nivel definido** (la cara más baja en la NIPB, el nivel
-  dominante en las T.A.), **no** desde el plano de corte: el corte va un offset por encima
-  del nivel y no tiene por qué arrastrar la profundidad. Así cada planta T.A. muestra su
+  El fondo se mide **desde el nivel**, **no** desde el plano de corte: el corte va un offset
+  por encima y no tiene por qué arrastrar la profundidad. Así cada planta T.A. muestra su
   nivel y no los de abajo — con los niveles del modelo separados 1,0–2,3 m, una profundidad
   mayor haría que cada planta arrastrara 2 o 3 niveles inferiores.
 
@@ -465,7 +585,8 @@ la escala automática 1:25/1:50 de fundaciones, que no aplica a estructuras de e
 Hay **tres campos de view template independientes** (dos vistas de familias distintas nunca
 comparten template real en Revit, y la NIPB necesita uno propio):
 
-- **`06. View template - PLANTAS T.A.`**, default `DISP.GRAL_1/150_PLAN`.
+- **`06. View template - PLANTAS T.A. y P.T.`**, default `DISP.GRAL_1/150_PLAN`. La planta
+  P.T. comparte template con las T.A.: es una planta de trabajo, no la de placas base.
 - **`07. View template - NIPB (debe mostrar conexiones)`**, default `ESTRUCTURAS_1/50`. Va
   aparte de las T.A. porque a esa cota lo que hay que ver son las sillas y placas base, que
   son `Structural Connections` — la categoría que el template de disposición general apaga.
@@ -492,10 +613,16 @@ lámina nueva. Nunca se mezclan dos assemblies en la misma lámina.
 
 ### Orden y flujo
 
-Por assembly, en este orden: **planta NIPB → plantas T.A. ascendentes → elevaciones de
-eje** (los ejes en orden natural, de modo que `2` va antes que `13` y `13a` después de
-`13`). Las vistas fluyen de izquierda a derecha y de arriba hacia abajo; al llenarse la
-lámina se sigue en la siguiente del mismo assembly.
+Por assembly, en este orden: **planta NIPB → planta P.T. → plantas T.A. ascendentes →
+elevaciones de eje** (los ejes en orden natural, de modo que `2` va antes que `13` y `13a`
+después de `13`). Las vistas fluyen de izquierda a derecha y de arriba hacia abajo; al
+llenarse la lámina se sigue en la siguiente del mismo assembly.
+
+> ⚠️ **Este orden vive escrito en `vistas_pendientes()`, en 01 y en 02.** Ninguno de los dos
+> descubre vistas nuevas solo: arman la lista a mano, la NIPB y la P.T. por nombre exacto, las
+> T.A. y las elevaciones por prefijo. Una vista que 00 cree y que nadie nombre ahí **no se
+> cuenta para las láminas ni se coloca en ninguna**. Fue exactamente lo que pasó al agregar la
+> P.T.: hubo que tocar los tres graphs, no sólo 00.
 
 Esto reemplaza el modelo de fundaciones de «bloque = planta arriba + 2 cortes debajo,
 bloques en grilla», que no escala a un assembly con 1 + 4 + 8 vistas.
@@ -632,9 +759,14 @@ de «100» flotando sobre la estructura).
 
 Los topes de viga se agrupan en cubetas de 10 mm y cada cubeta acumula **metros de viga**
 (el largo en planta de su bbox, así una columna aporta ~0 y no vota). Una cubeta es un
-T.A. si llega al **40 %** de los metros de la cubeta dominante — el mismo criterio y el
-mismo umbral con el que 00 elige el nivel dominante de una planta T.A. El log lista las
-cubetas descartadas con su altura y sus metros.
+T.A. si llega al **40 %** de los metros de la cubeta dominante. El log lista las cubetas
+descartadas con su altura y sus metros.
+
+> Este criterio geométrico es **propio de 03** y sobrevive por su cuenta. Era el mismo que
+> usaba 00 para elegir el nivel dominante de una planta T.A., pero 00 lo perdió el
+> 2026-08-10 al pasar a niveles modelados. **Candidato a revisar**: si los niveles
+> `T.A._{assembly}_{NN}` ya declaran las alturas, 03 podría leerlas en vez de re-votarlas, y
+> las marcas de nivel dejarían de poder contradecir a las plantas.
 
 > **Y no hay un solo T.A.**: si en la elevación hay vigas a alturas distintas que pasan el
 > umbral, **cada altura lleva su propia marca** y entra como una referencia más en la
@@ -786,7 +918,8 @@ vez de dejar el misterio.
 ### Rótulos de las conexiones en la planta NIPB
 
 **Solo en la NIPB**, un Multi-Category Tag por cada `Structural Connection` del assembly
-que la vista muestre: placas base, sillas de anclaje, atiesadores y pernos. Lo gobiernan
+que la vista muestre: placas base, sillas de anclaje y pernos — **la familia contenedora,
+nunca sus componentes internos** (ver abajo). Lo gobiernan
 tres inputs: `NIPB: rotular las conexiones (placas base, sillas)` (default True),
 `NIPB: tipo de C-MultiCat del rotulo` (default **`ELEMENTO_TBL`**, el tipo que lee el
 parámetro compartido del mismo nombre) y `NIPB: rehacer los rotulos existentes`.
@@ -799,19 +932,49 @@ Es lo único que se rotula a esa cota, y a propósito:
 | Plantas T.A. | 05 | vigas |
 | Elevaciones de eje | 05 | vigas y columnas |
 
-Las columnas y las dos vigas que la NIPB muestra quedan fuera: ya salen rotuladas en las
-T.A. y en las elevaciones, y a la cota de la placa base no dicen nada.
+Las columnas quedan fuera: ya salen rotuladas en las T.A. y en las elevaciones, y a la
+cota de la placa base no dicen nada. Las vigas ya ni siquiera se ven — desde el
+**2026-08-11** 00 oculta `Structural Framing` en esta planta, ver
+[00 § Qué se oculta en la NIPB](#️-qué-se-oculta-en-la-nipb).
 
-Medido en `ES-1001 - NIPB` el **2026-08-05**: 53 elementos del assembly visibles — **47
-conexiones**, 4 columnas y 2 vigas.
+Medido en `ES-1001 - NIPB` el **2026-08-05**, **antes** de ese cambio: 53 elementos del
+assembly visibles — **47 conexiones**, 4 columnas y 2 vigas.
 
-> ⚠️ **Los rótulos de una misma placa base salen encimados.** Esas 47 conexiones viven
-> sobre **4 placas**, o sea ~12 piezas apiladas en el mismo punto en planta. El tag va al
-> centro en planta de su pieza y sin directriz, así que los de una misma placa nacen unos
-> encima de otros y hay que separarlos a mano. No hay un lugar «correcto» que el script
-> pueda calcular: son piezas superpuestas, no repartidas.
+#### ⚠️ Solo la familia contenedora, nunca sus componentes internos
 
-> ⚠️ **Hoy los 53 dirían lo mismo.** En el modelo de referencia `ELEMENTO_TBL` (parámetro
+Una silla de anclaje **es una familia con piezas anidadas compartidas**: en el modelo de
+referencia, `C-SillaAnclaje` con ocho `C-AtiesadorSillaAnclaje` adentro. Las dos están en
+`Structural Connections`, y una anidada **compartida** es un elemento independiente para
+`FilteredElementCollector` — con su propio Id, su propio bounding box y su propio centro
+en planta.
+
+Sin filtro, una sola silla salía con **nueve rótulos** encimados en el mismo punto. Medido
+el **2026-08-11** en la vista del modelador `PLANTA PLACAS BASE EL. 2.301,775 N.I.P.B.`:
+36 conexiones de silla = **4 contenedores + 32 atiesadores**, o sea 36 tags donde
+correspondían 4.
+
+El filtro es por **jerarquía, no por nombre de familia**: se descarta la pieza cuyo
+`SuperComponent` sea **otro candidato** de la misma corrida. Da igual cómo termine
+llamándose la familia que modele el proyectista (`C-SillaAnclaje`, `SILLAS`, lo que sea).
+
+La condición es «hijo de **otro candidato**», no simplemente «tiene padre», y eso importa:
+
+| Situación | Qué se rotula |
+|---|---|
+| Contenedor visible + sus anidadas visibles | **solo el contenedor** |
+| Silla modelada como atiesadores sueltos, sin contenedor (pasa en `ES-1003`) | cada pieza, como antes |
+| Contenedor fuera del View Range o anidado en otra categoría | sus piezas, en vez de perderse en silencio |
+
+El log dice cuántas piezas internas se saltaron en cada vista.
+
+> ⚠️ **Lo que queda encimado.** El filtro mata la mayor parte del problema, pero no todo:
+> varias conexiones **distintas** sobre la misma placa base siguen compartiendo el centro
+> en planta, y el tag va ahí y sin directriz. Esas hay que separarlas a mano — son piezas
+> superpuestas, no repartidas, y no hay un lugar «correcto» que el script pueda calcular.
+> (Antes del filtro eran ~12 tags por placa; las 47 conexiones de `ES-1001` vivían sobre
+> **4 placas**.)
+
+> ⚠️ **Hoy todos dirían lo mismo.** En el modelo de referencia `ELEMENTO_TBL` (parámetro
 > compartido `433e7c25-aa15-4380-9474-c6dffa787fa2`) vale **`ES-1001`** en las 53 piezas
 > visibles — es el TAG del assembly, no el identificador de la pieza (`PL-1004`,
 > `PL-1005`, `SILLA ANCLAJE ES-1001` están en el *Type Name*). El script no controla qué
@@ -828,9 +991,13 @@ Detalles:
   apila tags invisibles. A quien hay que ganarle es al view template de la NIPB
   (`07.` en 00, default `ESTRUCTURAS_1/50`).
 - **Qué piezas entran**: las que devuelve el colector por vista (respeta el View Range y el
-  aislamiento permanente de 00) **filtradas contra los miembros recursivos del assembly**.
-  Si la vista no muestra ninguna conexión, el log lo dice y apunta a la categoría
+  aislamiento permanente de 00) **filtradas contra los miembros recursivos del assembly**,
+  y de ésas, **solo las que no sean componente interno de otra** (arriba). Si la vista no
+  muestra ninguna conexión, el log lo dice y apunta a la categoría
   `Structural Connections`, que el template apaga y 00 vuelve a encender.
+  > Ojo con `miembros_recursivos()`: entra a propósito en las anidadas vía
+  > `GetSubComponentIds()`, así que ese filtro **no** excluye los componentes internos —
+  > los incluye. El descarte lo hace el filtro por `SuperComponent`, no éste.
 - El tipo de tag se busca **por nombre de tipo** y se activa si hacía falta. Si no existe,
   no se rotula nada y el log lista los disponibles como `Familia : Tipo` — mismo criterio
   que 05: rotular decenas de piezas con el tag equivocado es peor que no rotular.
@@ -1410,7 +1577,7 @@ distancia de la pieza más cercana al eje.
 **Historia.** El 2026-08-04 el `DIAG` sobre las 10 elevaciones vacías dio entre 1,7 y 4,9 m
 en todas: eran ejes sin marco, no falta de tolerancia. Se resolvió en 00 con el filtro
 geométrico `ejes_con_marco()`, que el 2026-08-10 quedó reemplazado por el marcado explícito
-(ver [00 § C](#c-elevaciones-de-eje)).
+(ver [00 § D](#d-elevaciones-de-eje)).
 - **Orientación**: `TagOrientation.Horizontal` en las vigas y `Vertical` en las columnas
   (la pieza es vertical si su dirección se parece más al *arriba* de la vista que a su
   *derecha*). El rótulo de una viga va por encima de su eje y el de una columna a la
@@ -1680,8 +1847,9 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
   (visto el 2026-07-28: elevaciones con `ESTRUCTURAS_1/50`, escala 1:100 y far clip
   8550 mm bastante después de cambiar los defaults). Con «Recrear vistas existentes» = True la borra y
   rehace — y además **limpia todas las T.A. y elevaciones previas del assembly**, no solo
-  las que va a recrear: el clustering puede devolver menos grupos que antes (o cruzar menos
-  ejes), y las vistas sobrantes quedarían huérfanas con un correlativo que ya no aplica.
+  las que va a recrear: si alguien borra un nivel `T.A._...` o desmarca el `ASSEMBLY` de un
+  eje, esta corrida devuelve menos vistas que la anterior y las sobrantes quedarían
+  huérfanas con un correlativo que ya no aplica.
 - `01`: si no hay vistas pendientes de colocar, no crea ninguna lámina. Los números de
   sheet ya usados en el proyecto se saltan.
 - `02`: vistas ya colocadas se omiten; solo se usan láminas **sin ningún viewport** (un
@@ -1704,8 +1872,19 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
 - `no hay ningun Assembly en el modelo` (00) — falta el paso previo: crear los assemblies
   en Revit. Nada de este pipeline funciona sin ellos.
 - `no existe la vista ... (corre 00_Vistas de assembly)` (01/02) — falta el paso 0.
-- `no hay vigas (Structural Framing) con geometria` (00) — el assembly no tiene vigas
-  identificables; se genera la NIPB y las elevaciones, pero ninguna planta T.A.
+- `no existe el nivel "N.I.P.B._X"` / `"P.T._X"` (00) — falta modelar ese nivel; el assembly
+  se queda sin esa planta. No hay cota de reemplazo.
+- `no existe ningun nivel "T.A._X..."` (00) — el assembly se queda sin ninguna planta T.A.
+- `N nivel(es) nombran al assembly sin empezar por ningun prefijo` (00) — el log los lista.
+  Puede ser un typo (`T.A_ES-1001` por `T.A._ES-1001`), un T.A. **sin sufijo**, o un nivel
+  viejo legítimo que no debe generar planta. Hay que mirarlos: 00 no adivina cuál es cuál.
+- `el nivel T.A._X_03 dice "03" pero por altura es el 01` (00) — el correlativo del nivel no
+  coincide con su posición por altura. La vista se nombra por altura igual, así que el
+  pipeline sigue funcionando; lo que hay que corregir es el modelo.
+- `el nivel N.I.P.B._X esta en EL. ... y la cara mas baja del assembly en EL. ...` (00) — el
+  nivel no coincide con la geometría real (más de 20 cm). **Manda el nivel** y la planta se
+  crea igual, pero uno de los dos está mal.
+- `hay N niveles que empiezan con "N.I.P.B._X"` (00) — duplicados; se usa el más bajo.
 - `ningun eje del modelo tiene el parametro ASSEMBLY` (00) — hay que crearlo: parámetro de
   proyecto de texto en la categoría *Grids*. Sin él **no se crea ninguna elevación y las
   plantas salen sin ejes**.
