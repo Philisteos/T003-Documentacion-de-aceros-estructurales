@@ -67,7 +67,7 @@ guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera des
 | 2 | `02_Colocar vistas en laminas.dyn` | ✅ acero | Coloca las vistas en flujo, más las leyendas |
 | 3 | `03_Ejes y cotas entre ejes.dyn` | 🧪 acero | Ejes y cadenas de cotas en las plantas, más un tag `ELEMENTO_TBL` por conexión en la NIPB (una por familia contenedora, sin bajar a sus piezas internas); en las elevaciones deja los dos ejes extremos y agrega cotas de altura, marcas de nivel (desde los `Level` modelados), el eje de cada viga y línea de terreno — **lo de elevaciones y los rótulos de la NIPB, sin probar en Revit** |
 | 4 | `04_Grating en plantas.dyn` | 🧪 acero | Dibuja el grating de las T.A. como Filled Regions recortadas contra las vigas — **sin probar en Revit** |
-| 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Multi-Category Tag `C-MultiCat` sobre cada viga de las T.A. y sobre las piezas del eje en las elevaciones, eligiendo tipo corto o largo según lo que entre en la pieza — **plantas OK, elevaciones sin volver a probar** |
+| 5 | `05_Rotulos de perfil.dyn` | 🧪 acero | Multi-Category Tag `C-MultiCat` sobre cada viga de las T.A. y **uno por tipo de familia** en las elevaciones (vigas, columnas, escaleras y barandas), eligiendo tipo corto o largo según lo que entre en la pieza — **plantas OK, elevaciones sin volver a probar** |
 | 6 | `06_Tabla de assemblies.dyn` | 🧪 acero | Una *lista de materiales* por assembly, en su primera lámina — **sin probar en Revit** |
 
 **Flujo**: 00 (crear vistas) → 01 (calcular y crear láminas) → 02 (colocar vistas y
@@ -860,26 +860,27 @@ que es cosa del modelador, no de Revit.
 > Solo se aplica a las **plantas**. Las elevaciones de eje llevan su propio tratamiento,
 > acá abajo.
 
-### En las elevaciones: solo los dos ejes extremos, recortados al alto del assembly
+### En las elevaciones: todos los ejes del assembly, recortados al alto
 
 Una elevación solo dibuja los ejes **perpendiculares al papel** — el eje de la propia
 elevación corre a lo largo de la vista y Revit no lo dibuja, así que queda fuera solo. De
-los que sí se dibujan se conservan **los dos extremos** y se ocultan los de por medio
-(input `Elevaciones: dejar solo los dos ejes extremos`, default True):
+los que sí se dibujan **se muestran todos**, con el mismo criterio que en las plantas: los
+que pertenecen al assembly, o sea los marcados con el parámetro `ASSEMBLY`.
 
-```
-   (13a) (13b) (13c) (14a) (16) (18a)        <- lo que sale por defecto
-     |     |     |     |    |     |
-                                              (13a)              (18a)
-   +---------------------------+      -->       |                  |
-   |         ELEVACION         |                +------------------+
-   +---------------------------+                |    ELEVACION     |
-                                                +------------------+
-```
-
-La posición de cada eje ya está acotada en las plantas; repetirla en la elevación solo
-tapa la estructura con líneas verticales. Los extremos se quedan porque son la referencia
-del ancho de la estructura.
+> ⚠️ **Esto cambió el 2026-08-11 y con él la razón de fondo.** Hasta entonces se conservaban
+> sólo **los dos extremos** y se ocultaban los de por medio, con el argumento de que «la
+> posición de cada eje ya está acotada en las plantas y repetirla en la elevación sólo tapa
+> la estructura con líneas verticales».
+>
+> El corte pasó a llevar **su propia cadena de cotas entre ejes** (más abajo), y una cota no
+> puede referenciar un eje oculto: se crea sin error y no se dibuja, la misma trampa ya
+> documentada para las categorías apagadas. Sin todos los ejes a la vista, la cadena no
+> tiene contra qué referenciarse.
+>
+> El input `Elevaciones: dejar solo los dos ejes extremos` **sigue existiendo pero viene en
+> `False`**. Si alguna vez se lo vuelve a poner en True, la cadena entre ejes del corte se
+> queda con dos referencias y se degrada sola a la cota total — no falla, pero deja de
+> haber tramos.
 
 Se usa `View.HideElements` / `UnhideElements` (específico de la vista). **Cada corrida
 recupera primero los que ocultó la anterior** y vuelve a decidir cuáles son los extremos:
@@ -1311,7 +1312,39 @@ vistas:
 separación entre cadenas fuese mayor que la del borde, la de vigas se pone a media distancia
 y se avisa. La cadena de ejes **no se movió**: la de vigas se mete por dentro.
 
-### Cadena de cotas entre ejes estructurales (solo en planta)
+### Cadena de cotas entre ejes en las elevaciones
+
+Desde el **2026-08-11** cada elevación de eje lleva, **por encima del assembly**, la misma
+pareja que las plantas: **cadena entre ejes + cota total** del primero al último eje que el
+corte despliega.
+
+```
+   [──────────────── cota TOTAL ────────────────]   <- z del assembly + off + sep
+   [ tramo ][  tramo  ][ tramo ][    tramo     ]   <- z del assembly + off
+    (13a)     (13b)     (14a)    (16)     (18a)
+      │         │         │        │        │
+   ┌──────────────────────────────────────────┐
+   │                ELEVACION                 │
+```
+
+Se acota contra los **propios `Grid`**, igual que en planta: son referencias limpias, a
+diferencia de las caras del acero, que Revit descarta al comitear.
+
+**No se duplicó `dibujar_cadena()`.** Lo único que cambia entre una planta y un corte es
+cómo se construye un punto sobre el plano de la vista, así que la función acepta un
+constructor `punto(pos, perp)`: en planta `perp` es un desplazamiento sobre un eje
+horizontal y el plano vive a la cota del origen; en una elevación `perp` **es la cota** y el
+punto sale de `punto_en_elevacion()`. Es el mismo patrón que `proyectores_de_vista()` para
+el eje de viga.
+
+> **Va después de `anotar_altura()`**, no antes: con `Elevaciones: rehacer la anotacion
+> existente` esa función borra **todas** las `Dimension` de la vista, así que dibujarla
+> antes sería dibujarla para nada.
+
+> **Idempotencia**: se reutiliza `cadenas_existentes()`, que reconoce la cadena entre ejes
+> por que su primera referencia es un `Grid`. Si ya está, se salta.
+
+### Cadena de cotas entre ejes estructurales (en planta)
 
 Por cada planta se arman hasta dos cadenas, **por fuera del borde del assembly** (input de
 separación en mm de papel, default 20, escalado por la escala de la vista):
@@ -1328,9 +1361,81 @@ referencias que Revit rechaza al comitear).
 
 Los ejes se ordenan por su posición sobre el eje de medición y se descartan los que estén
 a menos de ~5 mm de otro (mismo eje dibujado dos veces). Los ejes **oblicuos** a la vista
-quedan fuera de la cadena y se avisan en el log. El conjunto de ejes es exactamente el
-mismo que usa 00 para decidir qué elevaciones crear (mismo test Liang-Barsky), así que
-cadena y elevaciones nunca se contradicen.
+quedan fuera de la cadena y se avisan en el log.
+
+#### ⚠️ Qué ejes son «del assembly»: el parámetro `ASSEMBLY`, no la geometría
+
+03 lee **el mismo marcado que 00**: el parámetro de proyecto `ASSEMBLY` de cada eje (ver
+[00 § El parámetro `ASSEMBLY` de los ejes](#el-parámetro-assembly-de-los-ejes)). Un eje sin
+ese marcado no entra en ninguna cadena ni se muestra en ninguna vista del assembly.
+
+> **Esto estuvo roto entre el 2026-08-10 y el 2026-08-11.** 03 elegía los ejes con un test
+> **geométrico** (recorte Liang-Barsky del eje contra el **rectángulo** del bounding box en
+> planta) y el comentario del código afirmaba que era «el mismo test que usa 00». Dejó de
+> serlo el 2026-08-10, cuando 00 pasó al parámetro `ASSEMBLY`, y 03 no se actualizó.
+>
+> El síntoma no era sólo acotar de más. El rectángulo del bbox es bastante más grande que la
+> huella real, así que 03 devolvía **ejes de otros sectores** — y `ejes_de_elevacion()` los
+> **desocultaba**, revirtiendo el aislamiento permanente que había dejado 00. Un eje ajeno
+> reaparecía en el corte y encima entraba en la cadena de cotas.
+>
+> `segmento_cruza_rect()` y `ejes_que_cruzan()` se eliminaron. El comentario que afirmaba la
+> equivalencia es lo que hizo que el desfase pasara desapercibido: **una afirmación de
+> consistencia entre dos graphs no se comenta, se comparte el código**.
+
+#### La cota total, del primer al último eje
+
+Desde el **2026-08-11** cada cadena lleva **además** una cota de punta a punta, por fuera:
+
+```
+   (0c)(0b)(0a)  (0)   (1)     (2)      (3)          <- burbujas de eje
+   [────────────── 12600 ──────────────]             <- cota TOTAL
+   [1200|1050|1200|1100|1100|875|...]                <- cadena de EJES DE VIGA
+   [E]  ┌───────────────────────────────┐
+    │   │            PLANTA             │
+```
+
+Medido en `ES-1001 - T.A. 01`: la vista queda con **6 cotas** — cadena entre ejes y total a
+la izquierda, cota total arriba, y las dos cadenas de ejes de viga (arriba y derecha).
+
+Los tramos dan la modulación y el total da la dimensión general del sector, que es como se
+acota un plano. Se controla con `COTA_TOTAL_EJES` en la cabecera del nodo Python, y se
+separa de la cadena con el mismo input de **separación entre cadenas** (default 8 mm).
+
+##### Arriba va sólo la total; a la izquierda, las dos
+
+```python
+SOLO_TOTAL_ARRIBA    = True     # arriba, sólo la cota de punta a punta
+SOLO_TOTAL_IZQUIERDA = False    # a la izquierda, tramos + total
+```
+
+**Arriba los tramos entre ejes competían con la cadena de ejes de viga**, que corre justo
+debajo y en `ES-1001` trae **13 tramos**, algunos de 425 y 575 mm. Dos filas de tramos
+apiladas no se leen, y de las dos la que aporta es la de vigas: la modulación entre ejes ya
+queda dicha por la cota total más las burbujas.
+
+A la izquierda se dejan las dos porque **ahí no hay nada compitiendo** — la cadena de vigas
+vertical va por la **derecha** — y la modulación entre ejes se lee sin problema.
+
+> Cuando un lado va con `solo_total`, la cota total **ocupa el lugar de los tramos** en vez
+> de quedar más afuera dejando un hueco vacío adentro. Y ahí se dibuja aunque haya sólo 2
+> ejes: es la única cota de ese lado, no una repetición de la cadena.
+
+- **Va como `Dimension` aparte**, no como una referencia más de la cadena: una `Dimension`
+  de Revit con **3 o más referencias dibuja los tramos**, así que el total no se puede pedir
+  sobre la misma cadena.
+- **Con sólo 2 ejes no se dibuja**: ahí la cadena ya *es* el total, y repetirlo serían dos
+  cotas idénticas una encima de la otra.
+- **Sólo en la cadena exterior** (entre ejes estructurales). La cadena interior de ejes de
+  viga no lleva total.
+
+> ⚠️ La separación se pasa **con signo**, no en valor absoluto: la cadena de arriba se
+> desplaza con `+off` y la de la izquierda con `−off`, así que «hacia afuera» no es la misma
+> dirección en las dos. Con el signo puesto por quien llama, `dibujar_cadena()` sólo tiene
+> que sumar.
+
+> Si algún día se quisiera el total **en vez de** los tramos, no es esta constante: sería no
+> pasarle a `dibujar_cadena()` la lista completa de ejes.
 
 ### Cadena de cotas entre ejes de viga (solo en las plantas T.A.)
 
@@ -1675,10 +1780,58 @@ elige entre el mismo par de tipos según lo que entre en la pieza:
 
 | Vista | Qué pone | Cómo se orienta |
 |---|---|---|
-| Plantas T.A. | un tag por viga | girado con la viga, centrado en su eje |
-| Elevaciones de eje | un tag por pieza que esté sobre el eje | horizontal encima de las vigas, girado 90° a la izquierda de las columnas |
+| Plantas T.A. | un tag por **viga** | girado con la viga, centrado en su eje |
+| Elevaciones de eje | un tag por **tipo de familia** presente en la vista | horizontal encima de las vigas, girado 90° a la izquierda de las columnas |
 
 En ambos casos: **`Item_TBL` si entra, `Modelo` si no**.
+
+### ⚠️ En las elevaciones: un tag por TIPO, no por pieza
+
+Desde el **2026-08-11** una elevación de eje lleva **un rótulo por cada tipo de familia
+distinto** que muestre, en vez de uno por cada pieza. Es la única forma de que quepan
+columnas, vigas, escaleras y barandas en la misma vista sin que quede ilegible: con un tag
+por tipo, **la cantidad de rótulos deja de depender de cuántas piezas haya**.
+
+El problema que resuelve está medido: una elevación muestra en profundidad todo lo que entre
+en el *Far Clip* —en la vista del modelador son **87 vigas**— y el **2026-08-04**, sin
+filtro, `ES-1002 EJE E` daba **51 tags sobre 66 piezas**.
+
+**El representante de cada tipo es la pieza más cercana al plano del eje**, que es la que la
+elevación está documentando. A igual distancia gana la más larga, porque es a la que mejor
+le entra el rótulo largo.
+
+> ⚠️ **El input `09.` dejó de ser un filtro duro.** Antes descartaba toda pieza a más de
+> 30 cm del eje; ahora sólo **elige representante**: si de un tipo no hay ninguna pieza sobre
+> el eje, se rotula igual la más cercana en vez de perder el tipo entero. Sin ese cambio la
+> escalera y las barandas no recibirían tag nunca, porque casi nunca caen sobre el plano del
+> eje.
+
+El log lo reporta como `N tag(s) — uno por tipo: M tipo(s) distinto(s) sobre P pieza(s)
+visibles`, y cuenta aparte los tipos que no tenían ninguna pieza sobre el eje.
+
+**Las plantas no cambiaron**: ahí sigue habiendo un tag por viga, que es lo que una planta
+tiene que decir.
+
+### ⚠️ Qué categorías se rotulan
+
+`CATS_ROTULABLES` pasó de dos categorías a cuatro familias de categoría:
+
+| Categoría | Desde |
+|---|---|
+| `Structural Framing` (vigas **y la escalera**) | siempre |
+| `Structural Columns` | siempre |
+| `Stairs Railing` / `Railings` / `Railing System` | **2026-08-11** |
+| `Stairs` | **2026-08-11** |
+
+Antes sólo estaban vigas y columnas, así que **una baranda no recibía tag ni aunque cayera
+justo sobre el eje**. Medido en `ES-1001 - EJE …` (id 7712664): la vista muestra 65
+`Structural Framing`, 4 `Structural Columns` y **6 `Stairs Railing`**, y esas 6 quedaban
+fuera por categoría.
+
+> En este modelo la escalera es `Structural Framing` (`ESCALERA METÁLICA`), así que ya estaba
+> cubierta. `OST_Stairs` va igual por si algún proyecto la modela como escalera de sistema.
+> Los nombres se resuelven con `getattr` porque no todas esas categorías existen en todas las
+> versiones de Revit; la que no exista se ignora sin romper nada.
 
 ### ⚠️ Cambio 2026-08-04: en planta ya no son TextNotes
 
