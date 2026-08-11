@@ -397,6 +397,50 @@ ANG_DIAGONAL_GRADOS   = 15.0   # más inclinada que esto respecto de la horizont
   sobre los miembros del assembly), así que cambiar el ángulo y re-correr recalcula desde
   cero, sin *Recrear*.
 
+#### ⚠️ Vigas de dos colores: lo cortado se dibuja como lo proyectado
+
+Revit dibuja con el gráfico de **Cut** lo que el plano de corte rebana, y con el de
+**Projection** lo que queda por debajo. Son **dos ajustes distintos de la misma categoría**
+en *Object Styles*, y si tienen colores distintos una misma tanda de vigas sale de dos
+colores sin que nada del script lo haya pedido.
+
+Medido el **2026-08-11** en `ES-1001 - T.A. 01`: el nivel está en `z 13,06` pies y el plano
+de corte en `16,34`; las vigas `C25x17,9` de la banda `15,72`–`16,54` lo cruzan **6 cm por
+debajo de su tope**, así que salen con el gráfico de *Cut* mientras el resto de la planta
+sale con el de *Projection*.
+
+```
+   Cut plane  16,34  ──X───X───X──   ← lo que el plano rebana: gráfico de Cut
+                       │   │   │
+   nivel      13,06
+   ═══════════════════════════════   ← todo lo de abajo: gráfico de Projection
+```
+
+**Mover el corte no lo arregla.** Bajarlo dejaría esas vigas *por encima* y desaparecerían
+del todo; subirlo funciona pero no es robusto, porque depende de cuánto sobresalga la viga
+más alta de cada assembly. Lo que hace 00 es **copiar el grafismo de *Projection* de la
+categoría al override de *Cut* de la vista**, que no depende de ningún número:
+
+```python
+UNIFICAR_GRAFISMO_VIGAS = True
+CATS_GRAFISMO_UNIFORME  = ('OST_StructuralFraming',)
+```
+
+> **El color no está escrito en el script.** Se lee de la propia categoría en runtime
+> (`Category.LineColor` y `GetLineWeight(Projection)`), así que sigue siendo un estándar del
+> proyecto: si mañana el verde cambia en *Object Styles*, las vistas lo siguen solas.
+
+Se aplica **después** de `preparar_vista()`, que es quien pone el view template — a quien
+hay que ganarle, igual que con las categorías que esa misma función enciende. Si un template
+controla *V/G Overrides*, la API no deja sobrescribir y el log lo dice.
+
+El log deja el color usado, para poder verificarlo de un vistazo:
+
+```
+ES-1001: en planta T.A. 01 el corte de OST_StructuralFraming se dibuja como la
+proyeccion (RGB 0,128,0, peso 3).
+```
+
 #### ⚠️ El `View Depth` baja más que el `Bottom` (franja `<Beyond>`)
 
 El problema de una planta T.A. no era sólo *cuánto* se ve hacia abajo, sino **con qué peso
