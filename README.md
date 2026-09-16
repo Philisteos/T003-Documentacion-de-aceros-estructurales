@@ -242,6 +242,7 @@ esta convención, y **ninguno** de ellos genera planta:
 | `T.A._ES-1001_01` | ✅ | forma canónica: prefijo + assembly + correlativo |
 | `T.A._ES-1001` | ❌ | **falta el sufijo**, obligatorio en los T.A. |
 | `T.A_ES-1001` | ❌ | le falta el punto: es `T.A_`, no `T.A._` |
+| `T.A._ES_1001_01` | ❌ | `_` en vez de `-` dentro del nombre del assembly |
 | `RLO_T.A. ES-1002` | ❌ | no empieza con el prefijo |
 | `AMT_T.A.-01_EST. TOLVA` | ❌ | ídem |
 
@@ -253,13 +254,57 @@ Detalles del match:
   niveles de `ES-1001`.
 - Un nivel que **nombra al assembly pero no califica** se lista en el log como sospechoso:
   puede ser un nivel viejo legítimo, un typo, o un sobrante sin sufijo. 00 no adivina cuál,
-  pero tampoco lo esconde.
+  pero tampoco lo esconde. Ver [§ Los typos se reportan, no se adivinan](#️-los-typos-se-reportan-no-se-adivinan).
 - Si hay **más de un** `N.I.P.B._` o `P.T._` para el mismo assembly, se usa el más bajo y se
   avisa.
 
 > ⚠️ **Sin nivel no hay planta.** No hay fallback geométrico: si falta `P.T._ES-1002`, ese
 > assembly simplemente no tiene planta P.T., y el log lo dice. Es marcado faltante en el
 > modelo, no un bug del graph.
+
+#### ⚠️ Los typos se reportan, no se adivinan
+
+**Cambio 2026-09-16.** El detector de sospechosos buscaba el nombre del assembly *literal*
+dentro del nombre del nivel. Eso cubría los typos del **prefijo** (`T.A_ES-1001`,
+`TA_ES-1001`, `N.I.P.B_ES-1001`), porque ahí el `ES-1001` sigue escrito tal cual. Pero si el
+typo caía **dentro del token del assembly** el nivel desaparecía sin dejar rastro: para
+`ES-1001`, un `T.A._ES_1001_01` no generaba planta **y tampoco aparecía en el log**.
+
+Ahora la comparación del detector normaliza los dos lados — a minúsculas y sin nada que no
+sea letra o número:
+
+```python
+def solo_alfanum(s):
+    return ''.join(c for c in (s or '').lower() if c.isalnum())
+...
+elif solo_alfanum(tname) in solo_alfanum(n):
+    sospechosos.append(n)
+```
+
+`T.A._ES_1001_01` → `taes100101`, que contiene `es1001`, así que cae en la lista de
+sospechosos. Lo mismo con espacios (`T.A._ES 1001_01`) y con puntos de más o de menos en
+cualquier posición.
+
+> ⚠️ **Se amplió el detector, NO el matcher.** `calza_nivel` sigue siendo estricto a
+> propósito: un nivel con typo **nunca** genera planta, solo aparece en el log para que
+> alguien lo renombre en Revit. Si el matcher aceptara nombres aproximados, un
+> `T.A._ES_1001` podría generar una planta del assembly equivocado a la cota equivocada, en
+> silencio, y 01/02/03/06 construyen todos encima de eso. **Un aviso cuesta un renombre; un
+> match errado cuesta un plano mal emitido.**
+
+Es el mismo criterio que el parámetro `ASSEMBLY` de los ejes: el modelador declara, el graph
+obedece y avisa cuando la declaración no se entiende.
+
+Verificado contra los niveles reales del modelo: de 19 casos de prueba **solo 2 cambian de
+clasificación**, los dos de `(ignorado)` a `sospechoso`. Ningún nivel cambia qué planta
+genera, y los legacy (`RLO_T.A. ES-1002`, `AMT_T.A.-01_EST. TOLVA`) quedan exactamente como
+estaban.
+
+> **Pendiente**: la solución de fondo es sacar la semántica del nombre y ponerla en dos
+> parámetros de proyecto sobre la categoría `Levels` — `ASSEMBLY` (texto) y `TIPO_NIVEL`
+> (`NIPB` / `PT` / `TA`) — igual que ya se hizo con los ejes. Ahí el nombre del nivel pasa a
+> ser cosmético y el match es exacto. Requiere poblar el parámetro en los niveles existentes
+> y un fallback por nombre durante la transición.
 
 ### A. Planta N.I.P.B. (Nivel Inferior Placa Base)
 
@@ -2265,8 +2310,10 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
   se queda sin esa planta. No hay cota de reemplazo.
 - `no existe ningun nivel "T.A._X..."` (00) — el assembly se queda sin ninguna planta T.A.
 - `N nivel(es) nombran al assembly sin empezar por ningun prefijo` (00) — el log los lista.
-  Puede ser un typo (`T.A_ES-1001` por `T.A._ES-1001`), un T.A. **sin sufijo**, o un nivel
-  viejo legítimo que no debe generar planta. Hay que mirarlos: 00 no adivina cuál es cuál.
+  Puede ser un typo del prefijo (`T.A_ES-1001` por `T.A._ES-1001`), un typo dentro del
+  nombre del assembly (`T.A._ES_1001_01`), un T.A. **sin sufijo**, o un nivel viejo legítimo
+  que no debe generar planta. Hay que mirarlos: 00 no adivina cuál es cuál, y **ninguno de
+  ellos genera planta hasta que se lo renombre en Revit**.
 - `el nivel T.A._X_03 dice "03" pero por altura es el 01` (00) — el correlativo del nivel no
   coincide con su posición por altura. La vista se nombra por altura igual, así que el
   pipeline sigue funcionando; lo que hay que corregir es el modelo.
