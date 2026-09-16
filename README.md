@@ -33,7 +33,8 @@ proyectista, elevaciones por eje, distribución en láminas y tabla de cantidade
 > 1. **Parámetro `ASSEMBLY` en los ejes** (proyecto, texto, categoría *Grids*), con el nombre
 >    del assembly. Sin él: cero elevaciones y plantas sin ejes.
 >    Ver [00 § D](#d-elevaciones-de-eje).
-> 2. **Niveles nombrados** `N.I.P.B._{assembly}`, `P.T._{assembly}` y `T.A._{assembly}_{NN}`.
+> 2. **Niveles nombrados** `N.I.P.B._{assembly}`, `P.T._{assembly}` y `T.A._{assembly}` /
+>    `T.A._{N}_{assembly}`.
 >    Sin ellos: cero plantas. Ver [§ Los niveles los modela el proyectista](#los-niveles-los-modela-el-proyectista).
 >
 > **Estado del modelo al 2026-08-10**, tras la primera corrida real (4 assemblies, 7 plantas
@@ -50,10 +51,18 @@ proyectista, elevaciones por eje, distribución en láminas y tabla de cantidade
 > y ni siquiera enteros: falta el `P.T._ES-1001`. ES-1002, ES-1003 y ES-1004 salen con
 > elevaciones pero **sin ninguna planta**.
 >
-> Pendiente en ES-1001: los cinco niveles T.A. están nombrados con la cota
-> (`T.A._ES-1001_2.304,175`) y hay que **renumerarlos a `_01`…`_05`**. Además quedó un
-> `T.A._ES-1001` sin sufijo, sobrante de una prueba anterior, que ya no genera vista pero
-> conviene borrar.
+> **Estado del modelo al 2026-09-16** (`MODELO DE PRUEBA_KPF (1)`, 34 niveles, leído con el
+> MCP de Revit). Los T.A. ya están en los cuatro assemblies; lo que falta son NIPB y P.T.:
+>
+> | Assembly | NIPB | P.T. | T.A. |
+> |---|---|---|---|
+> | ES-1001 | ✅ | ✅ | 4 |
+> | ES-1002 | ✅ | ❌ | 2 |
+> | ES-1003 | ❌ | ✅ | 1 |
+> | ES-1004 | ✅ | ❌ | 3 |
+>
+> Faltan `P.T._ES-1002`, `N.I.P.B._ES-1003` y `P.T._ES-1004`: esos tres assemblies salen sin
+> esa planta hasta que alguien modele el nivel.
 
 **Primera vez en una máquina nueva**: abrir cada .dyn en Dynamo (no en Player), correr y
 guardar. Eso registra los inputs para Dynamo Player. Después, todo se opera desde Player.
@@ -216,19 +225,38 @@ nombre que declara a qué assembly pertenecen. 00 ya no deduce cotas de la geome
 |---|---|---|---|
 | Nivel inferior placa base | `N.I.P.B._{assembly}` | 1 | `{assembly} - NIPB` |
 | Punto de trabajo | `P.T._{assembly}` | 1 | `{assembly} - P.T.` |
-| Tope de acero | `T.A._{assembly}_{NN}` | N | `{assembly} - T.A. 01`, `02`… |
+| Tope de acero | `T.A._{assembly}` y `T.A._{N}_{assembly}` | N | `{assembly} - T.A. 01`, `02`… |
 
-Ejemplo para `ES-1001`: `N.I.P.B._ES-1001`, `P.T._ES-1001`, `T.A._ES-1001_01`,
-`T.A._ES-1001_02`, `T.A._ES-1001_03`…
+Ejemplo para `ES-1001`: `N.I.P.B._ES-1001`, `P.T._ES-1001`, `T.A._ES-1001`,
+`T.A._2_ES-1001`, `T.A._3_ES-1001`, `T.A._4_ES-1001`.
 
-**En los T.A. el sufijo es obligatorio**, aunque el assembly tenga uno solo, y es un
-**correlativo** (`01`, `02`, `03`…) que numera los niveles de abajo hacia arriba. **No lleva
-la cota**: eso la duplicaría con el título de la vista (ver abajo).
+#### ⚠️ En los T.A. el correlativo va ADELANTE, y el primero no lo lleva
 
-> ⚠️ El sufijo obligatorio no es capricho. En `ES-1001` quedó un `T.A._ES-1001` pelado de una
-> prueba anterior, y con el sufijo opcional calificaba: **6 plantas sobre 5 niveles reales**.
-> Con el sufijo obligatorio ese sobrante deja de generar vista y aparece en el log como
-> sospechoso, para que alguien decida si se borra o se renombra.
+**Cambio 2026-09-16.** Hasta hoy 00 esperaba `T.A._{assembly}_{NN}` — correlativo **después**
+del assembly y **obligatorio**. Ningún nivel del modelo tenía esa forma, así que **no se
+creaba ni una sola planta T.A.**, mientras que las NIPB y las P.T. salían bien (esas terminan
+en el nombre del assembly y nunca llevaron correlativo). Ese era el síntoma: *"los topes de
+acero no están siendo considerados"*.
+
+Medido el **2026-09-16** sobre `MODELO DE PRUEBA_KPF (1)` (34 niveles), los 10 niveles T.A.
+del modelo están escritos con el correlativo **adelante**, y el primero de cada serie **sin
+correlativo**:
+
+```
+T.A._ES-1001     T.A._2_ES-1001   T.A._3_ES-1001   T.A._4_ES-1001
+T.A._ES-1002     T.A._2_ES-1002
+T.A._ES-1003
+T.A._ES-1004                      T.A._3_ES-1004   T.A._4_ES-1004
+```
+
+Se cambió **el graph**, no el modelo: es la forma que los modeladores ya usaron en los cuatro
+assemblies, y es la que se desprende de la codificación acordada `TIPO DE NIVEL_NOMBRE DEL
+ASSEMBLY`. `calza_nivel` quedó sólo para NIPB y P.T.; los T.A. tienen su propio matcher.
+
+> ⚠️ **El número del nombre NO sigue la altura.** En `ES-1001`, `T.A._2_ES-1001` (EL. 2.304,17)
+> está **40 cm por debajo** de `T.A._ES-1001` (EL. 2.304,57); y `ES-1004` tiene `3` y `4` pero
+> no `2`. Eso no rompe nada — el correlativo de la **vista** sale de la altura, no del nombre —
+> pero 00 avisa en cada desajuste. Ver [§ El número de la vista sale de la altura](#el-número-de-la-vista-sale-de-la-altura-nunca-del-nombre-del-nivel).
 
 #### La regla es «empieza con», no «contiene»
 
@@ -239,8 +267,9 @@ esta convención, y **ninguno** de ellos genera planta:
 | Nivel del modelo | ¿Genera planta? | Por qué |
 |---|---|---|
 | `N.I.P.B._ES-1001` | ✅ | empieza con `N.I.P.B._ES-1001` |
-| `T.A._ES-1001_01` | ✅ | forma canónica: prefijo + assembly + correlativo |
-| `T.A._ES-1001` | ❌ | **falta el sufijo**, obligatorio en los T.A. |
+| `T.A._ES-1001` | ✅ | primer T.A. de la serie, sin correlativo |
+| `T.A._2_ES-1001` | ✅ | correlativo adelante del assembly |
+| `T.A._ES-1001_01` | ❌ | correlativo **atrás**: es la forma vieja, ya no vale |
 | `T.A_ES-1001` | ❌ | le falta el punto: es `T.A_`, no `T.A._` |
 | `T.A._ES_1001_01` | ❌ | `_` en vez de `-` dentro del nombre del assembly |
 | `RLO_T.A. ES-1002` | ❌ | no empieza con el prefijo |
@@ -249,9 +278,11 @@ esta convención, y **ninguno** de ellos genera planta:
 Detalles del match:
 
 - **Ignora mayúsculas/minúsculas y espacios sobrantes** en los extremos.
-- Después de `{prefijo}{assembly}` sólo puede venir **`_algo`** — o nada, en `N.I.P.B._` y
-  `P.T._`, que son únicos por assembly. Sin esta regla, el assembly `ES-100` se robaría los
-  niveles de `ES-1001`.
+- En `N.I.P.B._` y `P.T._`, después de `{prefijo}{assembly}` sólo puede venir **`_algo`** — o
+  nada. Sin esta regla, el assembly `ES-100` se robaría los niveles de `ES-1001`.
+- En los T.A. el cuidado es del **otro lado**: lo que va entre `T.A._` y el nombre del
+  assembly tiene que cerrar en `_`, o no hay nada. Por eso `ES-100` tampoco se roba
+  `T.A._ES-1001` — ahí el «medio» sería un `1` suelto, sin guion bajo.
 - Un nivel que **nombra al assembly pero no califica** se lista en el log como sospechoso:
   puede ser un nivel viejo legítimo, un typo, o un sobrante sin sufijo. 00 no adivina cuál,
   pero tampoco lo esconde. Ver [§ Los typos se reportan, no se adivinan](#️-los-typos-se-reportan-no-se-adivinan).
@@ -446,8 +477,11 @@ salvando las placas. Ver
 
 ### C. Plantas T.A. (Tope de Acero)
 
-Una por cada nivel `T.A._{assembly}_{NN}`, **ordenadas de abajo hacia arriba por su cota
-real** (`ProjectElevation`).
+Una por cada nivel `T.A._{assembly}` o `T.A._{N}_{assembly}`, **ordenadas de abajo hacia
+arriba por su cota real** (`ProjectElevation`).
+
+El correlativo que traiga el nivel es informativo: el número de la vista sale de la **cota**.
+Ver [§ El número de la vista sale de la altura](#el-número-de-la-vista-sale-de-la-altura-nunca-del-nombre-del-nivel).
 
 #### ⚠️ Las diagonales se ocultan; la profundidad la decide el log
 
@@ -586,7 +620,7 @@ la vista a propósito.
 
 #### El número de la vista sale de la altura, nunca del nombre del nivel
 
-El sufijo del nivel es **informativo**. El número de la vista se asigna por posición en la
+El correlativo del nivel es **informativo**. El número de la vista se asigna por posición en la
 lista ordenada por cota, de modo que 01, 02 y 06 siempre ven una serie `01..NN` **sin huecos
 ni repetidos**, pase lo que pase en el modelo. Ese correlativo es el nombre estable que usan
 los pasos siguientes; la cota va sólo en el título mostrado, porque un nombre basado en la
@@ -606,13 +640,21 @@ mueva el nivel.
 > realidad a **2.308,393**, 43 cm de error— pero el problema de fondo era la duplicación,
 > no la falta de chequeo. Con la cota fuera del nombre, ese error ya no puede existir.
 
-Lo único que 00 comprueba del sufijo es que **coincida con la posición por altura**:
+Lo único que 00 comprueba del correlativo es que **coincida con la posición por altura**. El
+T.A. pelado declara un `1` implícito, por ser el primero de la serie:
 
 ```
-ES-1001: el nivel T.A._ES-1001_03 dice "03" pero por altura es el 01; la vista se llama T.A. 01.
+   ES-1001: el nivel T.A._2_ES-1001 dice "2" pero por altura es el 01; la vista se llama T.A. 01.
+   ES-1001: el nivel T.A._ES-1001 dice "1" pero por altura es el 02; la vista se llama T.A. 02.
 ```
 
-Un sufijo que no sea un número se acepta sin decir nada: es una etiqueta libre.
+Esos dos avisos salen **hoy** con el modelo real: en `ES-1001` el `_2_` está 40 cm **por
+debajo** del pelado. El pipeline funciona igual —la vista se llama por altura— pero o el
+modelo está mal numerado o la numeración del proyectista no pretende seguir la altura. En
+`ES-1004` pasa algo parecido: hay `3` y `4`, pero no `2`.
+
+Un correlativo que no sea un número se acepta sin decir nada: es una etiqueta libre
+(`T.A._INFERIOR_ES-1003` es un T.A. válido de `ES-1003`).
 
 #### ⚠️ El corte se recorta contra el nivel vecino
 
@@ -1064,7 +1106,7 @@ que declaran los niveles del modelo, **no** a la que vota la geometría:
 
 | Marca | Antes (geométrico) | Ahora |
 |---|---|---|
-| `T.A.` | votación por metros de viga en cubetas de 10 mm | una por cada `T.A._{assembly}_{NN}` |
+| `T.A.` | votación por metros de viga en cubetas de 10 mm | una por cada `T.A._[{N}_]{assembly}` |
 | `P.T.` | tope de las sillas de anclaje | `P.T._{assembly}` |
 | `N.I.P.B.` | lo más bajo del assembly | `N.I.P.B._{assembly}` |
 
@@ -1072,8 +1114,13 @@ que declaran los niveles del modelo, **no** a la que vota la geometría:
 fondo no es de precisión sino de **coherencia**: 00 genera las plantas sobre esos `Level`,
 así que mientras 03 votara su propia altura, la marca de una elevación podía contradecir a
 la planta del mismo nivel. Ahora los dos graphs leen el mismo contrato de nombres —
-`calza_nivel()` está **copiada tal cual de 00**, con el mismo `startswith` y el mismo
-sufijo obligatorio en los T.A.
+`calza_nivel()`, `parte_ta()` y `calza_nivel_ta()` están **copiadas tal cual de 00**.
+
+> ⚠️ Esa copia es real y hay que mantenerla a mano. El **2026-09-16**, al cambiar el formato
+> de los T.A. en 00, 03 se quedó con el matcher viejo y sus marcas de nivel T.A. habrían
+> desaparecido igual que las plantas. Se arreglaron los dos a la vez. Hay un test que
+> compara las dos implementaciones sobre los 34 niveles reales × 5 assemblies y exige **cero
+> diferencias**; si algún día se toca una, hay que tocar la otra.
 
 > ⚠️ **Siempre `ProjectElevation`, nunca `Elevation`**, por la misma trampa de la cota
 > compartida que ya documenta [00 § Cota compartida](#️-cota-compartida-usar-projectelevation-nunca-elevation).
@@ -2308,15 +2355,17 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
 - `no existe la vista ... (corre 00_Vistas de assembly)` (01/02) — falta el paso 0.
 - `no existe el nivel "N.I.P.B._X"` / `"P.T._X"` (00) — falta modelar ese nivel; el assembly
   se queda sin esa planta. No hay cota de reemplazo.
-- `no existe ningun nivel "T.A._X..."` (00) — el assembly se queda sin ninguna planta T.A.
+- `no existe ningun nivel "T.A._X" ni "T.A._N_X"` (00) — el assembly se queda sin ninguna
+  planta T.A. Ojo con el formato viejo `T.A._X_01`, con el correlativo **atrás**: ya no vale.
 - `N nivel(es) nombran al assembly sin empezar por ningun prefijo` (00) — el log los lista.
   Puede ser un typo del prefijo (`T.A_ES-1001` por `T.A._ES-1001`), un typo dentro del
-  nombre del assembly (`T.A._ES_1001_01`), un T.A. **sin sufijo**, o un nivel viejo legítimo
-  que no debe generar planta. Hay que mirarlos: 00 no adivina cuál es cuál, y **ninguno de
-  ellos genera planta hasta que se lo renombre en Revit**.
-- `el nivel T.A._X_03 dice "03" pero por altura es el 01` (00) — el correlativo del nivel no
+  nombre del assembly (`T.A._ES_1001_01`), un T.A. en el formato viejo (`T.A._ES-1001_01`), o
+  un nivel viejo legítimo que no debe generar planta. Hay que mirarlos: 00 no adivina cuál es
+  cuál, y **ninguno de ellos genera planta hasta que se lo renombre en Revit**.
+- `el nivel T.A._2_X dice "2" pero por altura es el 01` (00) — el correlativo del nivel no
   coincide con su posición por altura. La vista se nombra por altura igual, así que el
-  pipeline sigue funcionando; lo que hay que corregir es el modelo.
+  pipeline sigue funcionando; lo que hay que corregir es el modelo. **Hoy sale dos veces en
+  ES-1001**: el `_2_` está 40 cm por debajo del T.A. pelado, que declara un `1` implícito.
 - `el nivel N.I.P.B._X esta en EL. ... y la cara mas baja del assembly en EL. ...` (00) — el
   nivel no coincide con la geometría real (más de 20 cm). **Manda el nivel** y la planta se
   crea igual, pero uno de los dos está mal.
