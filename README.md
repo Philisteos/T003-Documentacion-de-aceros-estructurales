@@ -1297,7 +1297,7 @@ El log dice cuántas piezas internas se saltaron en cada vista.
 
 > ⚠️ **Hoy todos dirían lo mismo.** En el modelo de referencia `ELEMENTO_TBL` (parámetro
 > compartido `433e7c25-aa15-4380-9474-c6dffa787fa2`) vale **`ES-1001`** en las 53 piezas
-> visibles — es el TAG del assembly, no el identificador de la pieza (`PL-1004`,
+> visibles — es el nombre del assembly, no el identificador de la pieza (`PL-1004`,
 > `PL-1005`, `SILLA ANCLAJE ES-1001` están en el *Type Name*). El script no controla qué
 > texto muestra un tipo de tag —eso lo define la etiqueta de la familia `C-MultiCat`, igual
 > que en 05—, así que esto es dato del modelo. Si hace falta otra cosa, se cambia el input
@@ -2311,23 +2311,55 @@ tipo efectivamente van en m².
   paños girados. Es el mismo criterio con el que 04 saca el contorno del grating, que no es
   una plancha sino un peine de barras y por eso no se puede medir cara por cara.
 
-### El filtro es `TAG`, no `Comments`
+### El filtro es `ASSEMBLY`, no `Comments`
 
-No existe un campo nativo confiable que diga «a qué assembly pertenezco» (se probó
-*Assembly Name* / *Assembly Description* / *Assembly Code*: ninguno trae un valor real por
-elemento). Tampoco sirve escribir en el esquema `_TBL` de las familias anidadas más profundas:
-ahí esos campos quedan **bloqueados por fórmula de familia**. Se reusa el compartido `TAG`
-(fuera del esquema `_TBL`, sin fórmula, editable tanto en hojas como en contenedores) para el
-nombre del assembly, y `Part Number` para el `CANT=N`.
+`Assembly Name` sí trae el nombre del assembly (1.247 elementos lo tienen en el modelo real),
+pero **no sirve**: Revit sólo admite **parámetros compartidos** como campo de un schedule
+*Multi-Category*, y `Assembly Name` es nativo. Tampoco sirve escribir en el esquema `_TBL` de
+las familias anidadas más profundas: ahí esos campos quedan **bloqueados por fórmula de
+familia**.
+
+Por eso el nombre del assembly se **copia** a un parámetro compartido que sí se puede poner
+como columna, y por eso el filtro de cada tabla es `ASSEMBLY = {nombre del assembly}`.
+`Part Number` lleva el `CANT=N`.
 
 La versión anterior además escribía el número de sheet en `Comments` y filtraba por ahí. Ya no:
-el filtro es `TAG = {nombre del assembly}`, así que **`Comments` no se toca**. Los valores que
-haya dejado la versión vieja son inocuos.
+**`Comments` no se toca**. Los valores que haya dejado la versión vieja son inocuos.
+
+#### ⚠️ Hay DOS parámetros llamados `ASSEMBLY`
+
+**Cambio 2026-09-16.** Antes se reusaba el compartido `TAG`
+(`7e3a03e3-1771-478b-ad2e-edd00325f602`), que no figuraba en el esquema de la oficina y
+significaba otra cosa. Karin creó un compartido propio y 06 pasó a usarlo:
+
+| Parámetro | GUID | Categorías | Quién lo llena |
+|---|---|---|---|
+| `ASSEMBLY` **compartido** | `92fdc373-364b-4440-8198-f8093299f73a` | categorías de modelo | **06**, copiándolo de `Assembly Name` |
+| `ASSEMBLY` **no compartido** | — (sin GUID) | sólo *Grids* | el **modelador**, a mano |
+
+Son **parámetros distintos que comparten nombre**. Hoy conviven sin problema porque están en
+categorías disjuntas, y 06 accede por GUID, así que no hay ambigüedad posible de su lado.
+
+> ⚠️ **00 y 03 buscan `ASSEMBLY` por NOMBRE** (`LookupParameter`), no por GUID — por eso
+> encuentran el de los ejes. Si alguien vincula el compartido también a *Grids*, esa búsqueda
+> se vuelve ambigua y los dos graphs pueden leer el equivocado: el assembly se quedaría sin
+> elevaciones y con las plantas sin ejes. **No vincular el compartido a Grids.**
 
 **Limpieza**: al borrar un assembly sus miembros quedan sueltos en el modelo pero conservan el
-`TAG`, y reaparecerían como filas fantasma. Cada corrida releva el modelo una vez y borra el
-`TAG` de lo que ya no sea miembro legítimo — pero **solo cuando su valor es exactamente el
-nombre de un tipo de assembly**; cualquier otro valor es del modelador y no se pisa.
+valor escrito, y reaparecerían como filas fantasma. Cada corrida releva el modelo una vez y
+borra el `ASSEMBLY` de lo que ya no sea miembro legítimo — pero **solo cuando su valor es
+exactamente el nombre de un tipo de assembly**; cualquier otro valor es del modelador y no se
+pisa.
+
+#### Se escribe sólo en la PRIMERA instancia de cada assembly
+
+06 recorre `by_type[tname][0]` — los miembros de **una** unidad — y la tabla multiplica por
+`CANT=N`. Por eso `ASSEMBLY` queda vacío en los miembros de las instancias repetidas.
+
+Es deliberado, y confirmado con Javier el **2026-09-16**: la lista de materiales muestra el
+contenido de un assembly y el `CANT=N`, que es el formato del plano tipo. Si se llenara
+`ASSEMBLY` en todos los elementos, un assembly repetido 3 veces mostraría el triple en
+`CANT/UNIDAD` y el nónuplo en `TOTAL KG`.
 
 ### ⚠️ Encabezados agrupados: sin verificar
 
@@ -2371,7 +2403,7 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
 - **06 se apoya en los nombres de vista de 00** para saber cuál es la primera lámina de cada
   assembly (`{assembly}` o `{assembly} - ...`). Si alguien renombra vistas a mano, 06 deja
   ese assembly sin tabla y lo dice en el log.
-- **Parámetros que 06 escribe en los elementos**: `TAG` (nombre del assembly), `Part Number`
+- **Parámetros que 06 escribe en los elementos**: `ASSEMBLY` (nombre del assembly), `Part Number`
   (`CANT=N`) y los tres numéricos de las columnas. No toca `Comments` ni `UNIDAD_TBL`, que sí
   usaba la versión de fundaciones.
 - **El título bajo cada vista lo controla el tipo de viewport**, no la vista: plantas →
@@ -2447,8 +2479,9 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
   el propio log lista.
 - `sin lamina todavia (corre 01 y 02)` (06) — el assembly existe pero ninguna lámina tiene
   todavía una vista suya, así que no hay dónde poner la tabla.
-- `el parametro compartido TAG (...) no esta cargado en el modelo` (06) — sin `TAG`,
+- `el parametro compartido ASSEMBLY (...) no esta cargado en el modelo` (06) — sin `ASSEMBLY`,
   `Part Number` o `MATERIAL` la tabla saldría vacía; hay que cargar el esquema de la oficina.
+  Ojo que el que busca 06 es el **compartido** (`92fdc373-…`), no el de los ejes.
 - `Se creo el parametro de proyecto "PESO_UNIT_TBL"` (06) — **es normal la primera vez** en
   cada modelo. Ver *Las columnas son numéricas*.
 - `"X" es un parametro de TIPO, no de instancia` (06) — un input de parámetro numérico
