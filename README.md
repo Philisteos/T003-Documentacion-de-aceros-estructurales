@@ -2217,7 +2217,7 @@ que 01/02 reservan.
 | `DESCRIPCION` | nombre del **tipo** de familia (campo `Type`) |
 | `CANT/UNIDAD` | campo nativo `Count`: instancias de ese tipo **en un** assembly |
 | `L (m)m2` | metros de eje, o m² si el tipo cae en los prefijos de m² |
-| `KG/M KG/M2` | parámetro **de tipo** `PESO_TBL` (input) — no se calcula |
+| `KG/M KG/M2` | parámetro **de tipo** `PESO_UNIT` (input) — no se calcula |
 | `UNIT. KG` | `L × PESO`, sumado sobre las instancias del tipo |
 | `TOTAL KG` | `UNIT. KG × CANT` (instancias de ese **tipo de assembly** en el proyecto) |
 | `OBSERVACION` | parámetro compartido `MATERIAL`, tal cual |
@@ -2247,12 +2247,46 @@ piezas de largos distintos). Sin eso habría que escribir el total del grupo en 
 que es justo lo que se rompe cuando dos piezas del mismo tipo miden distinto.
 
 Hacen falta entonces tres parámetros **de instancia** tipo *Number*: `DIMENSIONES`,
-`UNIT. KG` y `TOTAL KG`. Solo el primero existía en el esquema de la oficina (`RECUENTO_TBL`).
+`UNIT. KG` y `TOTAL KG`. Solo el primero existe en el esquema de la oficina (`BIDIMENSION`).
 Los otros dos, si no existen, **los crea el graph** como parámetros de proyecto
 (`PESO_UNIT_TBL`, `PESO_TOTAL_TBL`), instancia, todas las categorías de modelo, con un GUID
 derivado por MD5 del nombre — así son el mismo parámetro en todos los modelos sin depender de
 un archivo de parámetros compartidos versionado. El archivo `.txt` temporal que Revit exige
 para crearlos se escribe en `%TEMP%` y `SharedParametersFilename` se deja como estaba.
+
+#### ⚠️ Renombre del esquema de la oficina (2026-09-16)
+
+La jefa de modeladores mandó el esquema nuevo. Los que tienen «Alternativa Parámetro» se
+renombran; los que dicen **ASSEMBLY** en gris se eliminan porque la herramienta *Assembly* de
+Revit ya cubre esa necesidad.
+
+| Parámetro viejo | Nuevo | Ámbito | Qué pasa en 06 |
+|---|---|---|---|
+| `ITEM_TBL` | `DESCRIPCION_ITEM` | Type, Text | **06 no lo usa**: la columna `DESCRIPCION` sale del nombre del `Type` |
+| `RECUENTO_TBL` | `BIDIMENSION` | Instance, Number | ✅ renombrado (default del input 10) |
+| `PESO_TBL` | `PESO_UNIT` | **Type**, Number | ✅ renombrado (default del input 09) |
+| `ELEMENTO_TBL` | *(ASSEMBLY)* | Instance, Text | 06 lo **escribe** hoy vía `GUID_TAG` |
+| `ELEMENTO_CANT_STR_TBL` | *(ASSEMBLY)* | Instance, Text | 06 lo **escribe** hoy vía `GUID_PART_NUMBER` |
+| `CANT_TBL` | *(ASSEMBLY)* | Instance, Integer | 06 no lo usa |
+
+> ⚠️ **`PESO_UNIT` es el de TIPO, el del catálogo.** Es el peso **por metro** (o por m²), no
+> los kilos de la pieza. No confundir con el `PESO_UNIT_TBL` **de instancia** que crea y
+> calcula 06 (`largo × PESO_UNIT`). Con el perfil `[]15x26,4`: `PESO_UNIT` = 26,4 y
+> `PESO_UNIT_TBL` = 1.804,42. Los nombres quedaron peligrosamente parecidos.
+
+**Lo que este renombre NO resuelve.** El esquema nuevo trae dos parámetros por **fórmula**
+que hacen exactamente lo que 06 calcula y escribe a mano:
+
+```
+PESO_UNITARIO#  = BIDIMENSION * PESO_UNIT
+PESO_TOTAL#     = Cantidad de Assemblies * BIDIMENSION * PESO_UNIT
+```
+
+Si esas fórmulas viven en el modelo, `PESO_UNIT_TBL` y `PESO_TOTAL_TBL` **sobran**: 06 no
+tendría que crearlos ni escribirlos, solo poner esos campos en el schedule. Lo mismo con
+`ELEMENTO_TBL` y `ELEMENTO_CANT_STR_TBL`, que 06 escribe hoy para agrupar por assembly y que
+la herramienta *Assembly* ya provee. Eso es una reestructuración de 06, no un renombre, y
+está **sin decidir**. Ver [§ Pendientes](#pendientes--próximos-pasos).
 
 > **Si se apunta un input a un parámetro de TIPO, la columna suma mal en silencio**: las N
 > instancias comparten un solo valor, la última escritura pisa a las demás y la fila muestra
@@ -2419,7 +2453,7 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
   cada modelo. Ver *Las columnas son numéricas*.
 - `"X" es un parametro de TIPO, no de instancia` (06) — un input de parámetro numérico
   apunta a un parámetro de tipo; la columna sumaría mal. Cambiarlo o dejar el default.
-- `N tipo(s) sin "PESO_TBL" (peso 0)` (06) — esos tipos salen con 0 en `UNIT. KG` y
+- `N tipo(s) sin "PESO_UNIT" (peso 0)` (06) — esos tipos salen con 0 en `UNIT. KG` y
   `TOTAL KG`. Es dato faltante del modelo, no del graph.
 - `no se pudo insertar la fila de encabezado agrupado` (06) — la tabla sale bien pero con
   los encabezados en una sola fila, sin `DIMENSIONES` / `PESO`. Ver la advertencia de 06.
@@ -2442,14 +2476,30 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
    - los **encabezados agrupados** (`DIMENSIONES` / `PESO`): es lo único que no se pudo
      razonar hasta el final sin Revit. El log trae el `DEBUG` con la geometría real de la
      sección para corregirlo en una pasada;
-   - que `RECUENTO_TBL` sea de **instancia** y sin unidades (el log lo dice si no);
+   - que `BIDIMENSION` sea de **instancia** y sin unidades (el log lo dice si no);
    - que la creación de `PESO_UNIT_TBL` / `PESO_TOTAL_TBL` funcione — toca
      `SharedParametersFilename` y lo restaura, pero eso no se probó;
    - que los prefijos `PL,ARS` cubran de verdad todo lo que va en m² en el modelo real;
    - que el ancho de columna calculado quepa en los 150 mm reservados sin cortar texto.
-5. **`07_Cantidad en leyendas`** fue borrado del working tree (aparece como `D` en git) —
+5. **Decidir si 06 sigue calculando `UNIT. KG` y `TOTAL KG`, o los deja al modelo.** El
+   esquema nuevo de la oficina (2026-09-16) trae `PESO_UNITARIO#` y `PESO_TOTAL#` por
+   **fórmula** (`BIDIMENSION * PESO_UNIT` y `Cantidad de Assemblies * BIDIMENSION *
+   PESO_UNIT`), que es exactamente lo que 06 calcula y escribe por instancia. Si esas
+   fórmulas existen de verdad en el modelo, sobran `PESO_UNIT_TBL` y `PESO_TOTAL_TBL`: 06
+   dejaría de crearlos y de escribirlos, y sólo pondría esos campos en el schedule.
+
+   Lo mismo del otro lado: `ELEMENTO_TBL` y `ELEMENTO_CANT_STR_TBL` quedan marcados como
+   cubiertos por la herramienta *Assembly*, y 06 los escribe hoy (vía `GUID_TAG` y
+   `GUID_PART_NUMBER`) para agrupar las filas por assembly.
+
+   Antes de tocar nada hay que confirmar **dónde** viven esas fórmulas: un parámetro de
+   proyecto de Revit **no admite fórmulas**, así que o son *calculated values* del propio
+   schedule (otra API: `ScheduleDefinition.AddCalculatedParameter`) o son parámetros de
+   familia. Cambia bastante qué hay que escribir. También falta definir de dónde sale
+   `Cantidad de Assemblies` y si `TIPO_ACERO` (Type, Text, `PESADO`) entra en la tabla.
+6. **`07_Cantidad en leyendas`** fue borrado del working tree (aparece como `D` en git) —
    decidir si se recupera para acero o se descarta.
-6. **Verificar en Revit** todo lo de esta iteración: no se pudo probar porque el modelo no
+7. **Verificar en Revit** todo lo de esta iteración: no se pudo probar porque el modelo no
    tiene assemblies. En particular quedan dos supuestos técnicos sin confirmar:
    - que `AssemblyViewUtils.CreateDetailSection` acepte **varias** `HorizontalDetail` para
      el mismo assembly (00 cae a `Duplicate` de la planta NIPB si falla o si devuelve la
@@ -2465,4 +2515,4 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
    - que el crop ceñido al assembly no deje las **burbujas de los ejes** fuera de la
      vista. El *Annotation Crop* está desactivado, que es la condición necesaria, pero
      habrá que mirarlo en pantalla.
-7. **Orden de colocación configurable** en 02 (hoy alfabético por assembly).
+8. **Orden de colocación configurable** en 02 (hoy alfabético por assembly).
