@@ -139,9 +139,43 @@ que crea. Sin esquemas, sin parámetros compartidos, sin configuración manual.
 
 - Vacío = las vistas usan directamente el tipo base.
 - Si el tipo ya existe, se reutiliza (no se duplica en cada corrida).
-- El tipo se **reaplica también a las vistas que ya existían**, así que cambiar el nombre de
-  la carpeta y volver a correr las mueve todas — no hace falta recrearlas.
 - El grafismo se hereda del tipo base, así que las vistas se ven igual que antes.
+
+#### ⚠️ La carpeta define un JUEGO de vistas, no solo una carpeta
+
+**Cambio 2026-09-17.** El nombre de la carpeta entra también en el **nombre de cada vista**:
+
+```
+sin carpeta:      ES-1001 - T.A. 01
+carpeta REV_B:    ES-1001 - T.A. 01 [REV_B]
+```
+
+Antes la identidad de una vista era **su nombre pelado**, y `view_ids` se indexaba sólo por
+ahí. Volver a correr 00 en un proyecto ya maquetado caía sobre **las mismas vistas**: se las
+reutilizaba y se les reaplicaban todos los ajustes, o con «recrear» se las borraba y salían
+de la lámina. El modelador que ya había acotado y ordenado sus planos perdía el trabajo.
+
+Con la marca, correr 00 con **otro nombre de carpeta crea un juego nuevo** y deja el anterior
+intacto. Revit exige nombres de vista únicos, así que meter la marca en el nombre no es una
+preferencia: es la única forma de que dos juegos convivan.
+
+**La marca va al final a propósito.** 01 a 05 buscan sus vistas con
+`startswith(tname + SUF_*)`, y un sufijo no rompe ninguno de esos prefijos.
+
+**No hizo falta un input nuevo en ningún graph**, porque los tres de anotación ya saltan lo
+que está hecho: 03 con `ya_cotas` / `ya_marcas`, 04 y 05 con su input «rehacer». Con dos
+juegos conviviendo anotan el nuevo y respetan el viejo. Lo único que cambió en 01 y 02 es que
+la NIPB pasó a buscarse **por prefijo** como las demás — con la marca al final, un
+`get()` por nombre exacto ya no la encontraba.
+
+> ⚠️ **`endswith(MARCA)` no alcanza.** Con la carpeta vacía la marca es `''` y
+> `endswith('')` da `True` para **todo**, así que «recrear» sin carpeta se llevaría puestas
+> las vistas de todos los juegos del proyecto. Por eso `es_de_este_juego()` compara la marca
+> **completa** (`juego_de()` la extrae del final del nombre) en vez de usar `endswith`.
+> Cazado por el test de simulación antes de llegar a Revit.
+
+> Para volver a generar un juego ya existente, se corre 00 con **ese mismo** nombre de
+> carpeta: ahí sí cae sobre sus vistas, que es lo que se quiere.
 
 > ⚠️ **Da dos nodos, no uno.** La *ViewFamily* (Floor Plans / Sections) es un nivel de
 > agrupación **por encima** del tipo, así que se obtiene `Floor Plans > MI_CARPETA` con las
