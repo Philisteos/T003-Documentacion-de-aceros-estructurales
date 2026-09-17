@@ -170,11 +170,22 @@ preferencia: es la única forma de que dos juegos convivan.
 **La marca va al final a propósito.** 01 a 05 buscan sus vistas con
 `startswith(tname + SUF_*)`, y un sufijo no rompe ninguno de esos prefijos.
 
-**No hizo falta un input nuevo en ningún graph**, porque los tres de anotación ya saltan lo
-que está hecho: 03 con `ya_cotas` / `ya_marcas`, 04 y 05 con su input «rehacer». Con dos
-juegos conviviendo anotan el nuevo y respetan el viejo. Lo único que cambió en 01 y 02 es que
-la NIPB pasó a buscarse **por prefijo** como las demás — con la marca al final, un
-`get()` por nombre exacto ya no la encontraba.
+**03, 04 y 05 no necesitaron input nuevo**, porque los tres ya saltan lo que está hecho: 03
+con `ya_cotas` / `ya_marcas`, 04 y 05 con su input «rehacer». Con dos juegos conviviendo
+anotan el nuevo y respetan el viejo.
+
+**01 y 02 sí lo necesitaron.** Se les agregó al final —`IN[7]` y `IN[8]`, así los índices que
+ya existían no se corren— el input **«Subcarpeta / juego de vistas»**, que dice sobre cuál de
+los juegos trabajar. Vacío = el juego sin marca, el que crea 00 con la subcarpeta en blanco.
+
+Sin ese input recogían **cualquier** vista que no estuviera colocada: alcanzaba para el caso
+normal, pero si un juego viejo tenía vistas sueltas se mezclaban con las nuevas en la misma
+lámina. Y de paso, la NIPB pasó a buscarse **por prefijo** como las demás — con la marca al
+final, un `get()` por nombre exacto ya no la encontraba.
+
+> El valor tiene que ser **el mismo** que se le pasó a 00 en «Subcarpeta del Project
+> Browser». Es un tercer sitio donde ese nombre tiene que coincidir, además de los inputs de
+> margen y reserva que 01 y 02 ya comparten.
 
 > ⚠️ **`endswith(MARCA)` no alcanza.** Con la carpeta vacía la marca es `''` y
 > `endswith('')` da `True` para **todo**, así que «recrear» sin carpeta se llevaría puestas
