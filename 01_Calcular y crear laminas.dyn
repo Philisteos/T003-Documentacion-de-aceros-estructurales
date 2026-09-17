@@ -50,28 +50,6 @@
                        "Value":  "",
                        "Description":  "Creates a string."
                    },
-                        {
-                         "ConcreteType":  "CoreNodeModels.Input.StringInput, CoreNodeModels",
-                         "SerializedWidth":  0,
-                         "SerializedHeight":  0,
-                         "Id":  "b9080000000000000000000000000001",
-                         "NodeType":  "StringInputNode",
-                         "Inputs":  [],
-                         "Outputs":  [
-                            {
-                             "Id":  "b9080000000000000000000000000002",
-                             "Name":  "",
-                             "Description":  "String",
-                             "UsingDefaultValue":  false,
-                             "Level":  2,
-                             "UseLevels":  false,
-                             "KeepListStructure":  false
-                            }
-                         ],
-                         "Replication":  "Disabled",
-                         "Description":  "Creates a string.",
-                         "InputValue":  ""
-                        },
                    {
                        "Id":  "b9060000000000000000000000000001",
                        "Name":  "Margen y separacion (mm)",
@@ -95,7 +73,15 @@
                        "StepValue":  5.0,
                        "NumberType":  "Integer",
                        "Description":  "Produces integer values"
-                   }
+                   },
+                        {
+                         "Id":  "b9080000000000000000000000000001",
+                         "Name":  "Subcarpeta / juego de vistas (vacio = sin subcarpeta)",
+                         "Type":  "string",
+                         "Type2":  "string",
+                         "Value":  "",
+                         "Description":  "Creates a string."
+                        }
                ],
     "Outputs":  [
                     {
@@ -224,6 +210,28 @@
                       "Description":  "Creates a string.",
                       "InputValue":  ""
                   },
+                        {
+                         "ConcreteType":  "CoreNodeModels.Input.StringInput, CoreNodeModels",
+                         "SerializedWidth":  0,
+                         "SerializedHeight":  0,
+                         "Id":  "b9080000000000000000000000000001",
+                         "NodeType":  "StringInputNode",
+                         "Inputs":  [],
+                         "Outputs":  [
+                            {
+                             "Id":  "b9080000000000000000000000000002",
+                             "Name":  "",
+                             "Description":  "String",
+                             "UsingDefaultValue":  false,
+                             "Level":  2,
+                             "UseLevels":  false,
+                             "KeepListStructure":  false
+                            }
+                         ],
+                         "Replication":  "Disabled",
+                         "Description":  "Creates a string.",
+                         "InputValue":  ""
+                        },
                   {
                       "ConcreteType":  "CoreNodeModels.Input.IntegerSlider, CoreNodeModels",
                       "NumberType":  "Integer",
@@ -613,7 +621,7 @@
                                    },
                             {
                              "Id":  "b9080000000000000000000000000001",
-                             "Name":  "Subcarpeta / juego de vistas (vacio = el juego sin marca)",
+                             "Name":  "Subcarpeta / juego de vistas (vacio = sin subcarpeta)",
                              "IsSetAsInput":  true,
                              "IsSetAsOutput":  false,
                              "Excluded":  false,
