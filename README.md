@@ -147,8 +147,16 @@ que crea. Sin esquemas, sin parámetros compartidos, sin configuración manual.
 
 ```
 sin carpeta:      ES-1001 - T.A. 01
-carpeta REV_B:    ES-1001 - T.A. 01 [REV_B]
+carpeta REV_B:    ES-1001 - T.A. 01 (REV_B)
 ```
+
+> ⚠️ **Paréntesis, no corchetes.** Revit **rechaza** `\ : { } [] | ; < > ? \` ~` en el nombre de
+> cualquier elemento. La primera versión de esta marca usaba corchetes: `set_name` tiraba
+> excepción, la excepción subía hasta el `except` del assembly y **abortaba la corrida
+> entera** — quedaba la planta NIPB sin renombrar y **ninguna elevación**. Medido el
+> 2026-09-17: dos vistas huérfanas `N.I.P.B._ES-1001` y `N.I.P.B._ES-1001(1)`, una por
+> corrida. Ahora `limpiar_nombre()` filtra esos caracteres del nombre de la carpeta y
+> `set_name()` registra el rechazo en el log en vez de matar el assembly.
 
 Antes la identidad de una vista era **su nombre pelado**, y `view_ids` se indexaba sólo por
 ahí. Volver a correr 00 en un proyecto ya maquetado caía sobre **las mismas vistas**: se las
