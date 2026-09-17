@@ -177,11 +177,31 @@ la NIPB pasó a buscarse **por prefijo** como las demás — con la marca al fin
 > Para volver a generar un juego ya existente, se corre 00 con **ese mismo** nombre de
 > carpeta: ahí sí cae sobre sus vistas, que es lo que se quiere.
 
-> ⚠️ **Da dos nodos, no uno.** La *ViewFamily* (Floor Plans / Sections) es un nivel de
-> agrupación **por encima** del tipo, así que se obtiene `Floor Plans > MI_CARPETA` con las
-> plantas y `Sections > MI_CARPETA` con las elevaciones. Una carpeta única que mezcle
-> plantas y elevaciones solo se consigue con un esquema de *Browser Organization* que agrupe
-> por un parámetro compartido, y eso sí requiere configuración manual en Revit.
+> ⚠️ **Da dos nodos, no uno, y con nombres distintos.** La *ViewFamily* (Floor Plans /
+> Sections) es un nivel de agrupación **por encima** del tipo, así que se obtiene
+> `Floor Plans > MI_CARPETA` con las plantas y `Sections > MI_CARPETA SEC` con las
+> elevaciones. Una carpeta única que mezcle ambas solo se consigue con un esquema de
+> *Browser Organization* que agrupe por un parámetro compartido, y eso sí requiere
+> configuración manual en Revit.
+
+#### ⚠️ Revit no admite dos tipos de vista con el mismo nombre
+
+**Bug corregido el 2026-09-17.** `tipo_carpeta()` duplicaba el tipo base con el nombre de la
+carpeta. Las **plantas corren primero** y se quedaban con el nombre pelado; cuando le tocaba
+a las elevaciones, `Duplicate()` fallaba —Revit rechaza un `ViewFamilyType` con un nombre ya
+usado, **incluso en otra familia**— la excepción se capturaba y se devolvía el tipo base.
+
+Resultado: **las plantas entraban en la carpeta y las elevaciones no.** Medido en el modelo
+real: un tipo `TEST` con las plantas y las 17 elevaciones colgando de `Assembly`.
+
+Ahora cada familia trae un **nombre alterno** (` PL` para plantas, ` SEC` para elevaciones) y
+se prueban en orden. En un proyecto limpio las plantas se quedan con `MI_CARPETA` y las
+elevaciones caen a `MI_CARPETA SEC`. La búsqueda de reutilización acepta **cualquiera de los
+dos nombres**, así que las corridas siguientes reutilizan el tipo en vez de acumular uno
+nuevo cada vez.
+
+Si los dos nombres estuvieran tomados, el log lo dice con un `ERROR` explícito en vez de
+dejar las vistas fuera de la carpeta en silencio.
 
 ### Un solo campo para el tipo de vista
 
