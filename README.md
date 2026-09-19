@@ -2262,8 +2262,8 @@ cabeza — misma regla que antes.
 
 | Input | Default |
 |---|---|
-| `03. Tipo de C-MultiCat del rotulo CORTO` | `Modelo` |
-| `04. Tipo de C-MultiCat del rotulo LARGO` | `DESCRIPCION_ITEM` |
+| `03. Tipo de C-MultiCat del rotulo CORTO` | `Descripcion+Comentario` |
+| `04. Tipo de C-MultiCat del rotulo LARGO` | `Descripcion+Modelo/Largo` |
 
 Son editables desde Player y valen para plantas **y** elevaciones. **Se exigen los dos**: si
 falta cualquiera de ellos no se rotula nada y el log lo dice, junto con la lista de tags
@@ -2283,11 +2283,25 @@ En `C-MultiCat` el **nombre del tipo dice qué parámetro lee** — `Modelo` lee
 `ELEMENTO_TBL` lee `ELEMENTO_TBL`. Por eso cambiar de parámetro es cambiar de **tipo de
 tag**, no tocar el script.
 
-> **Cambio 2026-09-19.** El rótulo largo pasa de `Item_TBL` a `DESCRIPCION_ITEM` por regla
-> de la oficina: toda la descripción de pieza vive en ese parámetro. **Requiere que exista un
-> tipo de `C-MultiCat` llamado `DESCRIPCION_ITEM`** cuya etiqueta apunte a ese parámetro —
-> eso es edición de familia, no lo puede hacer ningún script. Si no está, `tipo_de_tag()` lo
-> reporta como `ERROR` con la lista de tipos disponibles.
+> **Cambio 2026-09-19.** Los dos tipos pasan al par que sale de `DESCRIPCION_ITEM`, por
+> regla de la oficina: toda la descripción de pieza vive en ese parámetro. **El par ya existe
+> en la familia** — no hay que crear ningún tipo nuevo.
+>
+> Cuál de los dos es realmente más angosto **lo decide la medición, no sus nombres**: 05 mide
+> los dos sobre cada pieza y usa el largo salvo que no entre. Si en el plano conviene al
+> revés, se intercambian los dos inputs en Player y listo.
+
+**La lógica de corto/largo no cambió.** Sigue midiendo los dos y eligiendo por espacio:
+
+```python
+tipo = tag_largo
+ancho = _anchos.get(_clave(el, tag_largo, v))
+if ancho is not None and ancho > disponible:
+    tipo = tag_corto
+    ...
+    if ancho_corto is not None and ancho_corto > disponible:
+        apretados += 1          # ni el corto entra: se pone igual y se cuenta
+```
 
 **Un tag cuyo parámetro está vacío muestra `?`.** No es un fallo del graph: es dato que falta
 en el modelo. Medido el 2026-09-19 sobre `1818-2120-S-MOD-001_detached`: `Model` vacío en
