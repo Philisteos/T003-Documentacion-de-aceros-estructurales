@@ -170,22 +170,42 @@ preferencia: es la única forma de que dos juegos convivan.
 **La marca va al final a propósito.** 01 a 05 buscan sus vistas con
 `startswith(tname + SUF_*)`, y un sufijo no rompe ninguno de esos prefijos.
 
-**03, 04 y 05 no necesitaron input nuevo**, porque los tres ya saltan lo que está hecho: 03
-con `ya_cotas` / `ya_marcas`, 04 y 05 con su input «rehacer». Con dos juegos conviviendo
-anotan el nuevo y respetan el viejo.
+#### `00. Subcarpeta / juego de vistas` está en los SIETE graphs
 
-**01 y 02 sí lo necesitaron.** Se les agregó al final —`IN[7]` y `IN[8]`, así los índices que
-ya existían no se corren— el input **«Subcarpeta / juego de vistas»**, que dice sobre cuál de
-los juegos trabajar. Vacío = el juego sin marca, el que crea 00 con la subcarpeta en blanco.
+**Desde el 2026-09-19**, los siete pasos reciben el mismo input y trabajan sobre el juego que
+se les indique. El valor tiene que ser **el mismo en todos**: en 00 decide qué juego se crea,
+en el resto sobre cuál se opera.
 
-Sin ese input recogían **cualquier** vista que no estuviera colocada: alcanzaba para el caso
-normal, pero si un juego viejo tenía vistas sueltas se mezclaban con las nuevas en la misma
-lámina. Y de paso, la NIPB pasó a buscarse **por prefijo** como las demás — con la marca al
+| Graph | Input | Qué acota |
+|---|---|---|
+| 00 | `IN[11]` | qué juego **crea** (y la subcarpeta del Project Browser) |
+| 01 | `IN[7]` | qué vistas cuenta para calcular las láminas |
+| 02 | `IN[8]` | qué vistas coloca |
+| 03 | `IN[24]` | qué vistas acota |
+| 04 | `IN[7]` | en qué plantas dibuja el grating |
+| 05 | `IN[10]` | en qué vistas pone los rótulos |
+| 06 | `IN[12]` | qué vistas mira para saber cuál es la primera lámina del assembly |
+
+**La etiqueta empieza con `00.` a propósito.** Dynamo Player **ordena los inputs
+alfabéticamente por su etiqueta**, no por el orden del array ni por la posición en el lienzo
+(comprobado: en 01 el array dice Viñeta/Número/Nombre y Player mostraba
+Filtro/Margen/Nombre/Número). Los dígitos van antes que las letras, así que con ese prefijo
+queda primero sin tener que renumerar el resto de las etiquetas de cada graph.
+
+**En 03, 04 y 05 el filtro va en un solo sitio**: el índice `views` se construye una vez
+—`views[elem_name(v)] = v`— y ahí se descartan las de otros juegos. Con eso quedan acotadas
+todas las búsquedas de más abajo sin tocar cada `startswith` por separado.
+
+En **06** el filtro va donde se busca la primera lámina de cada assembly: sin él, la tabla
+podía anclarse a la primera lámina de **otro** juego del mismo assembly.
+
+> Los tres graphs de anotación ya saltaban lo que estaba hecho (03 con `ya_cotas` /
+> `ya_marcas`, 04 y 05 con su «rehacer»), así que el input no era imprescindible para no
+> romper nada — pero sin él seguían **recorriendo** los dos juegos, y con «rehacer» activo
+> rehacían el viejo también.
+
+De paso, en 01 y 02 la NIPB pasó a buscarse **por prefijo** como las demás: con la marca al
 final, un `get()` por nombre exacto ya no la encontraba.
-
-> El valor tiene que ser **el mismo** que se le pasó a 00 en «Subcarpeta del Project
-> Browser». Es un tercer sitio donde ese nombre tiene que coincidir, además de los inputs de
-> margen y reserva que 01 y 02 ya comparten.
 
 > ⚠️ **`endswith(MARCA)` no alcanza.** Con la carpeta vacía la marca es `''` y
 > `endswith('')` da `True` para **todo**, así que «recrear» sin carpeta se llevaría puestas

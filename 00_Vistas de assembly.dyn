@@ -137,7 +137,7 @@
     },
     {
       "Id": "b2130000000000000000000000000001",
-      "Name": "04. Subcarpeta del Project Browser (vacio = usar el tipo base)",
+      "Name": "00. Subcarpeta / juego de vistas (vacio = sin subcarpeta)",
       "Type": "string",
       "Type2": "string",
       "Value": "",
@@ -996,7 +996,7 @@
       },
       {
         "Id": "b2130000000000000000000000000001",
-        "Name": "04. Subcarpeta del Project Browser (vacio = usar el tipo base)",
+        "Name": "00. Subcarpeta / juego de vistas (vacio = sin subcarpeta)",
         "IsSetAsInput": true,
         "IsSetAsOutput": false,
         "Excluded": false,

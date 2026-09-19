@@ -76,7 +76,7 @@
                    },
                         {
                          "Id":  "b9080000000000000000000000000001",
-                         "Name":  "Subcarpeta / juego de vistas (vacio = sin subcarpeta)",
+                         "Name":  "00. Subcarpeta / juego de vistas (vacio = sin subcarpeta)",
                          "Type":  "string",
                          "Type2":  "string",
                          "Value":  "",
@@ -621,7 +621,7 @@
                                    },
                             {
                              "Id":  "b9080000000000000000000000000001",
-                             "Name":  "Subcarpeta / juego de vistas (vacio = sin subcarpeta)",
+                             "Name":  "00. Subcarpeta / juego de vistas (vacio = sin subcarpeta)",
                              "IsSetAsInput":  true,
                              "IsSetAsOutput":  false,
                              "Excluded":  false,
