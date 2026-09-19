@@ -2263,12 +2263,37 @@ cabeza — misma regla que antes.
 | Input | Default |
 |---|---|
 | `03. Tipo de C-MultiCat del rotulo CORTO` | `Modelo` |
-| `04. Tipo de C-MultiCat del rotulo LARGO` | `Item_TBL` |
+| `04. Tipo de C-MultiCat del rotulo LARGO` | `DESCRIPCION_ITEM` |
 
 Son editables desde Player y valen para plantas **y** elevaciones. **Se exigen los dos**: si
 falta cualquiera de ellos no se rotula nada y el log lo dice, junto con la lista de tags
 disponibles como `Familia : Tipo`. Deliberadamente no cae a un tipo cualquiera — con un
 nombre mal escrito, rotular decenas de piezas con el tag equivocado es peor que no rotular.
+
+#### ⚠️ Lo que muestra el tag NO lo decide este script
+
+Un `IndependentTag` saca su texto de la **etiqueta de su familia**, y la API no deja
+sobrescribirlo por instancia. 05 solo elige **qué tipo** colocar:
+
+```python
+IndependentTag.Create(doc, tag_type.Id, v.Id, Reference(el), False, ...)
+```
+
+En `C-MultiCat` el **nombre del tipo dice qué parámetro lee** — `Modelo` lee `Model`,
+`ELEMENTO_TBL` lee `ELEMENTO_TBL`. Por eso cambiar de parámetro es cambiar de **tipo de
+tag**, no tocar el script.
+
+> **Cambio 2026-09-19.** El rótulo largo pasa de `Item_TBL` a `DESCRIPCION_ITEM` por regla
+> de la oficina: toda la descripción de pieza vive en ese parámetro. **Requiere que exista un
+> tipo de `C-MultiCat` llamado `DESCRIPCION_ITEM`** cuya etiqueta apunte a ese parámetro —
+> eso es edición de familia, no lo puede hacer ningún script. Si no está, `tipo_de_tag()` lo
+> reporta como `ERROR` con la lista de tipos disponibles.
+
+**Un tag cuyo parámetro está vacío muestra `?`.** No es un fallo del graph: es dato que falta
+en el modelo. Medido el 2026-09-19 sobre `1818-2120-S-MOD-001_detached`: `Model` vacío en
+**0 de 850** elementos con valor, `ITEM_TBL` poblado en **18 de 683** vigas, y
+`DESCRIPCION_ITEM` recién creado y **vacío en los 705**. De ahí que salieran todos los
+rótulos con `?`.
 
 ### Lo que NO hace
 
