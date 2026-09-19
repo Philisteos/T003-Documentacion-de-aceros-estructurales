@@ -2303,6 +2303,25 @@ if ancho is not None and ancho > disponible:
         apretados += 1          # ni el corto entra: se pone igual y se cuenta
 ```
 
+#### ⚠️ La marca del juego no va en el nombre del eje
+
+05 saca el nombre del eje **cortando el nombre de la vista**, y la vista lleva la marca del
+juego pero el eje del modelo no:
+
+```
+vista:  ES-1001 - EJE 1' (test)
+eje:    1'
+```
+
+Sin quitarla, `punto_del_eje()` buscaba un eje llamado `1' (test)`, no lo encontraba, y
+**ninguna elevación se rotulaba** — con un `no existe el eje "1' (test)"` por cada una en el
+log. Lo arregla `sin_marca()`, que se aplica al `gname` y **no** al `label`: ese es para el
+log y ahí la marca sí ayuda a saber de qué juego se habla.
+
+Fue un daño colateral de introducir los juegos de vistas (2026-09-17), detectado el
+2026-09-19. Vale revisarlo si alguna vez otro graph deriva un nombre del modelo cortando el
+nombre de una vista.
+
 **Un tag cuyo parámetro está vacío muestra `?`.** No es un fallo del graph: es dato que falta
 en el modelo. Medido el 2026-09-19 sobre `1818-2120-S-MOD-001_detached`: `Model` vacío en
 **0 de 850** elementos con valor, `ITEM_TBL` poblado en **18 de 683** vigas, y
