@@ -924,8 +924,24 @@ mecanismos y dos necesidades distintas:
 
 ### Escala y view template
 
-**Una sola escala para todo** (input, default **1:75**), plantas y elevaciones. Reemplaza
-la escala automática 1:25/1:50 de fundaciones, que no aplica a estructuras de este tamaño.
+**Dos escalas independientes**, ambas default **1:75**:
+
+| Input | Qué escala |
+|---|---|
+| `09. Escala de las PLANTAS (1:N)` | NIPB, P.T. y T.A. |
+| `09b. Escala de los CORTES (1:N)` | las elevaciones de eje |
+
+Reemplazan la escala automática 1:25/1:50 de fundaciones, que no aplica a estructuras de
+este tamaño.
+
+> **Cambio 2026-09-19.** Antes era **una sola** escala para todo. Una elevación de eje suele
+> necesitar más detalle que la planta del mismo assembly, así que se separaron. `escala_de(v)`
+> decide por `isinstance(v, ViewPlan)`: planta o corte, sin listas de nombres que mantener.
+>
+> **`09b` vacío = la misma que las plantas**, así una corrida anterior se comporta igual que
+> antes de separarlas. El margen del crop de las elevaciones también pasó a usar la escala de
+> cortes — se multiplica por la escala, y con dos valores distintos usar la equivocada
+> descuadra el encuadre.
 
 Hay **tres campos de view template independientes** (dos vistas de familias distintas nunca
 comparten template real en Revit, y la NIPB necesita uno propio):
