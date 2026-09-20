@@ -2262,8 +2262,8 @@ cabeza — misma regla que antes.
 
 | Input | Default |
 |---|---|
-| `03. Tipo de C-MultiCat del rotulo CORTO` | `Descripcion+Comentario` |
-| `04. Tipo de C-MultiCat del rotulo LARGO` | `Descripcion+Modelo/Largo` |
+| `03. Tipo de C-MultiCat del rotulo CORTO` | `ETIQUETA TIPO` |
+| `04. Tipo de C-MultiCat del rotulo LARGO` | `ETIQUETA TIPO` |
 
 Son editables desde Player y valen para plantas **y** elevaciones. **Se exigen los dos**: si
 falta cualquiera de ellos no se rotula nada y el log lo dice, junto con la lista de tags
@@ -2283,13 +2283,20 @@ En `C-MultiCat` el **nombre del tipo dice qué parámetro lee** — `Modelo` lee
 `ELEMENTO_TBL` lee `ELEMENTO_TBL`. Por eso cambiar de parámetro es cambiar de **tipo de
 tag**, no tocar el script.
 
-> **Cambio 2026-09-19.** Los dos tipos pasan al par que sale de `DESCRIPCION_ITEM`, por
-> regla de la oficina: toda la descripción de pieza vive en ese parámetro. **El par ya existe
-> en la familia** — no hay que crear ningún tipo nuevo.
+> **Cambio 2026-09-19.** Los dos inputs apuntan a **`ETIQUETA TIPO`**, que muestra el nombre
+> del **tipo de familia** (`IN50x84,6`, `PL e=8mm`). Es el único dato que **todas** las piezas
+> tienen sin que nadie lo cargue a mano, y es el mismo que usa la columna `DESCRIPCION` de la
+> tabla de 06 — así el rótulo del plano y la lista de materiales dicen lo mismo.
 >
-> Cuál de los dos es realmente más angosto **lo decide la medición, no sus nombres**: 05 mide
-> los dos sobre cada pieza y usa el largo salvo que no entre. Si en el plano conviene al
-> revés, se intercambian los dos inputs en Player y listo.
+> **Por qué no `DESCRIPCIÓN_ITEM`**, que es la regla de la oficina: probado sobre una viga que
+> **sí** lo tenía cargado (`IN50x84,6` con `descripcion item`), el tag seguía mostrando `?`.
+> Ninguno de los 8 tipos de `C-MultiCat` del proyecto lee ese parámetro. Hasta que exista uno
+> que apunte ahí, no hay forma de rotular desde ese dato.
+>
+> ⚠️ **Con un solo tipo no hay elección corto/largo**: 05 mide los dos —que ahora son el
+> mismo—, no encuentra uno más angosto y pone siempre ese. No se rompe nada, pero el contador
+> de «cortos» del log deja de significar algo. Cuando exista un segundo tipo con la misma
+> fuente y formato más corto, se pone en el input `03` y la elección vuelve sola.
 
 **La lógica de corto/largo no cambió.** Sigue midiendo los dos y eligiendo por espacio:
 
