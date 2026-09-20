@@ -2615,6 +2615,13 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
 
 ## Mensajes de log frecuentes
 
+- `NO SE CREO NINGUNA VISTA. Falta preparar el modelo.` (00) — **bloque de ayuda**, arriba
+  de todo en el log. Sale cuando un assembly no generó ni una vista, y lista en orden lo que
+  falta, con el nombre del assembly ya puesto en los ejemplos para copiar y pegar. Antes esa
+  misma información había que deducirla juntando cuatro avisos sueltos repartidos por el log.
+  El primer paso, cuando aplica, es **renombrar el assembly**: si conserva el nombre
+  automático de Revit (`Structural Framing 001`, `Assembly 3`) nada más puede funcionar,
+  porque los niveles y el marcado de los ejes se anclan a ese nombre.
 - `no hay ningun Assembly en el modelo` (00) — falta el paso previo: crear los assemblies
   en Revit. Nada de este pipeline funciona sin ellos.
 - `no existe la vista ... (corre 00_Vistas de assembly)` (01/02) — falta el paso 0.
