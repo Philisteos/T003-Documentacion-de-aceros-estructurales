@@ -2535,6 +2535,36 @@ contenido de un assembly y el `CANT=N`, que es el formato del plano tipo. Si se 
 `ASSEMBLY` en todos los elementos, un assembly repetido 3 veces mostraría el triple en
 `CANT/UNIDAD` y el nónuplo en `TOTAL KG`.
 
+### La tabla se DUPLICA de una plantilla
+
+**Cambio 2026-09-21.** El input `13. Tabla plantilla que se duplica` (default
+`TABLA INSERTOS`) nombra una tabla del proyecto que alguien armó a mano. Cuando existe, 06
+**la duplica** por assembly y le cambia **solo dos cosas**: el filtro por `ASSEMBLY` y el
+título. No toca campos, agrupación, encabezados, anchos ni grafismo — todo eso viene del
+duplicado.
+
+Vacío = comportamiento anterior, armar la tabla campo por campo.
+
+**Por qué.** La API de Revit **no puede crear valores calculados**: `ScheduleField` expone
+`IsCalculatedField` de solo lectura y no hay `SetFormula()`. Es la única forma de que
+`UNIT. KG` salga de una fórmula (`BIDIMENSION * PESO_UNIT`) en vez de un número que 06
+calcula y escribe. Se escribe una vez en la plantilla y cada duplicado se la lleva.
+
+De paso resuelve los **encabezados agrupados**, que este graph nunca pudo armar a ciegas:
+`TABLA INSERTOS` ya trae `PESO` sobre `UNITARIO (KG/ML) (KG/M2)` y `TOTAL (KG)`.
+
+> ⚠️ **La plantilla tiene que incluir el campo `ASSEMBLY`**, aunque sea oculto (*Hidden
+> field*): es por donde 06 filtra cada copia. Si falta, lo dice como `ERROR` y no crea esa
+> tabla. Sólo se quitan los filtros **sobre ese campo**; los demás filtros de la plantilla se
+> respetan.
+
+> Si cambiás la plantilla, borrá las tablas `TBL_*` existentes: 06 reutiliza la que ya está y
+> sólo le reaplica filtro y título, así que no adoptaría la estructura nueva.
+
+Con este camino, que `PESO_UNIT_TBL` y `PESO_TOTAL_TBL` sigan escribiéndose deja de importar:
+si las columnas de la plantilla son fórmulas, esos valores quedan sin usar; si son parámetros
+guardados, ahí están. Funciona en los dos casos.
+
 ### ⚠️ Encabezados agrupados: sin verificar
 
 `DIMENSIONES` sobre la columna de largo y `PESO` sobre las tres de peso son la fila de
@@ -2695,7 +2725,11 @@ tabla no los une — es basura del modelo, y unir por «parecido» sería invent
      `SharedParametersFilename` y lo restaura, pero eso no se probó;
    - que los prefijos `PL,ARS` cubran de verdad todo lo que va en m² en el modelo real;
    - que el ancho de columna calculado quepa en los 150 mm reservados sin cortar texto.
-5. **Decidir si 06 sigue calculando `UNIT. KG` y `TOTAL KG`, o los deja al modelo.** El
+5. ~~**Decidir si 06 sigue calculando `UNIT. KG` y `TOTAL KG`**~~ — resuelto el 2026-09-21
+   con la tabla plantilla: ver abajo. Queda igual la duda de fondo sobre dónde viven las
+   fórmulas, pero ya no bloquea.
+
+   **Decidir si 06 sigue calculando `UNIT. KG` y `TOTAL KG`, o los deja al modelo.** El
    esquema nuevo de la oficina (2026-09-16) trae `PESO_UNITARIO#` y `PESO_TOTAL#` por
    **fórmula** (`BIDIMENSION * PESO_UNIT` y `Cantidad de Assemblies * BIDIMENSION *
    PESO_UNIT`), que es exactamente lo que 06 calcula y escribe por instancia. Si esas
