@@ -2706,6 +2706,49 @@ se llena la primera.
 > silencio —y sin poder recorrer sus hijos— a los `StructuralConnectionHandler`. Se agregaron
 > dos líneas `DIAG` al log que cuentan cada rama. Si vuelven a faltar piezas, el log dice cuál.
 
+### 00 marca el `ASSEMBLY` de los miembros
+
+**2026-09-21, confirmado con Karin.** Las piezas anidadas dentro de una familia tienen
+`ASSEMBLY` de **sólo lectura a propósito**: **heredan** el valor de su familia padre en cuanto
+el padre lo tiene. Está diseñado así.
+
+Por eso **00 marca los miembros apenas se corre**, antes de crear ninguna vista: escribe el
+nombre del assembly en cada miembro cuyo `ASSEMBLY` sea escribible, y las anidadas se completan
+solas. Reusa `ids_recursivos()`, que ya resolvía las `Structural Connections` por
+`Element.AssemblyInstanceId` —más confiable que `GetMemberIds()` para esas categorías—.
+
+Las que quedan en sólo lectura **no son un error**: son las que van a heredar. El log las
+cuenta aparte:
+
+```
+ES-1001: ASSEMBLY marcado en 47 pieza(s); otras 128 lo heredan de su familia padre.
+```
+
+> Se marca **sólo la instancia que se documenta**, no todas las del mismo tipo. La tabla
+> muestra el contenido de *un* assembly y multiplica por `CANT=N`; marcando las N se vería el
+> triple en las cantidades.
+
+#### ⚠️ Guardarraíl: no se escribe con el GUID viejo
+
+Si el proyecto todavía tiene el `ASSEMBLY` **anterior**, el que comparte GUID con
+`DESCRIPCIÓN_ITEM`, **00 no escribe nada** y lo dice en un bloque del log. Escribirlo borraría
+la descripción de cada pieza, y ya pasó una vez con **1.269** de ellas.
+
+Tampoco toca los **ejes**: el `ASSEMBLY` de los `Grids` es otro parámetro —no compartido, que
+el modelador llena a mano— y se salta por categoría. Por eso el GUID se resuelve por GUID y
+nunca por nombre.
+
+#### Lo que hubo que desactivar en 06
+
+06 le **borraba** el `ASSEMBLY` a los envoltorios para que no salieran como fila. Bajo este
+modelo eso es exactamente lo contrario de lo que hay que hacer: **el envoltorio es el padre del
+que heredan las anidadas**, así que desmarcarlo dejaba sin marca a todos sus hijos. Era lo que
+dejaba 128 piezas de ES-1001 fuera de la tabla en cada corrida.
+
+Además, `legitimas` —el conjunto que decide qué marcas se conservan— pasó a incluir a los
+contenedores y no sólo a las hojas. Con hojas a secas, la limpieza volvía a desmarcar los
+envoltorios en cada corrida.
+
 ### ⚠️ Si `ASSEMBLY` no se puede escribir, la pieza no sale en la tabla
 
 **2026-09-21.** El caso más difícil de ver de que falten piezas: 06 las procesa, les escribe
