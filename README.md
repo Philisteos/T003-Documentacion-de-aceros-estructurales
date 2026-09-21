@@ -2006,8 +2006,78 @@ elige entre el mismo par de tipos según lo que entre en la pieza:
 
 | Vista | Qué pone | Cómo se orienta |
 |---|---|---|
-| Plantas T.A. | un tag por **viga** | girado con la viga, centrado en su eje |
-| Elevaciones de eje | un tag por **tipo de familia** presente en la vista | horizontal encima de las vigas, girado 90° a la izquierda de las columnas |
+| Plantas T.A. | un tag por **viga** (o por pieza, con el input `11`) | girado con la viga, centrado en su eje |
+| Elevaciones de eje | un tag por **tipo de familia** presente en la vista | girado siguiendo la pieza, separado si choca con otro |
+
+### El algoritmo de plantas está hecho para plataformas
+
+**2026-09-21.** Las dos mitades de este graph nacieron para casos distintos y eso explica casi
+todo lo que fallaba al llevarlo a un proyecto de estructura completa.
+
+`rotular_planta` se escribió para **plataformas con grating**: una parrilla de vigas vista
+desde arriba. Ahí el rótulo va *a lo largo del eje de la viga*, girado para seguirla, y el
+resultado sale perfecto. Pero ese diseño arrastra dos supuestos que solo se ven cuando el
+modelo no es una plataforma:
+
+1. **Solo se recolectaba `OST_StructuralFraming`.** `CATS_ROTULABLES` —vigas, columnas,
+   barandas, escaleras— existía desde el 2026-08-11 pero se usaba **solo en las elevaciones**:
+   cuando se sumaron esas categorías se tocó una mitad y no la otra.
+2. **`eje_en_planta` exige una `Line` de más de ~1 mm proyectada.** Una columna es un *punto*
+   en planta, así que devolvía `None` y la pieza se saltaba. Por construcción, **nada vertical
+   podía recibir rótulo en planta**, ni aunque se ensanchara la categoría.
+
+> En una plataforma ninguno de los dos molesta: las columnas se ven como un cuadradito bajo el
+> grating y rotularlas sería ruido. Por eso **esto no se cambió de default sino que se puso
+> detrás del input `11. En plantas, rotular también columnas y familias`**, que viene apagado.
+
+Con el `11` apagado, `rotular_planta` hace **exactamente** lo de antes. Está verificado
+corriendo las dos versiones de la función —la de `HEAD` y la nueva— contra el mismo modelo
+falso y comparando la secuencia de operaciones tag por tag: idénticas en los dos escenarios de
+prueba. Encendido, suma las piezas sin eje colocando el rótulo en el centro de la pieza y
+usando el lado mayor de su bounding box como largo disponible.
+
+El contador `sin curva` del log pasó a decir `sin rotular por no tener eje` y se le sumó
+`sin eje en planta`, que cuenta las que sí se rotularon por el camino nuevo.
+
+### Cortes: el rótulo sigue a la pieza y se corre si choca
+
+**2026-09-21.** Un corte de un marco completo salía ilegible por dos motivos distintos que se
+veían juntos:
+
+1. **El rótulo salía siempre horizontal o vertical.** `rotular_elevacion` elegía entre
+   `TagOrientation.Horizontal` y `Vertical` y nunca giraba nada, así que una cercha de techo
+   recibía un rótulo horizontal que no seguía la pieza. Las plantas giran el tag desde
+   siempre; las elevaciones nunca lo hicieron.
+2. **No había detección de solape.** La regla de *un tag por tipo* limita **cuántos** rótulos
+   hay, no **dónde** caen. Dos piezas a profundidades distintas se proyectan al mismo punto de
+   pantalla y sus tags quedaban encimados.
+
+Ahora se calcula la posición ideal de cada uno, se comparan las **huellas 2D** y el que choca
+se corre perpendicular a su propia pieza —de a un alto de rótulo, alternando a un lado y al
+otro, hasta ocho saltos— con `leader` activado para no perder a quién señala. Los que están
+**sobre el eje** se ubican primero y se quedan con su lugar: son los que la elevación
+documenta.
+
+> La maquinaria ya estaba a medias: `medir_tags` medía el **ancho** del rótulo para elegir
+> entre corto y largo. Se le sumó el **alto**, proyectando el mismo bounding box sobre
+> `UpDirection` en vez de `RightDirection`, y con eso queda la huella completa.
+
+De paso, el **largo disponible** pasó a ser el de la pieza *proyectado al plano de la vista*
+(`largo * hypot(du, dw)`) en vez de una sola de sus componentes. Para una diagonal las dos
+ramas anteriores se quedaban cortas y forzaban el rótulo corto sin necesidad.
+
+Medido contra un marco de prueba con tres vigas a profundidades distintas que caen en el mismo
+punto de pantalla, más una columna y una diagonal:
+
+| | antes | ahora |
+|---|---|---|
+| tags en posición repetida | **2** | 0 |
+| girados según la pieza | 0 | **2** (columna 90°, diagonal 36,9°) |
+| con leader | 0 | 2 |
+
+La columna quedó en la misma coordenada en las dos versiones: la fórmula perpendicular nueva
+**se reduce a la vieja** para piezas horizontales y verticales, y solo difiere en las
+diagonales, que es donde estaba roto.
 
 En ambos casos: **`Item_TBL` si entra, `Modelo` si no**.
 
