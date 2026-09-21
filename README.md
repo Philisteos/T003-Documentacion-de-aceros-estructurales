@@ -2734,52 +2734,51 @@ quedaron fuera de la lista de materiales sin una sola línea de log.
 > con fórmula o bloqueado; tiene que quedar editable por instancia. Ningún cambio en 06 puede
 > escribir un parámetro de sólo lectura.
 
-Ahora el log lo dice en un **bloque arriba de todo**, no mezclado entre los avisos. Es la
-única falla de este paso que no se ve por ningún lado: la tabla se crea, se coloca, el log dice
-`OK`, y adentro faltan piezas. Nadie la descubre salvo que sume los kilos a mano.
+Ahora el log lo dice en un **bloque arriba de todo**, y —lo que de verdad lo hace
+accionable— **06 crea una vista 3D por assembly con esas piezas aisladas**.
 
-El bloque nombra la **familia** —que es el archivo que hay que abrir, el tipo solo no alcanza—,
-la cantidad por tipo, y los pasos del arreglo:
+Un mensaje de texto no alcanzaba: hay 390 `PL e=16mm` idénticas repartidas por el modelo y no
+hay forma de encontrar a mano las 104 que fallaron. La vista se llama
+`VERIFICAR - sin ASSEMBLY - <assembly>` y se arma con `IsolateElementsTemporary()` +
+`ConvertTemporaryHideIsolateToPermanent()` — sin el segundo paso el aislamiento se pierde al
+cerrar la vista, porque el primero es literalmente temporal.
+
+> **La vista se rehace en cada corrida, también cuando ya no falta nada**: en ese caso se
+> borra. Que no exista es la señal de que ese assembly quedó completo, así que no hace falta
+> leer el log para saberlo.
 
 ```
 ==============================================================================
-ATENCION: 128 pieza(s) NO quedaron en la(s) tabla(s).
+ATENCION: faltan 128 pieza(s) en la lista de materiales.
 
-Son miembros del assembly, pero no se les pudo escribir el parametro
-ASSEMBLY. La tabla FILTRA por ese parametro, asi que sin el la pieza no
-existe para Revit y el material no aparece en la lista.
+  ES-1001: faltan 128 pieza(s)
+    -> abri la vista 3D "VERIFICAR - sin ASSEMBLY - ES-1001"
+       (Project Browser). Ahi estan esas piezas, y solo esas.
+       familia "S-PLACA_27": PL e=16mm x104, PL e=25mm x16
+         (es de SOLO LECTURA en la familia)
+       familia "S-SILLA_27": S-SILLA_500x900 x8
+         (es de SOLO LECTURA en la familia)
 
-  ES-1001:
-    familia "S-PLACA_27" -> PL e=16mm x104
-        es de SOLO LECTURA en la familia
-    ...
+QUE PASO
+  Esas piezas son del assembly, pero su parametro ASSEMBLY quedo vacio
+  y el script no lo pudo escribir. La tabla FILTRA por ese parametro:
+  sin el, la pieza no entra y su material no se cuenta.
 
-  COMO SE ARREGLA lo de SOLO LECTURA (es en la FAMILIA, no en este script):
-    1. Seleccionas una de esas piezas y le das Edit Family.
-    2. En Family Types, BORRAS el parametro ASSEMBLY de la familia.
-       Borrarlo, no quitarle la formula. ASSEMBLY es dato del PROYECTO,
-       no de la familia: mientras la familia lo defina tapa al de
-       proyecto y queda de solo lectura en todo el modelo.
-    3. Cargas la familia de vuelta y volves a correr este paso.
-    En las vigas funciona justamente porque su familia NO lo define.
+QUE HAY QUE HACER con lo de SOLO LECTURA (es en la FAMILIA)
+  1. Selecciona una de esas piezas y anda a Edit Family.
+  2. En Family Types, BORRA el parametro ASSEMBLY de la familia.
+     ...
 ==============================================================================
 ```
 
-Separa los tres motivos posibles, y para el de categoría da la otra receta (Manage > Project
-Parameters). El del tipo `PL e=16mm` **no tiene** `ASSEMBLY`, así que no es un parámetro de
-tipo: es de instancia, definido dentro de `S-PLACA_27` y con fórmula. **Borrarlo de la familia
-es el arreglo**, no quitarle la fórmula.
+El orden es deliberado: **primero qué hacer ahora** (abrir la vista), después qué pasó, y
+recién al final el arreglo de fondo. La primera versión explicaba el mecanismo antes de decir
+dónde mirar y era ilegible. Las piezas se agrupan **por familia**, no por tipo, porque la
+familia es el archivo que hay que abrir.
 
-#### Lo que este caso descartó
-
-Las dos hipótesis anteriores eran falsas, y el log instrumentado las cerró:
-
-- **`isinstance(el, FamilyInstance)`**: la línea `DIAG` no apareció → **0** miembros
-  descartados por clase. Las conexiones sí son `FamilyInstance`.
-- **La regla de los hijos**: `9 miembro(s) tienen sub-componentes; 9 de ellos no aportan
-  volumen propio` → los 9 son envoltorios legítimos. Ninguna placa caía ahí.
-
-El arreglo de la regla de geometría queda igual —es correcto— pero **no era la causa**.
+El tipo `PL e=16mm` **no tiene** `ASSEMBLY`, así que no es un parámetro de tipo: es de
+instancia, definido dentro de `S-PLACA_27` y con fórmula. **Borrarlo de la familia es el
+arreglo**, no quitarle la fórmula.
 
 ### ⚠️ El GUID de `ASSEMBLY` no es fijo
 
