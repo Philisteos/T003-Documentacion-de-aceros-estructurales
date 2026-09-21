@@ -2706,6 +2706,48 @@ se llena la primera.
 > silencio —y sin poder recorrer sus hijos— a los `StructuralConnectionHandler`. Se agregaron
 > dos líneas `DIAG` al log que cuentan cada rama. Si vuelven a faltar piezas, el log dice cuál.
 
+### ⚠️ Si `ASSEMBLY` no se puede escribir, la pieza no sale en la tabla
+
+**2026-09-21.** El caso más difícil de ver de que falten piezas: 06 las procesa, les escribe
+todo lo demás, y la tabla igual no las muestra.
+
+La tabla **filtra por `ASSEMBLY`**. Si `set_string()` no puede escribirlo, la pieza deja de
+existir para el schedule. Y `set_string()` devolvía `False` **en silencio**:
+
+```python
+def set_string(p, valor):
+    if p is None or p.IsReadOnly:
+        return False        # <- nadie miraba este retorno
+```
+
+Medido en `ES-1001` el 2026-09-21: `PL e=16mm` de la familia `S-PLACA_27` tiene
+
+```json
+{"name":"ASSEMBLY", "guid":"93330cd2-…", "value":"", "isReadOnly": true}
+```
+
+**`ASSEMBLY` es de sólo lectura en esa familia.** En las vigas es editable. 06 sí llegaba al
+elemento —le escribió `Part Number = CANT=1`— pero no pudo marcarlo, así que 390 placas
+quedaron fuera de la lista de materiales sin una sola línea de log.
+
+> **Se arregla en la FAMILIA, no en el graph.** Ahí `ASSEMBLY` está como parámetro de familia
+> con fórmula o bloqueado; tiene que quedar editable por instancia. Ningún cambio en 06 puede
+> escribir un parámetro de sólo lectura.
+
+Ahora el log lo dice, con el tipo, la cantidad y el motivo separando los tres casos: el
+parámetro no llega a esa categoría, es de sólo lectura, o Revit rechazó el valor.
+
+#### Lo que este caso descartó
+
+Las dos hipótesis anteriores eran falsas, y el log instrumentado las cerró:
+
+- **`isinstance(el, FamilyInstance)`**: la línea `DIAG` no apareció → **0** miembros
+  descartados por clase. Las conexiones sí son `FamilyInstance`.
+- **La regla de los hijos**: `9 miembro(s) tienen sub-componentes; 9 de ellos no aportan
+  volumen propio` → los 9 son envoltorios legítimos. Ninguna placa caía ahí.
+
+El arreglo de la regla de geometría queda igual —es correcto— pero **no era la causa**.
+
 ### ⚠️ El GUID de `ASSEMBLY` no es fijo
 
 **2026-09-21.** El parámetro compartido **se rehízo** para separarlo de `DESCRIPCIÓN_ITEM` —
