@@ -2009,6 +2009,20 @@ elige entre el mismo par de tipos según lo que entre en la pieza:
 | Plantas T.A. | un tag por **viga** (o por pieza, con el input `11`) | girado con la viga, centrado en su eje |
 | Elevaciones de eje | un tag por **tipo de familia** presente en la vista | girado siguiendo la pieza, separado si choca con otro |
 
+### El modelador elige qué rotular
+
+**2026-09-21.** Los inputs `12. Rotular las plantas` y `08. Rotular también las elevaciones de
+eje` se combinan para las tres opciones:
+
+| Quiero | `12` | `08` |
+|---|---|---|
+| solo plantas | True | False |
+| plantas y cortes | True | True |
+| solo cortes | **False** | True |
+
+Sirve sobre todo para **iterar**: ajustar los rótulos de los cortes sin rehacer los de las
+plantas, que en un assembly grande son varios minutos de diferencia.
+
 ### El algoritmo de plantas está hecho para plataformas
 
 **2026-09-21.** Las dos mitades de este graph nacieron para casos distintos y eso explica casi
@@ -2053,10 +2067,18 @@ veían juntos:
    pantalla y sus tags quedaban encimados.
 
 Ahora se calcula la posición ideal de cada uno, se comparan las **huellas 2D** y el que choca
-se corre perpendicular a su propia pieza —de a un alto de rótulo, alternando a un lado y al
-otro, hasta ocho saltos— con `leader` activado para no perder a quién señala. Los que están
-**sobre el eje** se ubican primero y se quedan con su lugar: son los que la elevación
-documenta.
+**se omite**. Los que están **sobre el eje** se ubican primero y se quedan con su lugar: son
+los que la elevación documenta. Los omitidos se nombran uno por uno en el log, para poder
+ponerlos a mano si alguno hacía falta.
+
+> ⚠️ **Se probó antes correrlos con `leader` y quedó peor.** En un corte a 1:250 las líneas de
+> referencia cruzan el dibujo entero, y un rótulo desplazado **deja de estar sobre la pieza que
+> nombra**, que es justamente lo que lo hacía legible. Probado en Revit el 2026-09-21 y
+> descartado el mismo día: es preferible documentar menos y que se lea.
+
+Si un mismo tipo aparece omitido en *todos* los cortes, la señal no es que falte espacio sino
+que **sobra un tipo**: ahí el ajuste es el input `09`, que hoy solo elige representante y ya no
+descarta nada.
 
 > La maquinaria ya estaba a medias: `medir_tags` medía el **ancho** del rótulo para elegir
 > entre corto y largo. Se le sumó el **alto**, proyectando el mismo bounding box sobre
@@ -2069,11 +2091,13 @@ ramas anteriores se quedaban cortas y forzaban el rótulo corto sin necesidad.
 Medido contra un marco de prueba con tres vigas a profundidades distintas que caen en el mismo
 punto de pantalla, más una columna y una diagonal:
 
-| | antes | ahora |
-|---|---|---|
-| tags en posición repetida | **2** | 0 |
-| girados según la pieza | 0 | **2** (columna 90°, diagonal 36,9°) |
-| con leader | 0 | 2 |
+| | original | con leader | **final** |
+|---|---|---|---|
+| tags puestos | 5 | 5 | **3** |
+| en posición repetida | **2** | 0 | 0 |
+| girados según la pieza | 0 | 2 | **2** (columna 90°, diagonal 36,9°) |
+| con leader | 0 | **2** | 0 |
+| omitidos y nombrados en el log | 0 | 0 | **2** |
 
 La columna quedó en la misma coordenada en las dos versiones: la fórmula perpendicular nueva
 **se reduce a la vieja** para piezas horizontales y verticales, y solo difiere en las
