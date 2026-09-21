@@ -2655,6 +2655,57 @@ ellas era sólo de presentación.
 > `PL e=25mm`, 112 planchas y 32 sillas, casi todas `Structural Connections`. Les falta
 > `PESO_UNIT`, que es un parámetro de **tipo**. Ninguna tabla lo puede arreglar.
 
+### Qué genera una fila: el volumen propio, no los hijos
+
+**2026-09-21.** `miembros_recursivos()` decidía con la pregunta equivocada:
+
+```python
+if subs:                       # ¿tiene sub-componentes?
+    contenedores.append(el)    # entonces no es una fila
+```
+
+La regla se escribió para **un** caso: la familia *envoltorio* que se llama igual que el
+assembly y sólo existe para agrupar. Pero «tiene hijos» no es lo mismo que «no tiene geometría
+propia»: una **placa de conexión con pernos anidados tiene las dos cosas**, y caía del lado
+equivocado — no generaba fila y encima se le **borraba** el `ASSEMBLY` en el bloque de limpieza
+de envoltorios.
+
+Ahora la pregunta es por el volumen: **es fila todo lo que aporte sólido propio, tenga hijos o
+no.** Se baja igual a los hijos en los dos casos, así que un perno anidado en una placa es una
+fila más — la placa y el perno, no la placa *o* el perno.
+
+> Un elemento **sin** hijos se sigue contando como fila aunque no se le encuentre sólido. Es
+> deliberado: así este cambio no puede sacar de la tabla nada que hoy aparezca. Verificado
+> ejecutando las dos versiones de la función contra el mismo modelo falso — cero filas
+> perdidas, una ganada (la placa).
+
+#### Medición que lo destapó
+
+`TBL_ES-1001` salía con menos elementos que `TABLA BASE ASSEMBLY`. Parte era **correcto**: la
+base no tiene filtro y muestra el modelo entero, así que al filtrar por `ASSEMBLY = ES-1001`
+caen las filas con el parámetro vacío (503 unidades) y encogen las que dicen `<varies>`
+(50 unidades). La cuenta cierra exacta:
+
+```
+1.274 − 503 − 50 = 721                             ← total de TBL_ES-1001
+201.581,865856 − 70.033,769723 = 131.548,096134 kg
+```
+
+Pero dentro de esas 503 había piezas que **sí** son del assembly:
+
+| | |
+|---|---|
+| Conexiones que son miembros de ES-1001 (`Assembly Name`) | **132** |
+| Conexiones con el parámetro `ASSEMBLY` escrito | **4** |
+
+Con una sola instancia del assembly en el modelo, así que no era el caso conocido de que sólo
+se llena la primera.
+
+> Quedan **dos** salidas posibles en `miembros_recursivos()` y sólo una corrida lo zanja: la
+> regla de los hijos (arreglada acá) y el `isinstance(el, FamilyInstance)`, que descarta en
+> silencio —y sin poder recorrer sus hijos— a los `StructuralConnectionHandler`. Se agregaron
+> dos líneas `DIAG` al log que cuentan cada rama. Si vuelven a faltar piezas, el log dice cuál.
+
 ### ⚠️ El GUID de `ASSEMBLY` no es fijo
 
 **2026-09-21.** El parámetro compartido **se rehízo** para separarlo de `DESCRIPCIÓN_ITEM` —
