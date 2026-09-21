@@ -2584,7 +2584,23 @@ Con este camino, que `PESO_UNIT_TBL` y `PESO_TOTAL_TBL` sigan escribiéndose dej
 si las columnas de la plantilla son fórmulas, esos valores quedan sin usar; si son parámetros
 guardados, ahí están. Funciona en los dos casos.
 
-### ⚠️ Encabezados agrupados: sin verificar
+### ⚠️ Encabezados agrupados: imposibles por API, confirmado
+
+**2026-09-21.** Revit rechaza el intento con un mensaje explícito:
+
+> *The row can't be inserted in data section of standard schedule except Key Schedule, Sheet
+> List Schedule or following categories: MEP Space, Room, Area.*
+
+O sea que la fila del encabezado agrupado **no se puede insertar por API** en un schedule
+normal. No es cuestión de insistir ni de cambiar el índice: está prohibido.
+
+**La única salida es la tabla plantilla** (input `13`): se arma la fila a mano una vez y cada
+duplicado se la lleva. Es la razón principal por la que existe ese camino.
+
+Sin plantilla, la tabla sale con los encabezados en una sola fila y el log lo dice con esa
+salida, en vez de escupir la excepción.
+
+### ⚠️ Encabezados agrupados: la nota vieja
 
 `DIMENSIONES` sobre la columna de largo y `PESO` sobre las tres de peso son la fila de
 *grouped headers* que en la UI de Revit hace el botón *Group*. Por API hay que insertar una
