@@ -2538,7 +2538,13 @@ contenido de un assembly y el `CANT=N`, que es el formato del plano tipo. Si se 
 ### La tabla se DUPLICA de una plantilla
 
 **Cambio 2026-09-21.** El input `13. Tabla plantilla que se duplica` (default
-`TABLA INSERTOS`) nombra una tabla del proyecto que alguien armó a mano. Cuando existe, 06
+`TABLA BASE ASSEMBLY`) nombra una tabla del proyecto que alguien armó a mano.
+
+> El default fue `TABLA INSERTOS` mientras se probaba contra una tabla que ya existía en el
+> modelo. El nombre definitivo es **`TABLA BASE ASSEMBLY`**, y tiene que ser **idéntico en
+> todos los proyectos**: 06 busca la plantilla por nombre, así que si en un proyecto se llama
+> distinto el log avisa y las tablas se arman desde cero, sin fórmulas ni encabezados
+> agrupados. Cuando existe, 06
 **la duplica** por assembly y le cambia **solo dos cosas**: el filtro por `ASSEMBLY` y el
 título. No toca campos, agrupación, encabezados, anchos ni grafismo — todo eso viene del
 duplicado.

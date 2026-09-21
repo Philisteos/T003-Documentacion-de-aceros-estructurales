@@ -124,7 +124,7 @@
       "Name": "13. Tabla plantilla que se duplica (vacio = armar desde cero)",
       "Type": "string",
       "Type2": "string",
-      "Value": "TABLA INSERTOS",
+      "Value": "TABLA BASE ASSEMBLY",
       "Description": "Creates a string."
     }
   ],
@@ -628,7 +628,7 @@
       ],
       "Replication": "Disabled",
       "Description": "Creates a string.",
-      "InputValue": "TABLA INSERTOS"
+      "InputValue": "TABLA BASE ASSEMBLY"
     }
   ],
   "Connectors": [
