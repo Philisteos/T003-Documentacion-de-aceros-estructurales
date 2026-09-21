@@ -2734,8 +2734,41 @@ quedaron fuera de la lista de materiales sin una sola línea de log.
 > con fórmula o bloqueado; tiene que quedar editable por instancia. Ningún cambio en 06 puede
 > escribir un parámetro de sólo lectura.
 
-Ahora el log lo dice, con el tipo, la cantidad y el motivo separando los tres casos: el
-parámetro no llega a esa categoría, es de sólo lectura, o Revit rechazó el valor.
+Ahora el log lo dice en un **bloque arriba de todo**, no mezclado entre los avisos. Es la
+única falla de este paso que no se ve por ningún lado: la tabla se crea, se coloca, el log dice
+`OK`, y adentro faltan piezas. Nadie la descubre salvo que sume los kilos a mano.
+
+El bloque nombra la **familia** —que es el archivo que hay que abrir, el tipo solo no alcanza—,
+la cantidad por tipo, y los pasos del arreglo:
+
+```
+==============================================================================
+ATENCION: 128 pieza(s) NO quedaron en la(s) tabla(s).
+
+Son miembros del assembly, pero no se les pudo escribir el parametro
+ASSEMBLY. La tabla FILTRA por ese parametro, asi que sin el la pieza no
+existe para Revit y el material no aparece en la lista.
+
+  ES-1001:
+    familia "S-PLACA_27" -> PL e=16mm x104
+        es de SOLO LECTURA en la familia
+    ...
+
+  COMO SE ARREGLA lo de SOLO LECTURA (es en la FAMILIA, no en este script):
+    1. Seleccionas una de esas piezas y le das Edit Family.
+    2. En Family Types, BORRAS el parametro ASSEMBLY de la familia.
+       Borrarlo, no quitarle la formula. ASSEMBLY es dato del PROYECTO,
+       no de la familia: mientras la familia lo defina tapa al de
+       proyecto y queda de solo lectura en todo el modelo.
+    3. Cargas la familia de vuelta y volves a correr este paso.
+    En las vigas funciona justamente porque su familia NO lo define.
+==============================================================================
+```
+
+Separa los tres motivos posibles, y para el de categoría da la otra receta (Manage > Project
+Parameters). El del tipo `PL e=16mm` **no tiene** `ASSEMBLY`, así que no es un parámetro de
+tipo: es de instancia, definido dentro de `S-PLACA_27` y con fórmula. **Borrarlo de la familia
+es el arreglo**, no quitarle la fórmula.
 
 #### Lo que este caso descartó
 
