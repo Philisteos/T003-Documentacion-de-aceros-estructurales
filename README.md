@@ -2562,6 +2562,21 @@ dice con ese motivo.
 > Sólo se quitan los filtros **sobre ese campo**; los demás filtros de la plantilla se
 > respetan — no se sabe qué más pudo configurar quien la armó.
 
+#### ⚠️ La FASE de la plantilla puede vaciar la tabla
+
+Un schedule **sólo muestra elementos de su propia fase**, y eso **no se ve en la pestaña
+*Filter***: es un parámetro de la vista. El duplicado hereda la fase de la plantilla, así que
+si vienen de fases distintas la tabla sale **vacía, sin ningún error**.
+
+Medido el **2026-09-21**: `TABLA INSERTOS` estaba en la fase `TERMINO` —5 elementos en todo el
+modelo— mientras la estructura vive en `New Construction` (1.226). La tabla se creaba, se
+colocaba en la lámina, el log decía `OK`, y no mostraba una sola fila.
+
+Por eso 06 ahora **alinea la fase de cada copia con la del assembly** (`PHASE_CREATED` del
+`AssemblyInstance` → `VIEW_PHASE` de la tabla) y lo anota en el log cuando lo hace. Es más
+robusto que pedir que la plantilla esté en la fase correcta: el que la arma no tiene por qué
+saber en qué fase está cada assembly.
+
 > Si cambiás la plantilla, borrá las tablas `TBL_*` existentes: 06 reutiliza la que ya está y
 > sólo le reaplica filtro y título, así que no adoptaría la estructura nueva.
 
