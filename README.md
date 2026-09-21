@@ -2553,10 +2553,14 @@ calcula y escribe. Se escribe una vez en la plantilla y cada duplicado se la lle
 De paso resuelve los **encabezados agrupados**, que este graph nunca pudo armar a ciegas:
 `TABLA INSERTOS` ya trae `PESO` sobre `UNITARIO (KG/ML) (KG/M2)` y `TOTAL (KG)`.
 
-> ⚠️ **La plantilla tiene que incluir el campo `ASSEMBLY`**, aunque sea oculto (*Hidden
-> field*): es por donde 06 filtra cada copia. Si falta, lo dice como `ERROR` y no crea esa
-> tabla. Sólo se quitan los filtros **sobre ese campo**; los demás filtros de la plantilla se
-> respetan.
+**La plantilla no necesita incluir el campo `ASSEMBLY`.** Si no lo trae, 06 se lo agrega
+**oculto a la copia** — nunca a la plantilla. Un campo oculto no cambia nada de lo que se ve,
+y sin él no hay forma de filtrar por assembly; así nadie tiene que acordarse de incluirlo al
+armarla. Sólo falla si `ASSEMBLY` no está vinculado a la categoría de la plantilla, y ahí lo
+dice con ese motivo.
+
+> Sólo se quitan los filtros **sobre ese campo**; los demás filtros de la plantilla se
+> respetan — no se sabe qué más pudo configurar quien la armó.
 
 > Si cambiás la plantilla, borrá las tablas `TBL_*` existentes: 06 reutiliza la que ya está y
 > sólo le reaplica filtro y título, así que no adoptaría la estructura nueva.
