@@ -2638,7 +2638,52 @@ contenido de un assembly y el `CANT=N`, que es el formato del plano tipo. Si se 
 > modelo. El nombre definitivo es **`TABLA BASE ASSEMBLY`**, y tiene que ser **idéntico en
 > todos los proyectos**: 06 busca la plantilla por nombre, así que si en un proyecto se llama
 > distinto el log avisa y las tablas se arman desde cero, sin fórmulas ni encabezados
-> agrupados. Cuando existe, 06
+> agrupados.
+
+#### La plantilla la hace modelación, no este graph
+
+**2026-09-21.** Karin armó la suya (`LISTA DE MATERIALES SOPORTES`) y se adoptó como base. El
+diseño de 06 lo permite sin tocar nada: **cuando hay plantilla, 06 no mira lo que tiene
+adentro**. La duplica y le cambia el filtro y el título. Le da igual qué columnas, fórmulas,
+encabezados o grafismo traiga.
+
+Comparadas las dos tablas sobre el mismo modelo el 2026-09-21, los números salen **idénticos
+hasta el sexto decimal** (`6025,56555` de dimensión y `198852,375295` kg). La diferencia entre
+ellas era sólo de presentación.
+
+> ⚠️ **683 de las 1.453 unidades pesan 0 kg**, en las dos por igual: 416 `PL e=16mm`, 64
+> `PL e=25mm`, 112 planchas y 32 sillas, casi todas `Structural Connections`. Les falta
+> `PESO_UNIT`, que es un parámetro de **tipo**. Ninguna tabla lo puede arreglar.
+
+### ⚠️ El GUID de `ASSEMBLY` no es fijo
+
+**2026-09-21.** El parámetro compartido **se rehízo** para separarlo de `DESCRIPCIÓN_ITEM` —
+compartían GUID, así que escribir el nombre del assembly pisaba la descripción del elemento, y
+le pasó a **1.269** de ellos. Es el bloqueo que este pipeline arrastraba desde el 2026-09-16, y
+queda resuelto.
+
+| | GUID |
+|---|---|
+| `ASSEMBLY` (nuevo) | `93330cd2-7f31-401b-91b7-106c6c1d4454` |
+| `ASSEMBLY` (viejo, compartido con `DESCRIPCIÓN_ITEM`) | `92fdc373-364b-4440-8198-f8093299f73a` |
+| `DESCRIPCION_ITEM` (ahora aparte, de **tipo**) | `2eafdd43-ca5f-4ce6-98f3-e6634ec03486` |
+
+Los proyectos anteriores siguen con el GUID viejo, así que `GUID_ASSEMBLY` dejó de ser una
+constante: `resolver_guid_assembly()` prueba los conocidos **del más nuevo al más viejo** y gana
+el primero que exista en el modelo.
+
+> **Por GUID primero y por nombre sólo como último recurso**, nunca al revés. Existe un
+> **segundo** parámetro llamado `ASSEMBLY` —no compartido, vinculado únicamente a *Grids*— que
+> el modelador llena a mano y que leen 00 y 03. Buscar por nombre de entrada podría devolver
+> ese, y 06 filtraría por el parámetro equivocado **sin dar ningún error**.
+
+El nombre queda de respaldo por si el parámetro se vuelve a rehacer: se usa igual y el log
+avisa con el GUID nuevo para agregarlo a la lista. Probado contra los cinco escenarios (sólo el
+nuevo, sólo el viejo, los dos, GUID desconocido con el nombre correcto, y ninguno).
+
+`BIDIMENSION` también cambió: ahora es **de sólo lectura y se calcula en la familia, en
+metros** (`5,99943` m contra un `System Length` de `19,68` pies). Eso mata el bug del ×1000 en
+el origen. 06 ya detecta los parámetros de sólo lectura y no los escribe. Cuando existe, 06
 **la duplica** por assembly y le cambia **solo dos cosas**: el filtro por `ASSEMBLY` y el
 título. No toca campos, agrupación, encabezados, anchos ni grafismo — todo eso viene del
 duplicado.
