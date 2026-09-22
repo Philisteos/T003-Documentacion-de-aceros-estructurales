@@ -1848,6 +1848,31 @@ no del valor inferior) para aguantar una UI en otro idioma.
 > —`T.A. ELEVACION`, `P.T. ELEVACION`, `nipb ELEVACIÓN inf`, cada uno con su propio símbolo—
 > el prefijo deja de aplicarse sin tocar el graph ni ningún input.
 
+#### Si el tipo no existe, se usa el más parecido
+
+**2026-09-22.** `tipo_spot()` devolvía `None` cuando el tipo pedido no estaba, y el assembly
+se quedaba **sin ninguna marca**. Los nombres que trae el input son los del estándar, que un
+proyecto nuevo todavía puede no tener — y quedarse sin marcas es una pérdida **silenciosa** de
+información en el plano.
+
+Ahora cae al más parecido y lo avisa:
+
+```
+AVISO: no existe el tipo de Spot Elevation "T.A. ELEVACION"; se usa "C.L. ELEVACIÓN"
+en su lugar. Disponibles: BIOS_G_Coordenadas, C.L. ELEVACIÓN, Horizontal, Sloped.
+```
+
+> Prefiere uno cuyo nombre hable de **elevación**: en un proyecto típico conviven tipos de
+> *coordenada* y de *elevación*, y agarrar el de coordenadas daría un texto que no es una cota
+> de nivel. Probado contra los cuatro tipos reales de este modelo, contra un proyecto que sí
+> tiene el pedido, contra uno que sólo tiene coordenadas, y contra uno sin ningún tipo.
+
+Como la sigla la escribe el script, la marca se entiende igual aunque el tipo sea genérico.
+
+> ⚠️ **Al editar un `.dyn`, Dynamo Player vuelve a los valores por defecto.** Si habías
+> cambiado un input a mano, se pierde. Fue exactamente lo que pasó acá: la corrida siguiente a
+> un parche salió otra vez con los tres tipos del estándar y cero marcas.
+
 #### Los tipos de Spot Elevation son parte del estándar
 
 Este proyecto no tenía ninguno de los tres. Disponibles: `BIOS_G_Coordenadas`,
