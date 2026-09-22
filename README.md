@@ -1843,6 +1843,17 @@ editable** — verificado listando los parámetros de una marca ya creada. El pa
 **por forma y no por nombre exacto** (el de texto, escribible, cuyo nombre habla de prefijo y
 no del valor inferior) para aguantar una UI en otro idioma.
 
+**El prefijo se escribe al final, no al crear la marca.** Recién creada, una `SpotDimension`
+no acepta el valor: **`Parameter.Set()` devuelve `False` sin lanzar excepción**, así que el
+texto se perdía en silencio — las 68 marcas quedaron con el prefijo vacío y el log no dijo
+nada. Ahora se encolan y se escriben todas juntas después de **un solo** `Regenerate` (uno por
+marca sería correcto pero carísimo en un modelo grande), y **se mira el retorno de `Set()`**:
+
+```
+ES-1001: EJE 1' - sigla escrita en 4 marca(s).
+AVISO ES-1001: 4 marca(s) de EJE 1' quedaron sin sigla (T.A.: Revit rechazo el valor).
+```
+
 > **Se desactiva solo.** `sigla_ya_en_el_tipo()` mira el nombre del tipo **y el del símbolo**:
 > si alguno ya dice la sigla, no escribe nada. Así, cuando existan los tres tipos del estándar
 > —`T.A. ELEVACION`, `P.T. ELEVACION`, `nipb ELEVACIÓN inf`, cada uno con su propio símbolo—
