@@ -2009,6 +2009,62 @@ elige entre el mismo par de tipos según lo que entre en la pieza:
 | Plantas T.A. | un tag por **viga** (o por pieza, con el input `11`) | girado con la viga, centrado en su eje |
 | Elevaciones de eje | un tag por **tipo de familia** presente en la vista | girado siguiendo la pieza, separado si choca con otro |
 
+### Las plantas: mismo tratamiento que los cortes
+
+**2026-09-22.** Cuatro problemas distintos, todos en `rotular_planta`. Medido sobre `ES-1001`:
+la planta `T.A.` tenía **130 rótulos sobre 163 piezas**, ilegible; la `N.I.P.B.` tenía **cero**.
+
+**1. Las plantas `N.I.P.B.` y `P.T.` no se rotulaban nunca.** La lista de plantas del main se
+armaba **sólo** con `SUF_TA`, así que esas vistas ni llegaban a `rotular_planta` — sin una
+línea de log que lo dijera. Ahora entra también `SUF_NIPB` y `SUF_PT`.
+
+> Encima, la `N.I.P.B.` de ES-1001 tiene **74 piezas y todas son columnas**. Con el input `11`
+> apagado el recolector sólo junta `Structural Framing`, así que igual daría 0. El mensaje de
+> "sin rótulos" ahora lo dice y sugiere el input `11`.
+
+**2. No había ninguna detección de solape.** El anti-solape vivía sólo en
+`rotular_elevacion`; las plantas plantaban cada rótulo en el punto medio de su viga sin
+preguntar si ya había otro ahí. Ahora es el mismo criterio que en los cortes: se prueba el
+largo, si choca se prueba el corto, y si tampoco entra **se omite**.
+
+**3. La elección corto/largo miraba la viga equivocada.**
+
+```python
+disponible = a.DistanceTo(b) - 2.0 * margen    # el largo de SU PROPIA viga
+```
+
+Preguntaba *"¿entra a lo largo de esta pieza?"*, nunca *"¿cuánto hay hasta la de al lado?"*. En
+un campo de correas paralelas cada rótulo entraba en su viga y juntos se pisaban todos.
+
+**4. Las piezas sin eje caían siempre en rótulo corto.** Al descontarles el margen,
+`disponible = lado - 2*margen`, una columna de 30 cm a 1:200 daba **negativo** (el margen son
+0,4 m), así que siempre elegía el corto y contaba como "no entra ni corto". El margen existe
+para que el rótulo no se salga de los **extremos de la viga**, y una pieza puntual no tiene
+extremos: ya no se descuenta.
+
+> Las piezas se ordenan **de mayor a menor largo** antes de colocarse. Así, cuando dos no
+> caben juntos, el que se cae es el accesorio y no la viga principal.
+
+#### Verificado contra la plataforma
+
+El riesgo era romper el rotulado de plataformas, que ya funcionaba. Ejecutando las dos
+versiones de `rotular_planta` contra el mismo modelo falso, con medidas reales de 1:200
+(rótulo de 9 caracteres ≈ 14,5 pies de ancho, texto de 2,3 mm ≈ 1,5 pies de alto):
+
+| Escenario | HEAD | ahora |
+|---|---|---|
+| Plataforma repartida, con vigas cruzándose | 8 rótulos | **8 rótulos, ninguno perdido** |
+| Correas paralelas a 1 pie | 8 rótulos pisados | 4 rótulos, 4 omitidos |
+| 3 columnas en la misma intersección | 3 rótulos, **2 en la misma posición** | 1 rótulo |
+| 1 columna aislada | rótulo corto forzado | elige según el espacio real |
+
+La omisión **sólo se dispara cuando hay solape real**, así que una planta bien repartida no
+pierde nada. Y si alguna lo pierde, el log lo dice con nombre y apellido:
+
+```
+   ES-1001 \ T.A. 01: sin rotulo por falta de espacio: C25x15,10, L5x2,93
+```
+
 ### El modelador elige qué rotular
 
 **2026-09-21.** Los inputs `12. Rotular las plantas` y `08. Rotular también las elevaciones de
