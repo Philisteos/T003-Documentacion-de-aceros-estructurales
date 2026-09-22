@@ -1818,6 +1818,43 @@ nuevas.
 
 ---
 
+### La marca de nivel escribe su propia sigla
+
+**2026-09-22.** Las marcas de nivel de los cortes salen del contrato de nombres
+(`N.I.P.B._` / `P.T._` / `T.A._`), el mismo que usa 00 para crear las plantas. Eso ya
+funcionaba. Lo que no se veía era **cuál** era cuál.
+
+El texto fijo de una Spot Elevation **vive en el símbolo**, no en el script: en este proyecto
+el tipo `C.L. ELEVACIÓN` usa un símbolo llamado `C.L.`, así que las tres clases de nivel salían
+con el mismo rótulo. Medido en el modelo el 2026-09-22:
+
+| En el plano | Nivel |
+|---|---|
+| `EL. 57,655` + `C.L.` | N.I.P.B. 55 mm |
+| `EL. 64,030` + `C.L.` | T.A. 6.430 mm |
+| `EL. 69,155` + `C.L.` | P.T. 11.555 mm |
+| `EL. 70,355` + `C.L.` | P.T. 12.755 mm |
+
+(la diferencia constante de 57.600 mm es la cota compartida del sitio; las cuatro marcas
+estaban en su cota correcta)
+
+Ahora el script escribe la sigla en **`Single/Upper Value Prefix`**, que es de **instancia y
+editable** — verificado listando los parámetros de una marca ya creada. El parámetro se busca
+**por forma y no por nombre exacto** (el de texto, escribible, cuyo nombre habla de prefijo y
+no del valor inferior) para aguantar una UI en otro idioma.
+
+> **Se desactiva solo.** `sigla_ya_en_el_tipo()` mira el nombre del tipo **y el del símbolo**:
+> si alguno ya dice la sigla, no escribe nada. Así, cuando existan los tres tipos del estándar
+> —`T.A. ELEVACION`, `P.T. ELEVACION`, `nipb ELEVACIÓN inf`, cada uno con su propio símbolo—
+> el prefijo deja de aplicarse sin tocar el graph ni ningún input.
+
+#### Los tipos de Spot Elevation son parte del estándar
+
+Este proyecto no tenía ninguno de los tres. Disponibles: `BIOS_G_Coordenadas`,
+`C.L. ELEVACIÓN`, `Horizontal`, `Sloped`. Con `C.L. ELEVACIÓN, C.L. ELEVACIÓN,
+C.L. ELEVACIÓN` en el input funciona, pero lo que corresponde es que los tres tipos vivan en
+la plantilla junto con `TABLA BASE ASSEMBLY`.
+
 ## 04 — Grating en plantas
 
 > **Estado: escrito pero no probado en Revit.** La geometría se diseñó midiendo el modelo
