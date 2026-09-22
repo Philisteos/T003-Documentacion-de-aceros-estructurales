@@ -2931,7 +2931,41 @@ dice con ese motivo.
 > Sólo se quitan los filtros **sobre ese campo**; los demás filtros de la plantilla se
 > respetan — no se sabe qué más pudo configurar quien la armó.
 
-#### ⚠️ La FASE de la plantilla puede vaciar la tabla
+#### El título de la tabla es su NOMBRE de vista
+
+**2026-09-22.** El input `06. Título` **nunca hizo nada** desde que existe, y por eso en las
+láminas salía el nombre técnico `TBL_ES-1001`.
+
+La causa: **un `ViewSchedule` no tiene el parámetro "Title on Sheet"** (`VIEW_DESCRIPTION`).
+`sched.get_Parameter(BuiltInParameter.VIEW_DESCRIPTION)` devuelve `None`, y el guard
+`if p_titulo is not None` hacía que el intento se saltara **en silencio**. Verificado listando
+todos los parámetros del schedule en el modelo: aparece `View Name`, no aparece ningún
+"Title on Sheet".
+
+Lo que Revit muestra como título de una tabla es **el nombre de la vista**. Así que el input
+pasó a armar ese nombre:
+
+| Input `06` | Nombre y título de la tabla |
+|---|---|
+| `LISTA DE MATERIALES` | `LISTA DE MATERIALES ES-1001` |
+| *(vacío)* | `TBL_ES-1001` |
+
+> Vacío deja el nombre técnico de siempre, para no renombrarle las tablas a un proyecto que ya
+> estaba andando.
+
+**Cambiar el título no duplica tablas.** Si no encuentra la tabla con el nombre esperado, 06
+busca la del mismo assembly bajo cualquier otro título —el `TBL_` histórico o el prefijo
+anterior— y la **renombra** en vez de crear una segunda:
+
+```
+ES-1001: la tabla se renombro de "TBL_ES-1001" a "LISTA DE MATERIALES ES-1001".
+```
+
+La plantilla queda excluida de esa búsqueda por nombre, así que no hay forma de que se la
+lleve por delante. Y `es_tabla_generada()` impide que una tabla que generó este mismo graph
+aparezca en la lista de plantillas disponibles.
+
+### ⚠️ La FASE de la plantilla puede vaciar la tabla
 
 Un schedule **sólo muestra elementos de su propia fase**, y eso **no se ve en la pestaña
 *Filter***: es un parámetro de la vista. El duplicado hereda la fase de la plantilla, así que
