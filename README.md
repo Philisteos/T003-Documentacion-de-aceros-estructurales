@@ -1859,6 +1859,44 @@ AVISO ES-1001: 4 marca(s) de EJE 1' quedaron sin sigla (T.A.: Revit rechazo el v
 > —`T.A. ELEVACION`, `P.T. ELEVACION`, `nipb ELEVACIÓN inf`, cada uno con su propio símbolo—
 > el prefijo deja de aplicarse sin tocar el graph ni ningún input.
 
+#### ⚠️ La cota arranca de la N.I.P.B. declarada, no del punto más bajo
+
+**2026-09-22.** `alturas_para_cotar()` usaba `min(bots)` — el punto más bajo de **cualquier**
+miembro del assembly. Eso agarra la **llave de corte**, que no siempre va y que suele quedar
+**embebida en el hormigón**, y los pernos de anclaje.
+
+La N.I.P.B. se representa desde la **base de la silla**. Medido en `ES-1001`:
+
+| | Cota |
+|---|---|
+| Nivel declarado `N.I.P.B._ES-1001` | **+55 mm** |
+| Fondo de la silla `S-SILLA_500x900` | −195 mm |
+| Fondo de las placas | +80 mm |
+| Base que usaba la cota | **−322 mm** |
+
+La cota `N.I.P.B. → T.A.` salía **13.131 mm** cuando debía salir ~12.750.
+
+Ahora manda el **nivel declarado**, el mismo contrato de nombres (`N.I.P.B._` / `P.T._` /
+`T.A._`) que las marcas leen desde el 2026-08-11. Ese cambio se había hecho sólo para las
+marcas y no se extendió a la cota, que siguió siendo geométrica.
+
+> **Se apoya en la cara más cercana, no en el nivel exacto.** Una cota necesita una cara real
+> contra la cual referenciarse, y a la cota exacta del nivel declarado puede no haber ninguna.
+> Acá el fondo de pieza más cercano a los 55 mm está en 80 mm, así que la cota queda en
+> **12.729 mm** — 25 mm del ideal, contra los 402 mm de error anterior.
+
+`TOL_NIPB` (200 mm) acota cuánto puede alejarse esa cara. Si no hay ninguna dentro de ese
+rango, vuelve al fondo del assembly **y lo avisa**:
+
+```
+AVISO: la N.I.P.B. declarada (5000 mm) no tiene ninguna cara a menos de 200 mm;
+la cota de altura arranca del fondo del assembly (-322 mm), que puede ser la
+llave de corte.
+```
+
+Sin nivel declarado el comportamiento es el de antes, así que un proyecto sin los niveles
+nombrados no cambia.
+
 #### Si el tipo no existe, se usa el más parecido
 
 **2026-09-22.** `tipo_spot()` devolvía `None` cuando el tipo pedido no estaba, y el assembly
